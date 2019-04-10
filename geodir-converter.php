@@ -7,7 +7,7 @@
  * @license           GPLv3
  * @since             1.0.0
  *
- * @geodir_claim_listing
+ * @geodir_converter
  * Plugin Name: GeoDirectory Converter
  * Plugin URI: https://ayecode.com
  * Description: A plugin to convert other directories to GeoDirectory
@@ -22,3 +22,26 @@
  * Domain Path: /languages
  * Update URL: https://wpgeodirectory.com
  */
+
+/**
+ ***> Plan:
+ ** Create a parent abstract class
+ ** create folders with related classes for each directory systems. ex. PDP
+ *
+ ** Create setting in backend
+ ***> Setting for entering database entries
+ ***> Show directory system that supported in form of radio button
+ ***> Setting for table prefix
+ ***> Convert button on clicking on which the process will begin
+ */
+
+
+
+if ( ! defined( 'WPINC' ) ) {
+	die;
+}
+
+if ( ! defined( 'GEODIR_CONVERTER_VERSION' ) ) {
+	define( 'GEODIR_CONVERTER_VERSION', '1.0.0' );
+}
+
