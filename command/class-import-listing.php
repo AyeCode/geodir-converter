@@ -140,9 +140,9 @@ class Convert_Listing_Command {
 						array('%s' )
 					);
 				}
-				error_log( print_r( $listing->id, true) );
-				error_log( print_r( $listing->title, true) );
-				error_log( print_r( $status, true) );
+//				error_log( print_r( $listing->id, true) );
+//				error_log( print_r( $listing->title, true) );
+//				error_log( print_r( $status, true) );
 //				error_log( print_r( $listing->slug, true) );
 //				error_log( print_r( $listing->description_Short, true) );
 //				error_log( print_r( $listing->description, true) );
@@ -197,6 +197,11 @@ class Convert_Listing_Command {
 
 			}
 			WP_CLI::success('Successfully Updated Listing');
+			if( !empty( $removetable ) ){
+				$dropcatquery = 'drop table pmd_listings';
+				$wpdb->get_results( $dropcatquery );
+				WP_CLI::success('Successfully Removed old table');
+			}
 		}
 
 		/**
@@ -204,11 +209,6 @@ class Convert_Listing_Command {
 		 * Import all post from pmd_listings to wp_posts and then to wp_geodir_gd_place_detail
 		 * import id and few other extra fields in post meta incase we need that
 		 */
-
-
-		WP_CLI::log('comming here');
-		WP_CLI::log($removetable);
-
 	}
 
 	/**
@@ -261,7 +261,13 @@ class Convert_Listing_Command {
 				}
 			}
 			WP_CLI::success('Successfully Updated Users');
+			if( !empty( $removetable ) ){
+				$dropcatquery = 'drop table pmd_users';
+				$wpdb->get_results( $dropcatquery );
+				WP_CLI::success('Successfully Removed old table');
+			}
 		}
+
 
 		/**
 		 * Import all categories
@@ -339,8 +345,6 @@ class Convert_Listing_Command {
 			WP_CLI::success('Successfully Removed old table');
 		}
 	}
-
-
 
 }
 
