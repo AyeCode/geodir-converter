@@ -45,3 +45,18 @@ if ( ! defined( 'GEODIR_CONVERTER_VERSION' ) ) {
 	define( 'GEODIR_CONVERTER_VERSION', '1.0.0' );
 }
 
+/**
+ * Begins execution of the plugin.
+ *
+ * @since    1.0.0
+ */
+function geodir_load_geodir_converter() {
+
+	if ( ! defined( 'GEODIR_CONVERTER_PLUGIN_FILE' ) ) {
+		define( 'GEODIR_CONVERTER_PLUGIN_FILE', __FILE__ );
+	}
+
+	require_once ( plugin_dir_path( GEODIR_CONVERTER_PLUGIN_FILE ) . 'command/class-import-listing.php' );
+}
+add_action( 'geodirectory_loaded', 'geodir_load_geodir_converter' );
+
