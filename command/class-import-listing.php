@@ -41,30 +41,30 @@ class Convert_Listing_Command {
 					$status = ( !empty( $listing->status ) && 'active' == $listing->status )? 'publish': $listing->status;
 					$status = ( !empty( $listing->status ) && 'suspended' == $listing->status )? 'trash': $status;
 					$excerpt = ( !empty( $listing->description_Short ) )? $listing->description_Short: '';
-//					$wpdb->insert(
-//						$post_table,
-//						array(
-//							'id' => $listing->id,
-//							'post_author' => $listing->user_id,
-//							'post_title' => $listing->title,
-//							'post_name' => $listing->friendly_url,
-//							'post_excerpt' => $excerpt,
-//							'post_content' => $listing->description,
-//							'post_date' => $listing->date,
-//							'post_date_gmt' => $listing->date,
-//							'post_modified' => $listing->date_update,
-//							'post_modified_gmt' => $listing->date_update,
-//							'comment_status' => 'open',
-//							'ping_status' => 'closed',
-//							'post_parent' => 0,
-//							'guid' => get_site_url() . '/places/' . $listing->friendly_url,
-//							'menu_order' => 0,
-//							'post_type' => 'gd_place',
-//							'comment_count' => 0,
-//
-//						),
-//						array('%d','%d','%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%d')
-//					);
+					$wpdb->insert(
+						$post_table,
+						array(
+							'id' => $listing->id,
+							'post_author' => $listing->user_id,
+							'post_title' => $listing->title,
+							'post_name' => $listing->friendly_url,
+							'post_excerpt' => $excerpt,
+							'post_content' => $listing->description,
+							'post_date' => $listing->date,
+							'post_date_gmt' => $listing->date,
+							'post_modified' => $listing->date_update,
+							'post_modified_gmt' => $listing->date_update,
+							'comment_status' => 'open',
+							'ping_status' => 'closed',
+							'post_parent' => 0,
+							'guid' => get_site_url() . '/places/' . $listing->friendly_url,
+							'menu_order' => 0,
+							'post_type' => 'gd_place',
+							'comment_count' => 0,
+
+						),
+						array('%d','%d','%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%d')
+					);
 
 					$gd_place_detail_table = $wpdb->prefix.'geodir_gd_place_detail';
 					$inserted_post = $wpdb->insert(
@@ -209,6 +209,65 @@ class Convert_Listing_Command {
 		WP_CLI::log('comming here');
 		WP_CLI::log($removetable);
 
+	}
+
+	/**
+	 * Prints a greeting.
+	 *
+	 * ## OPTIONS
+	 *
+	 *
+	 * [--removetable]
+	 * : Whether or not to greet the person with success or error.
+	 * ---
+	 * default: success
+	 * options:
+	 *   - success
+	 *   - error
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp convert users --removetable
+	 *
+	 * @when after_wp_load
+	 */
+	function users( $args, $assoc_args ) {
+
+		// Print the message with type
+		$removetable = $assoc_args['removetable'];
+		global $wpdb;
+		$pmd_listings = 'select * from pmd_users';
+		$users_results = $wpdb->get_results( $pmd_listings );
+		if( !empty( $users_results ) ){
+			foreach ( $users_results as $key => $user ){
+				global $wpdb;
+				$user_table = $wpdb->prefix.'users';
+				if( !empty( $user->id ) ){
+					$inserted_id = $wpdb->insert(
+						$user_table,
+						array(
+							'id' => $user->id,
+							'user_login' => $user->login,
+							'user_pass' => $user->pass,
+							'user_nicename' => $user->login,
+							'user_email' => $user->user_email,
+							'user_registered' => $user->created,
+							'display_name' => $user->user_first_name . ' ' . $user->user_last_name
+						),
+						array('%d','%s','%s','%s','%s','%s','%s' )
+					);
+
+				}
+			}
+			WP_CLI::success('Successfully Updated Users');
+		}
+
+		/**
+		 * Import all categories
+		 * Import all post from pmd_listings to wp_posts and then to wp_geodir_gd_place_detail
+		 * import id and few other extra fields in post meta incase we need that
+		 */
 	}
 
 
