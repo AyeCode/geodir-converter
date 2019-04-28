@@ -32,3 +32,10 @@ Step 1: Import following table in WordPress database
 
 WP-CLI Command:  wp convert users --removetable 
 
+### Import Invoice Data 
+
+Step 1: Import following table in WordPress database
+-   pmd_invoices	
+
+WP-CLI Command:  wp convert invoice --removetable 
+
