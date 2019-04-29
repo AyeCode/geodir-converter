@@ -140,6 +140,7 @@ class Convert_Listing_Command {
 						array('%s' )
 					);
 				}
+
 //				error_log( print_r( $listing->id, true) );
 //				error_log( print_r( $listing->title, true) );
 //				error_log( print_r( $status, true) );
@@ -336,6 +337,14 @@ class Convert_Listing_Command {
 					),
 					array('%d','%d', '%s', '%d', '%d')
 				);
+				$catquery_query = $wpdb->prepare( 'select * from pmd_listings_categories where cat_id=%d', $value->id );
+				$category_results = $wpdb->get_results( $catquery_query );
+				if( !empty( $category_results ) ){
+					foreach ( $category_results as $key => $cat ){
+						wp_set_post_terms( $cat->list_id, $cat->cat_id, 'gd_placecategory' );
+					}
+				}
+
 			}
 			WP_CLI::success('Successfully Updated Categories');
 		}
@@ -344,6 +353,97 @@ class Convert_Listing_Command {
 			$wpdb->get_results( $dropcatquery );
 			WP_CLI::success('Successfully Removed old table');
 		}
+	}
+
+	/**
+	 * Prints a greeting.
+	 *
+	 * ## OPTIONS
+	 *
+	 *
+	 * [--removetable]
+	 * : Whether or not to greet the person with success or error.
+	 * ---
+	 * default: success
+	 * options:
+	 *   - success
+	 *   - error
+	 * ---
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp convert invoice --removetable
+	 *
+	 * @when after_wp_load
+	 */
+	function invoice( $args, $assoc_args ) {
+
+		// Print the message with type
+		$removetable = $assoc_args['removetable'];
+		global $wpdb;
+		$pmd_invoices = 'select * from pmd_invoices LIMIT 0, 5';
+		$listings_results = $wpdb->get_results( $pmd_invoices );
+		if( !empty( $listings_results ) ){
+			foreach ( $listings_results as $key => $listing ){
+				global $wpdb;
+				$post_table = $wpdb->prefix.'posts';
+				if( !empty( $listing->id ) ){
+					$status = ( !empty( $listing->status ) && 'unpaid' == $listing->status )? 'wpi-pending': $listing->status;
+					$status = ( !empty( $listing->status ) && 'canceled' == $listing->status )? 'wpi-cancelled': $status;
+					$status = ( !empty( $listing->status ) && 'paid' == $listing->status )? 'publish': $status;
+					$excerpt = ( !empty( $listing->description_Short ) )? $listing->description_Short: '';
+					$inserted_id =$wpdb->insert(
+						$post_table,
+						array(
+							'post_author' => $listing->user_id,
+							'post_title' => 'WPINV-00'.$listing->id,
+							'post_name' => 'inv-'.$listing->id,
+							'post_excerpt' => $excerpt,
+							'post_content' => $listing->description,
+							'post_date' => $listing->date,
+							'post_date_gmt' => $listing->date,
+							'post_modified' => $listing->date,
+							'post_modified_gmt' => $listing->date,
+							'comment_status' => 'closed',
+							'ping_status' => 'closed',
+							'post_parent' => 0,
+							'guid' => get_site_url() . '/wpi_invoice/' . 'inv-'.$listing->id,
+							'menu_order' => 0,
+							'post_type' => 'wpi_invoice',
+							'comment_count' => 0,
+
+						),
+						array('%d','%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%d')
+					);
+					$inserted_id = $wpdb->insert_id;
+					if( !empty( $inserted_id ) ){
+						update_post_meta( $inserted_id, '_wpinv_subtotal', $listing->subtotal );
+						update_post_meta( $inserted_id, '_wpinv_tax', $listing->tax );
+						update_post_meta( $inserted_id, '_wpinv_total', $listing->total );
+					}
+				}
+			}
+
+			WP_CLI::success('Successfully Updated invoice');
+			if( !empty( $removetable ) ){
+				$dropcatquery = 'drop table pmd_invoices';
+				$wpdb->get_results( $dropcatquery );
+				WP_CLI::success('Successfully Removed old table');
+			}
+		}
+
+		/**
+		 *
+		 */
+		function import_custom_fields(){
+
+		}
+
+		/**
+		 * Import all categories
+		 * Import all post from pmd_listings to wp_posts and then to wp_geodir_gd_place_detail
+		 * import id and few other extra fields in post meta incase we need that
+		 */
 	}
 
 }
