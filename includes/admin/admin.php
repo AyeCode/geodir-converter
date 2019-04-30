@@ -5,10 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 
-// Exit if accessed directly
-if ( !defined( 'ABSPATH' ) ) exit;
-
-
 /**
  * Loads the plugin admin area
  *
@@ -49,7 +45,7 @@ class GDCONVERTER_Admin {
 		 * @since 1.0.0
 		 *
 		*/
-		do_action( 'GeoDirectory Converter_admin_init' );
+		do_action( 'geodir_converter_admin_init' );
 	}
 
 	/**
@@ -80,7 +76,7 @@ class GDCONVERTER_Admin {
 	public function render_admin_page() {
 
 		if( current_user_can( 'manage_options' ) ){
-			echo 'You can now import stuff';
+			include 'template.php';
 		}
 
 	}

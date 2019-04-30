@@ -43,6 +43,9 @@ class GDCONVERTER_Loarder {
 
         //Init the Admin
         new GDCONVERTER_Admin();
+
+        //Init PMD
+        new GDCONVERTER_PMD();
     }
     
     /**
@@ -53,6 +56,7 @@ class GDCONVERTER_Loarder {
 	 */
 	private function includes() {
         require_once( $this->includes_dir . 'admin/admin.php' );
+        require_once( $this->includes_dir . 'directories/pmd.php' );
 	}
 
 
