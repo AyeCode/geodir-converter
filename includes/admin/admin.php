@@ -31,8 +31,8 @@ class GDCONVERTER_Admin {
 	public function __construct() {
 
 		//Setup class globals
-        $this->admin_dir = plugin_dir_path( GEODIR_CONVERTER_PLUGIN_FILE ) . 'admin';
-        $this->admin_url = plugin_dir_url( GEODIR_CONVERTER_PLUGIN_FILE ) . 'admin';
+        $this->admin_dir = plugin_dir_path( GEODIR_CONVERTER_PLUGIN_FILE ) . 'includes/admin/';
+        $this->admin_url = plugin_dir_url( GEODIR_CONVERTER_PLUGIN_FILE ) . 'includes/admin/';
 
 		//Setup hooks
 		add_action( 'admin_menu',              	   		array( $this, 'admin_menus'     ));
@@ -87,6 +87,12 @@ class GDCONVERTER_Admin {
 	 * @since GeoDirectory Converter 1.0.0
 	 */
 	public function enqueue_styles() {
+        wp_enqueue_style(
+            "geodir-converter",
+            $this->admin_url . 'assets/styles.css',
+            array(),
+            filemtime($this->admin_dir . 'assets/styles.css')
+        );
 	}
 
 	/**
@@ -95,6 +101,20 @@ class GDCONVERTER_Admin {
 	 * @since GeoDirectory Converter 1.0.0
 	 */
 	public function enqueue_scripts() {
+        $params = array(
+            'ajaxurl' 				=> admin_url( 'admin-ajax.php' ),
+        );
+
+        wp_register_script(
+            "geodir-converter",
+            $this->admin_url . 'assets/scripts.js',
+            array('jquery'),
+            filemtime($this->admin_dir . 'assets/scripts.js'),
+            true
+        );
+        wp_localize_script( 'geodir-converter', 'GD_Converter', $params );
+		wp_enqueue_script( 'geodir-converter' );
+
 	}
 
 }

@@ -1,0 +1,49 @@
+.geodir-converter-inner {
+    background: #fff;
+    max-width: 560px;
+    padding: 20px;
+    margin-top: 30px;
+    border-top: 4px solid #ff5722;
+}
+
+.geodir-converter-inner p {
+    font-size: 16px;
+}
+
+.geodir-converter-form {
+    margin: 30px auto;
+}
+
+.geodir-converter-select {
+    background-color: #ff5722;
+    border: 1px solid #ff5722;
+    border-radius: 2px;
+    -webkit-box-shadow: 0 5px 11px 0 rgba(0, 0, 0, .18), 0 4px 15px 0 rgba(0, 0, 0, .15);
+    box-shadow: 0 5px 11px 0 rgba(0, 0, 0, .18), 0 4px 15px 0 rgba(0, 0, 0, .15);
+    color: white;
+    font-size: 16px;
+    position: relative;
+    display: inline-block;
+    padding: 8px 24px;
+    letter-spacing: .5px;
+    -webkit-transition: .2s ease-out;
+    -moz-transition: .2s ease-out;
+    transition: .2s ease-out;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.geodir-converter-select:hover,
+.geodir-converter-select:focus,
+.geodir-converter-select:active {
+    background-color: #ff7e55;
+    border-color: #ff7e55;
+}
+
+.geodir-converter-errors {
+    display: none;
+    border-left: 2px solid #f00;
+    padding-left: 20px;
+    color: #f00;
+}
