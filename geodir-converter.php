@@ -14,7 +14,7 @@
  * Version: 1.0.0
  * Author: AyeCode Ltd
  * Author URI: https://wpgeodirectory.com/
- * Requires at least: 4.9
+ * Requires at least: 4.7
  * Tested up to: 5.1
  * License: GPLv3
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -56,7 +56,9 @@ function geodir_load_geodir_converter() {
 		define( 'GEODIR_CONVERTER_PLUGIN_FILE', __FILE__ );
 	}
 
-	require_once ( plugin_dir_path( GEODIR_CONVERTER_PLUGIN_FILE ) . 'command/class-import-listing.php' );
+	require_once ( plugin_dir_path( GEODIR_CONVERTER_PLUGIN_FILE ) . 'includes/loader.php' );
+	new GDCONVERTER_Loarder();
+	
 }
 add_action( 'geodirectory_loaded', 'geodir_load_geodir_converter' );
 
