@@ -60,3 +60,28 @@ function geodir_load_geodir_converter() {
 }
 add_action( 'geodirectory_loaded', 'geodir_load_geodir_converter' );
 
+/**
+ * Tells the user to install GeoDirectory, if they haven't
+ *
+ * @since    1.0.0
+ */
+function geodir_converter_check_if_geodir_is_installed() {
+
+	if ( did_action( 'geodirectory_loaded' ) ) {
+		return;
+	}
+
+	$class   = 'notice notice-error';
+    $message = __( 'Irks! You need to install GeoDirectory before using this plugin.', 'geodir-converter' );
+	$url     = network_admin_url( 'plugin-install.php?tab=plugin-information&plugin=geodirectory&TB_iframe=true&width=600&height=550' );
+
+	printf( '<div class="%s"><p>%s</p><p><a href="%s" class="thickbox button button-primary">%s</a></p></div>', 
+		esc_attr( $class ), 
+		esc_html( $message ),
+		esc_url( $url ),
+		esc_html__( 'Install GeoDirectory', 'geodir-converter' )
+	 );
+
+}
+add_action( 'admin_notices', 'geodir_converter_check_if_geodir_is_installed' );
+
