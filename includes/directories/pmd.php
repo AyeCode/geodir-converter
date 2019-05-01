@@ -78,8 +78,37 @@ class GDCONVERTER_PMD {
 		if( 2 != $step ){
 			return $fields;
 		}
-		
-		$fields .= 'Here we connect to the database';
+	
+		//Prepare db connection details
+		$host 		= '';
+		$db_name    = '';
+		$name 		= '';
+		$pass 		= '';
+		$pre  		= 'pmd_';
+
+		if( ! empty( $_REQUEST['database-host'] ) ){
+			$host = sanitize_text_field($_REQUEST['database-host']);
+		}
+
+		if( ! empty( $_REQUEST['database-name'] ) ){
+			$db_name = sanitize_text_field($_REQUEST['database-name']);
+		}
+
+		if( ! empty( $_REQUEST['database-user'] ) ){
+			$name = sanitize_text_field($_REQUEST['database-user']);
+		}
+
+		if( ! empty( $_REQUEST['database-password'] ) ){
+			$pass = sanitize_text_field($_REQUEST['database-password']);
+		}
+
+		if( ! empty( $_REQUEST['table-prefix'] ) ){
+			$pre = sanitize_text_field($_REQUEST['table-prefix']);
+		}
+
+		//Try connecting to the db
+		$db = new wpdb( $name ,$pass ,$db_name ,$host );
+		$fields .= 'We have successfuly connected to the database';
 		return $fields;
 	}
 
