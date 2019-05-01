@@ -69,7 +69,7 @@ class GDCONVERTER_Loarder {
 	 *
 	 */
 	private function setup_hooks() {
-        add_action( 'wp_ajax_gdconverter_handle_first_form', array( $this, 'handle_first_form' ) );
+        add_action( 'wp_ajax_gdconverter_handle_import', array( $this, 'handle_import' ) );
 
 	}
 
@@ -90,19 +90,19 @@ class GDCONVERTER_Loarder {
 	 *
 	 */
 	public static function send_response( $action, $body ) {
-        die( wp_json_encode( array(
+		wp_send_json( array(
             'action' => $action,
             'body'	 => $body,	
-        )));
+        ) );
     }
     
     /**
-	 * Processes the first form
+	 * Processes the import
 	 *
 	 * @since GeoDirectory Converter 1.0.0
 	 *
 	 */
-	public function handle_first_form() {
+	public function handle_import() {
 
         //Abort if the current user does not have enough rights to run this import
 	    if ( !current_user_can( 'manage_options' )  ) {
@@ -129,7 +129,13 @@ class GDCONVERTER_Loarder {
             $error = esc_html__( 'Error: The converter you selected is not registered on this site.', 'geodirectory-converter' );
 		    self::send_response( 'error', $error );
         }
-        
+		
+		//What step are we on
+		$current_step = 1;
+		if($_REQUEST['step'] ) {
+			$current_step = intval( $_REQUEST['step'] );
+		}
+
         //Let's fetch the next step
         $next_step = '';
 
@@ -139,7 +145,7 @@ class GDCONVERTER_Loarder {
 	     * @since 1.0.0
 	     *
 	     */
-        $next_step = apply_filters( 'geodirectory_importer_fields', $next_step );
+        $next_step = apply_filters( 'geodirectory_importer_fields', $next_step, $current_step );
         
         /**
 	     * Filters the response returned to the user after selecting an importer
@@ -147,13 +153,42 @@ class GDCONVERTER_Loarder {
 	     * @since 1.0.0
 	     *
 	     */
-        $next_step = apply_filters( "geodirectory_{$importer}_importer_fields", $next_step );
+        $next_step = apply_filters( "geodirectory_{$importer}_importer_fields", $next_step, $current_step );
 
         if( empty($next_step) ){
             $next_step = esc_html__('The selected importer is incorrectly configured', 'geodirectory-converter');
         }
 
+		$return = $this->next_step_to_html( $next_step, $current_step );
+
         //Return our response
-        self::send_response( 'success', $next_step );
+        self::send_response( 'success', $return );
+	}
+
+	/**
+	 * Fetches the HTML for the next step
+	 *
+	 * @since GeoDirectory Converter 1.0.0
+	 *
+	 */
+	public function next_step_to_html( $next_step, $current_step ) {
+
+		$importer = esc_attr( $_REQUEST['gd-converter'] );
+		$html = '
+			<div class="geodir-converter-form-wrapper">
+				<div class="geodir-converter-errors"></div>
+				<form method="post" action="" class="geodir-converter-form geodir-converter-form1">
+				<input type="hidden" name="action" value="gdconverter_handle_import">
+		';
+
+		$step = $current_step + 1;
+		$html .= "<input type='hidden' name='gd-converter' value='$importer'>";
+		$html .= "<input type='hidden' name='step' value='$step'>";
+		$html .= $next_step;
+		$html .= wp_nonce_field( 'gdconverter_nonce_action', 'gdconverter_nonce_field', true, false );
+		$html .= '</form></div>';		
+
+		return $html;
+
 	}
 }

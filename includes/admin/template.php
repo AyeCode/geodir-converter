@@ -30,7 +30,8 @@ $importers = GDCONVERTER_Loarder::get_importers();
 				}
 				wp_nonce_field( 'gdconverter_nonce_action', 'gdconverter_nonce_field' );
 				?>
-				<input type='hidden' name='action' value='gdconverter_handle_first_form'>
+				<input type='hidden' name='action' value='gdconverter_handle_import'>
+				<input type="hidden" name="step" value="1">
 			</form>
 		</div>
 	</div>

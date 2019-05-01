@@ -6,50 +6,71 @@
     //Helper function to fetch next step via ajax
     var GD_Converter_fetch = function(data, error_cb, success_cb) {
         return $.post(
-            GD_Converter.ajaxurl,
-            data,
-            function(json) {
-                if ($.isPlainObject(json)) {
+                GD_Converter.ajaxurl,
+                data,
+                function(json) {
+                    if ($.isPlainObject(json)) {
 
-                    if (json.action == 'error') {
-                        error_cb(json.body)
+                        if (json.action == 'error') {
+                            error_cb(json.body)
+                        }
+                        if (json.action == 'success') {
+                            success_cb(json.body)
+                        }
+                    } else {
+                        error_cb(json);
                     }
-                    if (json.action == 'success') {
-                        success_cb(json.body)
-                    }
-                } else {
-                    error_cb("The server returned an unknown error. Please try again.");
-                }
-            },
-            'json');
+                })
+            .fail(function() {
+                error_cb('We could not connect to the server. Please try again.');
+            });
     }
 
-    //Submit the form when our custom radio boxes change
-    $(".geodir-converter-select input")
-        .on('change', function(e) {
-            $(this).closest('form').submit();
-        })
+    //Helper function to attach event handlers
+    var GD_Converter_attach_handlers = function(form) {
 
-    //Let's fetch the next step when a form is submitted
-    $(".geodir-converter-form")
-        .on('submit', function(e) {
-            e.preventDefault();
+        //Submit the form when our custom radio boxes change
+        $(form)
+            .find(".geodir-converter-select input")
+            .on('change', function(e) {
+                $(form).submit();
+            })
 
-            var parent = $(this).closest('.geodir-converter-inner');
-            var formData = $(this).serialize();
+        //Let's fetch the next step when a form is submitted
+        $(form)
+            .on('submit', function(e) {
+                e.preventDefault();
 
-            //Hide errors
-            $(this).find(".geodir-converter-errors").html('').hide();
+                var parent = $(this).closest('.geodir-converter-inner');
+                var formData = $(this).serialize();
 
-            //Fetch the next step from the db
-            GD_Converter_fetch(
-                formData,
-                function(str) {
-                    $('.geodir-converter-errors').html(str).show()
-                },
-                function(str) {
-                    $(parent).html(str)
-                }
-            )
-        })
+                //Hide errors
+                $(this).find(".geodir-converter-errors").html('').hide();
+
+                //Fade the parent
+                parent.css({
+                    opacity: 0.4,
+                })
+
+                //Fetch the next step from the db
+                GD_Converter_fetch(
+                    formData,
+                    function(str) {
+                        $('.geodir-converter-errors').html(str).show()
+                    },
+                    function(str) {
+                        $(parent).html(str)
+                        var newForm = $(parent).find('form')
+                        GD_Converter_attach_handlers(newForm);
+                    }
+                ).done(function() {
+                    parent.css({
+                        opacity: 1,
+                    })
+                })
+            })
+    }
+
+    //Attach handlers to the initial form
+    GD_Converter_attach_handlers('.geodir-converter-form1');
 })(jQuery);

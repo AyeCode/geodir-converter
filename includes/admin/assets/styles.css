@@ -14,7 +14,22 @@
     margin: 30px auto;
 }
 
-.geodir-converter-select {
+.geodir-converter label {
+    display: block;
+    margin-bottom: 20px;
+}
+
+.geodir-converter input[type="text"] {
+    display: block;
+    margin-top: 5px;
+    width: 100%;
+    max-width: 420px;
+    height: 36px;
+    border-radius: 4px;
+}
+
+.geodir-converter .geodir-converter-select,
+.geodir-converter input[type="submit"] {
     background-color: #ff5722;
     border: 1px solid #ff5722;
     border-radius: 2px;
@@ -36,9 +51,13 @@
 
 .geodir-converter-select:hover,
 .geodir-converter-select:focus,
-.geodir-converter-select:active {
+.geodir-converter-select:active,
+.geodir-converter input[type="submit"]:hover,
+.geodir-converter input[type="submit"]:focus,
+.geodir-converter input[type="submit"]:active {
     background-color: #ff7e55;
     border-color: #ff7e55;
+    outline: none;
 }
 
 .geodir-converter-errors {
