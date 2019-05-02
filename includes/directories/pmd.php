@@ -118,11 +118,11 @@ class GDCONVERTER_PMD {
 
 		//Cache the db connection details for an hour
 		$cache = array(
-			'db' 		=> $db,
 			'host' 		=> $host,
 			'db_name' 	=> $db_name,
 			'pass'		=> $pass,
-			'prefix'	=> $prefix
+			'user'		=> $name,
+			'prefix'	=> $pre
 		);
 		set_transient( 'geodir_converter_pmd_db_details', $cache, HOUR_IN_SECONDS  );
 
@@ -193,7 +193,7 @@ class GDCONVERTER_PMD {
 		}
 
 		//Try connecting to the db
-		$this->db = new wpdb( $db_config['db'] ,$db_config['pass'] ,$db_config['db_name'] ,$db_config['host'] );
+		$this->db = new wpdb( $db_config['user'] ,$db_config['pass'] ,$db_config['db_name'] ,$db_config['host'] );
 
 		//Tables
 		$prefix = $db_config['prefix'] ;
@@ -214,6 +214,31 @@ class GDCONVERTER_PMD {
 		if(! array_key_exists( $import, $tables ) ) {
 			$error = __('This importer is not configured to import the selected data.', 'geodirectory-converter');
 			GDCONVERTER_Loarder::send_response( 'error', $error );
+		}
+
+		//Let's import it
+		if( method_exists( $this, "import_$import") ){
+
+			call_user_func( array( $this, "import_$import"), $tables[$import] );
+
+			$fields .= sprintf(
+				__('%s Successfully imported %s %s
+				  %s You can select any other data you wish to import %s', 'geodirectory-converter'),
+				 '<h3 class="geodir-converter-header-success">',
+				 $import,
+				 '</h3>',
+				 '<p>',
+				 '</p>'
+			);
+
+			$done = array();
+			if(! empty($_REQUEST['pmd-done']) ){
+				$done = explode( ',', $_REQUEST['pmd-done'] );
+			}
+			$done[] = $import;
+			$fields .= $this->get_types_select_html( $done );
+			$done = esc_attr( implode( ',', $done ));
+			$fields .= "<input type='hidden' name='pmd-done' value='$done'/>";
 		}
 
 		return $fields;
@@ -319,7 +344,8 @@ class GDCONVERTER_PMD {
 	private function import_users( $table ) {
 		global $wpdb;
 
-		$pmd_users = $this->db->get_results("SELECT * from $table");
+		//$pmd_users = $this->db->get_results("SELECT * from $table WHERE login='bookcabin' LIMIT 1");
+		$pmd_users = $this->db->get_results("SELECT * FROM `$table`");
 
 		if( empty( $pmd_users ) ){
 			$error = __('There are no users in your PMD directory.', 'geodirectory-converter');
@@ -328,17 +354,21 @@ class GDCONVERTER_PMD {
 
 		foreach ( $pmd_users as $key => $user ){
 
-			if( !empty( $user->id ) ){
+			if( empty( $user->id ) ){
 				continue;
 			}
 
-			//Avoid replacing existing users
-			if( email_exists( $user->user_email )){
-				continue;
+			$display_name = $user->login;
+			if(! empty($user->user_first_name) ){
+				$display_name = $user->user_first_name . ' ' . $user->user_last_name;
 			}
+
+			//The method below throws an error if a user with the given id exists, so let's delete them first
+			$sql = $wpdb->prepare( "DELETE FROM `{$wpdb->users}` WHERE `{$wpdb->users}`.`ID` = %d", $user->id );
+			$wpdb->query( $sql );
 
 			//Since WP and PMD user different hashing algos, users will have to reset their passwords
-			$inserted_id = $wpdb->insert(
+			$wpdb->insert(
 				$wpdb->users,
 				array(
 					'id' 				=> $user->id,
@@ -347,12 +377,24 @@ class GDCONVERTER_PMD {
 					'user_nicename' 	=> $user->login,
 					'user_email' 		=> $user->user_email,
 					'user_registered' 	=> $user->created,
-					'display_name' 		=> $user->user_first_name . ' ' . $user->user_last_name
+					'display_name' 		=> $display_name,
 				),
 				array('%d','%s','%s','%s','%s','%s','%s' )
 			);
-		
 			
+			add_user_meta( $user->id, 'first_name', $user->user_first_name );
+			add_user_meta( $user->id, 'last_name', $user->user_last_name );
+			add_user_meta( $user->id, 'pmd_password_hash', $user->password_hash );
+			add_user_meta( $user->id, 'pmd_password_salt', $user->password_salt );
+			add_user_meta( $user->id, 'user_organization', $user->user_organization );
+			add_user_meta( $user->id, 'user_address1', $user->user_address1 );
+			add_user_meta( $user->id, 'user_address2', $user->user_address2 );
+			add_user_meta( $user->id, 'user_city', $user->user_city );
+			add_user_meta( $user->id, 'user_state', $user->user_state );
+			add_user_meta( $user->id, 'user_country', $user->user_country );
+			add_user_meta( $user->id, 'user_zip', $user->user_zip );
+			add_user_meta( $user->id, 'user_phone', $user->user_phone );
+		
 		}
 	}
 
@@ -364,6 +406,7 @@ class GDCONVERTER_PMD {
 	private function import_categories( $table ) {
 		global $wpdb;
 
+		//$pmd_cats = $this->db->get_results("SELECT * from $table WHERE `id` = 4314");
 		$pmd_cats = $this->db->get_results("SELECT * from $table");
 
 		if( empty( $pmd_cats ) ){
@@ -373,11 +416,14 @@ class GDCONVERTER_PMD {
 
 		foreach ( $pmd_cats as $key => $cat ){
 
-			if( !empty( $cat->id ) ){
+			if( empty( $cat->id ) ){
 				continue;
 			}
 
-			$inserted_id = $wpdb->insert(
+			$sql = $wpdb->prepare( "DELETE FROM `{$wpdb->terms}` WHERE `{$wpdb->terms}`.`term_id` = %d", $cat->id );
+			$wpdb->query( $sql );
+
+			$wpdb->insert(
 				$wpdb->terms,
 				array(
 					'term_id' 	=> $cat->id,
@@ -395,8 +441,12 @@ class GDCONVERTER_PMD {
 					'parent' 	=> $cat->parent_id,
 					'count' 	=> $cat->count_total, //? $cat->count??
 				),
-				array('%d','%d', '%s', '%d', '%d')
+				array('%d','%s', '%d', '%d')
 			);
+
+			if(! empty($cat->description) ){
+				update_term_meta( $cat->id, 'ct_cat_top_desc', $cat->description );
+			}
 
 		}
 	}

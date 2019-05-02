@@ -32,7 +32,7 @@
         //Submit the form when our custom radio boxes change
         $(form)
             .find(".geodir-converter-select input")
-            .on('change', function(e) {
+            .on('change click', function(e) {
                 $(form).submit();
             })
 
@@ -57,17 +57,19 @@
                     formData,
                     function(str) {
                         $('.geodir-converter-errors').html(str).show()
+                        parent.css({
+                            opacity: 1,
+                        })
                     },
                     function(str) {
                         $(parent).html(str)
                         var newForm = $(parent).find('form')
                         GD_Converter_attach_handlers(newForm);
+                        parent.css({
+                            opacity: 1,
+                        })
                     }
-                ).done(function() {
-                    parent.css({
-                        opacity: 1,
-                    })
-                })
+                )
             })
     }
 
