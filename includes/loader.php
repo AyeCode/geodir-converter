@@ -103,7 +103,7 @@ class GDCONVERTER_Loarder {
 	 *
 	 */
 	public function handle_import() {
-
+		
         //Abort if the current user does not have enough rights to run this import
 	    if ( !current_user_can( 'manage_options' )  ) {
 		    $error = esc_html__( 'You are not allowed to run imports on this site.', 'geodirectory-converter' );
