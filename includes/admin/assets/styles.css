@@ -4,6 +4,79 @@
     padding: 20px;
     margin-top: 30px;
     border-top: 4px solid #ff5722;
+    position: relative;
+}
+
+.geodir-converter-progress {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    background: #fff;
+    z-index: 100;
+    top: 0;
+    left: 0;
+    display: none;
+    padding: 30px;
+}
+
+.geodir-converter-progress span {
+    font-weight: 500;
+}
+
+.geodir-converter-progress .meter {
+    height: 16px;
+    position: relative;
+    background: #FBE9E7;
+    -moz-border-radius: 25px;
+    -webkit-border-radius: 25px;
+    border-radius: 25px;
+    padding: 5px;
+    margin-top: 20px;
+}
+
+.geodir-converter .meter>span {
+    display: block;
+    height: 100%;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+    background-color: #ff5722;
+    position: relative;
+    overflow: hidden;
+    transition: o.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.geodir-converter .meter>span:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background-image: linear-gradient( -45deg, rgba(255, 255, 255, .2) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, .2) 50%, rgba(255, 255, 255, .2) 75%, transparent 75%, transparent);
+    z-index: 1;
+    background-size: 50px 50px;
+    animation: move 2s linear infinite;
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-top-left-radius: 20px;
+    border-bottom-left-radius: 20px;
+    overflow: hidden;
+    transition: o.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes move {
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 50px 50px;
+    }
+}
+
+.geodir-converter .meter>span:after {
+    animation: move 2s linear infinite;
 }
 
 .geodir-converter-inner p {

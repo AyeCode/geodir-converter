@@ -102,7 +102,8 @@ class GDCONVERTER_Admin {
 	 */
 	public function enqueue_scripts() {
         $params = array(
-            'ajaxurl' 				=> admin_url( 'admin-ajax.php' ),
+			'ajaxurl' 				=> admin_url( 'admin-ajax.php' ),
+			'nonce' 				=> wp_create_nonce( 'gd_converter_nonce' ),
         );
 
         wp_register_script(

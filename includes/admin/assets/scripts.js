@@ -4,7 +4,7 @@
     "use strict";
 
     //Helper function to fetch next step via ajax
-    var GD_Converter_fetch = function(data, error_cb, success_cb) {
+    var GD_Converter_fetch = function(data, error_cb, success_cb, progress_cb) {
         return $.post(
                 GD_Converter.ajaxurl,
                 data,
@@ -16,6 +16,9 @@
                         }
                         if (json.action == 'success') {
                             success_cb(json.body)
+                        }
+                        if (json.action == 'progress') {
+                            progress_cb(json.body)
                         }
                     } else {
                         error_cb(json);
@@ -42,7 +45,10 @@
                 e.preventDefault();
 
                 var parent = $(this).closest('.geodir-converter-inner');
+                var progress = $(parent).find('.geodir-converter-progress').hide();
                 var formData = $(this).serialize();
+                var failed = 0;
+                var imported = 0;
 
                 //Hide errors
                 $(this).find(".geodir-converter-errors").html('').hide();
@@ -52,23 +58,66 @@
                     opacity: 0.4,
                 })
 
+                //Success cb
+                var success_cb = function(str) {
+                    $(progress).hide();
+                    $(parent).html(str)
+                    var newForm = $(parent).find('form')
+                    GD_Converter_attach_handlers(newForm);
+                    parent.css({
+                        opacity: 1,
+                    })
+                }
+
+                //Error cb
+                var error_cb = function(str) {
+                    $(progress).hide();
+                    $('.geodir-converter-errors').html(str).show()
+                    parent.css({
+                        opacity: 1,
+                    })
+                }
+
+                //Progress cb
+                var progress_cb = function(obj) {
+
+                    parent.css({
+                        opacity: 1,
+                    })
+
+                    //update the failed and imported count
+                    failed = failed + obj.failed
+                    imported = imported + obj.imported
+
+                    //Show the user current progress
+                    $(progress).show();
+                    $(progress).find('.total em').text(obj.count)
+                    $(progress).find('.processed em').text(obj['progress-offset'])
+                    $(progress).find('.imported em').text(imported)
+                    $(progress).find('.failed em').text(failed)
+                    var w = (obj['progress-offset'] / obj.count) * 100
+                    $(progress).find('.gmw').css({
+                        width: w + '%',
+                    })
+
+                    //Continue with the import
+                    obj.nonce = GD_Converter.nonce;
+                    obj.action = 'gdconverter_handle_progress';
+
+                    GD_Converter_fetch(
+                        obj,
+                        error_cb,
+                        success_cb,
+                        progress_cb
+                    )
+                }
+
                 //Fetch the next step from the db
                 GD_Converter_fetch(
                     formData,
-                    function(str) {
-                        $('.geodir-converter-errors').html(str).show()
-                        parent.css({
-                            opacity: 1,
-                        })
-                    },
-                    function(str) {
-                        $(parent).html(str)
-                        var newForm = $(parent).find('form')
-                        GD_Converter_attach_handlers(newForm);
-                        parent.css({
-                            opacity: 1,
-                        })
-                    }
+                    error_cb,
+                    success_cb,
+                    progress_cb
                 )
             })
     }

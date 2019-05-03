@@ -176,6 +176,15 @@ class GDCONVERTER_Loarder {
 		$importer = esc_attr( $_REQUEST['gd-converter'] );
 		$html = '
 			<div class="geodir-converter-form-wrapper">
+				<div class="geodir-converter-progress">
+					<span class="total">Total <em></em></span><br>
+					<span class="processed">Processed <em></em></span><br>
+					<span class="imported">Imported <em></em></span><br>
+					<span class="failed">Failed <em></em></span><br>
+					<div class="meter">
+  						<span class="gmw" style="width: 0"><span></span></span>
+					</div>
+				</div>
 				<div class="geodir-converter-errors"></div>
 				<form method="post" action="" class="geodir-converter-form geodir-converter-form1">
 				<input type="hidden" name="action" value="gdconverter_handle_import">

@@ -16,6 +16,15 @@ $importers = GDCONVERTER_Loarder::get_importers();
 	<div class="geodir-converter-inner">
 		<p>If you have listings in another system, GeoDirectory can import those into this site. To get started, choose a system to import from below:</p>
 		<div class="geodir-converter-form-wrapper">
+			<div class="geodir-converter-progress">
+				<span class="total">Total <em></em></span><br>
+				<span class="processed">Processed <em></em></span><br>
+				<span class="imported">Imported <em></em></span><br>
+				<span class="failed">Failed <em></em></span><br>
+				<div class="meter">
+  					<span class="gmw" style="width: 0"><span></span></span>
+				</div>
+			</div>
 			<div class="geodir-converter-errors"></div>
 			<form method="post" action="" class="geodir-converter-form geodir-converter-form1">
 				<?php 
