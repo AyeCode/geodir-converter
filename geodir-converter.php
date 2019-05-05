@@ -69,21 +69,68 @@ add_action( 'geodirectory_loaded', 'geodir_load_geodir_converter' );
  */
 function geodir_converter_check_if_geodir_is_installed() {
 
-	if ( did_action( 'geodirectory_loaded' ) ) {
+	//If this is not an admin page or GD is activated, abort early
+	if ( !is_admin() || did_action( 'geodirectory_loaded' ) ) {
 		return;
 	}
 
-	$class   = 'notice notice-error';
-    $message = __( 'Irks! You need to install GeoDirectory before using this plugin.', 'geodir-converter' );
-	$url     = network_admin_url( 'plugin-install.php?tab=plugin-information&plugin=geodirectory&TB_iframe=true&width=600&height=550' );
+	include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 
-	printf( '<div class="%s"><p>%s</p><p><a href="%s" class="thickbox button button-primary">%s</a></p></div>', 
-		esc_attr( $class ), 
-		esc_html( $message ),
-		esc_url( $url ),
-		esc_html__( 'Install GeoDirectory', 'geodir-converter' )
-	 );
+	$class   = 'notice notice-warning is-dismissible';
+	$action  = 'install-plugin';
+	$slug	 = 'geodirectory';
+	$basename= 'geodirectory/geodirectory.php';
+
+	//Ask the user to activate GD in case they have installed it. Otherwise ask them to install it
+	if( is_plugin_inactive($basename) ){
+
+		$activation_url = esc_url( 
+			wp_nonce_url( 
+				admin_url("plugins.php?action=activate&plugin=$basename"), 
+				"activate-plugin_$basename" ) 
+			);
+
+		printf( 
+			__( '%s requires the %sGeodirectory%s plugin to be installed and active. %sClick here to activate it.%s', 'geodirectory-converter' ),
+			"<div class='$class'><p><strong>GeoDirectory Converter", 
+			'<a href="https://wpgeodirectory.com" target="_blank" title=" GeoDirectory">', 
+			'</a>', 
+			"<a href='$activation_url'  title='GeoDirectory'>", 
+			'</a></strong></p></div>' );
+
+	}else{
+
+		$install_url = esc_url( wp_nonce_url(
+			add_query_arg(
+				array(
+					'action' => $action,
+					'plugin' => $slug
+				),
+				admin_url( 'update.php' )
+			),
+			$action.'_'.$slug
+		) );
+		
+		printf( 
+			__( '%s requires the %ssGeodirectory%s plugin to be installed and active. %sClick here to install it.%s', 'geodirectory-converter' ),
+			"<div class='$class'><p><strong>GeoDirectory Converter", 
+			'<a href="https://wpgeodirectory.com" target="_blank" title=" GeoDirectory">', 
+			'</a>', 
+			"<a href='$install_url'  title='GeoDirectory'>",
+			'</a></strong></p></div>' );
+
+	}
 
 }
 add_action( 'admin_notices', 'geodir_converter_check_if_geodir_is_installed' );
 
+
+/**
+ * The code that runs during plugin activation.
+ *
+ * @since 1.0.0
+ */
+function activate_geodir_converter() {
+    set_transient( '_geodir_converter_installed', '1', MINUTE_IN_SECONDS  );
+}
+register_activation_hook( __FILE__, 'activate_geodir_converter' );

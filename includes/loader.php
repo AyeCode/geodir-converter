@@ -32,7 +32,7 @@ class GDCONVERTER_Loarder {
         //Maybe abort early and save resources
         if(! is_admin() && !wp_doing_ajax()){
             return;
-        }
+		}
         
         //Setup class globals
         $this->includes_dir = plugin_dir_path( GEODIR_CONVERTER_PLUGIN_FILE ) . 'includes/';
@@ -70,7 +70,28 @@ class GDCONVERTER_Loarder {
 	 */
 	private function setup_hooks() {
         add_action( 'wp_ajax_gdconverter_handle_import', array( $this, 'handle_import' ) );
+		add_action( 'admin_init', array( $this, 'maybe_redirect' ) );
+	}
 
+	/**
+	 * If the plugin was recently installed, redirect to the imports page
+	 *
+	 * @since GeoDirectory Converter 1.0.0
+	 *
+	 */
+	public function maybe_redirect() {
+		if( '1' == get_transient( '_geodir_converter_installed' ) ){
+			delete_transient( '_geodir_converter_installed' );
+
+			// Bail if activating from network, or bulk
+  			if ( is_network_admin() || isset( $_GET['activate-multi'] ) ) {
+    			return;
+  			}
+
+			  // Redirect to the converter page
+  			wp_redirect( add_query_arg( array( 'page' => 'geodir-converter' ), admin_url( 'tools.php' ) ) );
+			  exit;
+		}
 	}
 
     /**
