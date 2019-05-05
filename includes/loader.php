@@ -71,6 +71,7 @@ class GDCONVERTER_Loarder {
 	private function setup_hooks() {
         add_action( 'wp_ajax_gdconverter_handle_import', array( $this, 'handle_import' ) );
 		add_action( 'admin_init', array( $this, 'maybe_redirect' ) );
+		add_filter( 'plugin_action_links', 				array( $this, 'modify_plugin_action_links' ), 10, 2 );
 	}
 
 	/**
@@ -92,6 +93,23 @@ class GDCONVERTER_Loarder {
   			wp_redirect( add_query_arg( array( 'page' => 'geodir-converter' ), admin_url( 'tools.php' ) ) );
 			  exit;
 		}
+	}
+
+	/**
+	 * Adds the import link to the plugin screen
+	 *
+	 * @since GeoDirectory Converter 1.0.0
+	 */
+	public function modify_plugin_action_links( $links, $file ) {
+
+		if ( plugin_basename( GEODIR_CONVERTER_PLUGIN_FILE )  == $file ) {
+			$url 				= esc_url( add_query_arg( array( 'page' => 'geodir-converter' ), admin_url( 'tools.php' ) ) );
+			$attr				= esc_attr__( 'Convert', 'geodirectory-converter' );
+			$title				= esc_html__( 'Convert', 'geodirectory-converter' );
+			$links['convert']  = "<a href='$url' aria-label='$attr'> $title </a>";
+		}
+		return $links;
+
 	}
 
     /**

@@ -190,3 +190,8 @@
     position: absolute;
     right: 10px;
 }
+
+tr[data-slug="geodirectory-converter"] .convert a {
+    color: #ff5722;
+    font-weight: 500;
+}
