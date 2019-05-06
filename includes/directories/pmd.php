@@ -1232,9 +1232,23 @@ class GDCONVERTER_PMD {
 			return $fields;
 		}
 
+		//Do we have any database connection details?
+		$db_config = get_transient( 'geodir_converter_pmd_db_details');
+
+		if(! $db_config || ! is_array($db_config) ){
+				$error = __('Your PMD database settings are missing. Please refresh the page and try again.', 'geodirectory-converter');
+				GDCONVERTER_Loarder::send_response( 'error', $error );
+		}
+	
+		//Try connecting to the db
+		$this->db = new wpdb( $db_config['user'] ,$db_config['pass'] ,$db_config['db_name'] ,$db_config['host'] );
+	
+		//Tables
+		$this->prefix = $db_config['prefix'] ;
+
 		$table 				= $this->prefix . 'blog';
 		$total 				= $this->db->get_var("SELECT COUNT(id) as count from $table");
-		
+			
 		//Abort early if there are no blog posts
 		if( 0 == $total ){
 			$error = __('There are no blog posts in your PhpMyDirectory installation.', 'geodirectory-converter');
