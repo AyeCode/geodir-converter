@@ -278,7 +278,7 @@ class GDCONVERTER_PMD {
 	 */
 	public function step_3( $fields, $step ) {
 
-		if( $step < 3 ){
+		if( $step != 3 ){
 			return $fields;
 		}
 
@@ -329,7 +329,7 @@ class GDCONVERTER_PMD {
 		
 		//Abort early if there are no listings
 		if( 0 == $total ){
-			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('users'));
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('listings'));
 			$form .= '<em>' . __('There are no listings in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em>';
 			$this->update_progress( $form );
 		}
@@ -341,9 +341,9 @@ class GDCONVERTER_PMD {
 		}
 
 		//Fetch the listings and abort in case we have imported all of them
-		$listings_results 	= $this->db->get_results("SELECT * from $table LIMIT $offset,3");
-		if( empty($listings_results)){
-			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('users'));
+		$listings_results 	= $this->db->get_results("SELECT * from $table LIMIT $offset,20");
+		if(! empty($listings_results)){
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('listings'));
 			$form .= '<em>' . __('Finished importing listings...', 'geodirectory-converter') . '</em>';
 			$this->update_progress( $form );
 		}
@@ -354,7 +354,7 @@ class GDCONVERTER_PMD {
 		}
 
 		$failed   = 0;
-		if(! empty($_REQUEST['failed']) ){
+		if( empty($_REQUEST['failed']) ){
 			$failed = absint($_REQUEST['failed']);
 		}
 
@@ -489,7 +489,7 @@ class GDCONVERTER_PMD {
 		}
 
 		//Fetch the listings and abort in case we have imported all of them
-		$pmd_users 	= $this->db->get_results("SELECT * from $table LIMIT $offset,3");
+		$pmd_users 	= $this->db->get_results("SELECT * from $table LIMIT $offset,8");
 		if( empty($pmd_users) ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('users'));
 			$form .= '<em>' . __('Finished importing users...', 'geodirectory-converter') . '</em>';
@@ -607,7 +607,7 @@ class GDCONVERTER_PMD {
 		}
 
 		//Fetch the listings and abort in case we have imported all of them
-		$pmd_cats 	= $this->db->get_results("SELECT * from $table LIMIT $offset,3");
+		$pmd_cats 	= $this->db->get_results("SELECT * from $table LIMIT $offset,10");
 		if( empty($pmd_cats)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('categories'));
 			$form .= '<em>' . __('Finished importing categories...', 'geodirectory-converter') . '</em>';
@@ -687,7 +687,7 @@ class GDCONVERTER_PMD {
 
 		//Abort early if the invoicing plugin is not installed
 		if ( !defined( 'WPINV_VERSION' ) ) {
-			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
 			$form .= '<em>' . __('The Invoicing plugin is not active. Skipping...', 'geodirectory-converter') . '</em>';
 			$this->update_progress( $form );
 		}
@@ -698,7 +698,7 @@ class GDCONVERTER_PMD {
 		
 		//Abort early if there are no invoices
 		if( 0 == $total ){
-			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
 			$form .= '<em>' . __('There are no invoices in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em>';
 			$this->update_progress( $form );
 		}
@@ -710,9 +710,9 @@ class GDCONVERTER_PMD {
 		}
 
 		//Fetch the invoices and abort in case we have imported all of them
-		$pmd_invoices 	= $this->db->get_results("SELECT * from $table LIMIT $offset,3");
+		$pmd_invoices 	= $this->db->get_results("SELECT * from $table LIMIT $offset,10");
 		if( empty($pmd_invoices)){
-			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
 			$form .= '<em>' . __('Finished importing invoices...', 'geodirectory-converter') . '</em>';
 			$this->update_progress( $form );
 		}
@@ -854,7 +854,7 @@ class GDCONVERTER_PMD {
 		//Fetch the reviews and abort in case we have imported all of them
 		$pmd_reviews   = $this->db->get_results(
 			"SELECT `$table`.`id` as `review_id`, `status`, `listing_id`, `user_id`, `date`, `review`, `user_first_name`, `user_last_name`, `user_email` 
-			FROM `$table` LEFT JOIN `$users_table` ON `$table`.`user_id` = `$users_table`.`id`  LIMIT $offset,3");
+			FROM `$table` LEFT JOIN `$users_table` ON `$table`.`user_id` = `$users_table`.`id`  LIMIT $offset,10");
 
 		if( empty($pmd_reviews)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('reviews'));
@@ -974,7 +974,7 @@ class GDCONVERTER_PMD {
 
 		$sql = rtrim($sql, ', ');
 
-		$sql 		 .= "  FROM `$table` LEFT JOIN `$listings_table` ON `$table`.`listing_id` = `$listings_table`.`id`  LIMIT $offset,3 ";
+		$sql 		 .= "  FROM `$table` LEFT JOIN `$listings_table` ON `$table`.`listing_id` = `$listings_table`.`id`  LIMIT $offset,10 ";
 		$pmd_events   = $this->db->get_results( $sql );
 		
 		if( empty($pmd_events)){

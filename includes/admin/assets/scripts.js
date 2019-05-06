@@ -107,7 +107,10 @@
                             custom_cb
                         )
                     })
-                    $(_form).submit()
+                    setTimeout(function() {
+                        $(_form).submit();
+                    }, 100);
+
 
                 }
 

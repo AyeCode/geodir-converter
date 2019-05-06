@@ -36,7 +36,7 @@
     background-color: #ff5722;
     position: relative;
     overflow: hidden;
-    transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .geodir-converter .geodir-converter-meter>span:after {
