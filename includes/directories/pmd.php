@@ -475,6 +475,7 @@ class GDCONVERTER_PMD {
 		global $wpdb;
 
 		$table	= $this->prefix . 'users';
+		$roles	= $this->prefix . 'users_groups_lookup';
 		$total 	= $this->db->get_var("SELECT COUNT(id) as count from $table");
 		$form   = '<h3>' . __('Importing users', 'geodirectory-converter') . '</h3>';
 		
@@ -550,19 +551,38 @@ class GDCONVERTER_PMD {
 				),
 				array('%d','%s','%s','%s','%s','%s','%s' )
 			);
+
+			$user = new WP_User( $user->id );
+			$sql  = $wpdb->prepare( "SELECT `group_id` FROM `$roles` WHERE `user_id` = %d", $user->id );
+			$level = absint( $this->db->get_var($sql) );
 			
-			update_user_meta( $user->id, 'first_name', $user->user_first_name );
-			update_user_meta( $user->id, 'last_name', $user->user_last_name );
-			update_user_meta( $user->id, 'pmd_password_hash', $user->password_hash );
-			update_user_meta( $user->id, 'pmd_password_salt', $user->password_salt );
-			update_user_meta( $user->id, 'user_organization', $user->user_organization );
-			update_user_meta( $user->id, 'user_address1', $user->user_address1 );
-			update_user_meta( $user->id, 'user_address2', $user->user_address2 );
-			update_user_meta( $user->id, 'user_city', $user->user_city );
-			update_user_meta( $user->id, 'user_state', $user->user_state );
-			update_user_meta( $user->id, 'user_country', $user->user_country );
-			update_user_meta( $user->id, 'user_zip', $user->user_zip );
-			update_user_meta( $user->id, 'user_phone', $user->user_phone );
+			switch($level){
+				case 1:
+        	$role = 'administrator';
+        	break;
+    		case 2:
+					$role = 'editor';
+        	break;
+    		case 3:
+					$role = 'author';
+        	break;
+    		default:
+					$role = 'subscriber';
+			}
+			$user->set_role( $role );
+			
+			update_user_meta( $user->ID, 'first_name', $user->user_first_name );
+			update_user_meta( $user->ID, 'last_name', $user->user_last_name );
+			update_user_meta( $user->ID, 'pmd_password_hash', $user->password_hash );
+			update_user_meta( $user->ID, 'pmd_password_salt', $user->password_salt );
+			update_user_meta( $user->ID, 'user_organization', $user->user_organization );
+			update_user_meta( $user->ID, 'user_address1', $user->user_address1 );
+			update_user_meta( $user->ID, 'user_address2', $user->user_address2 );
+			update_user_meta( $user->ID, 'user_city', $user->user_city );
+			update_user_meta( $user->ID, 'user_state', $user->user_state );
+			update_user_meta( $user->ID, 'user_country', $user->user_country );
+			update_user_meta( $user->ID, 'user_zip', $user->user_zip );
+			update_user_meta( $user->ID, 'user_phone', $user->user_phone );
 		
 			$imported++;
 		}
