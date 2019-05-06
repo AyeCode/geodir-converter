@@ -8,22 +8,14 @@
 }
 
 .geodir-converter-progress {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    background: #fff;
-    z-index: 100;
-    top: 0;
-    left: 0;
     display: none;
-    padding: 30px;
 }
 
 .geodir-converter-progress span {
     font-weight: 500;
 }
 
-.geodir-converter-progress .meter {
+.geodir-converter-progress .geodir-converter-meter {
     height: 16px;
     position: relative;
     background: #FBE9E7;
@@ -34,7 +26,7 @@
     margin-top: 20px;
 }
 
-.geodir-converter .meter>span {
+.geodir-converter .geodir-converter-meter>span {
     display: block;
     height: 100%;
     border-top-right-radius: 8px;
@@ -44,10 +36,10 @@
     background-color: #ff5722;
     position: relative;
     overflow: hidden;
-    transition: o.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.geodir-converter .meter>span:after {
+.geodir-converter .geodir-converter-meter>span:after {
     content: "";
     position: absolute;
     top: 0;
@@ -66,7 +58,7 @@
     transition: o.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes move {
+@keyframes geodir-converter-move {
     0% {
         background-position: 0 0;
     }
@@ -75,12 +67,25 @@
     }
 }
 
-.geodir-converter .meter>span:after {
-    animation: move 2s linear infinite;
+.geodir-converter .geodir-converter-meter>span:after {
+    animation: geodir-converter-move 2s linear infinite;
 }
 
 .geodir-converter-inner p {
     font-size: 16px;
+}
+
+.geodir-conveter-notes {
+    font-style: italic;
+    color: #888;
+}
+
+.geodir-conveter-centered {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+    margin-bottom: 20px;
 }
 
 .geodir-converter-form {

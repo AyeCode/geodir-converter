@@ -4,7 +4,7 @@
     "use strict";
 
     //Helper function to fetch next step via ajax
-    var GD_Converter_fetch = function(data, error_cb, success_cb, progress_cb) {
+    var GD_Converter_fetch = function(data, error_cb, success_cb, custom_cb) {
         return $.post(
                 GD_Converter.ajaxurl,
                 data,
@@ -17,8 +17,8 @@
                         if (json.action == 'success') {
                             success_cb(json.body)
                         }
-                        if (json.action == 'progress') {
-                            progress_cb(json.body)
+                        if (json.action == 'custom') {
+                            custom_cb(json.body)
                         }
                     } else {
                         error_cb(json);
@@ -45,20 +45,20 @@
                 e.preventDefault();
 
                 var parent = $(this).closest('.geodir-converter-inner');
-                var progress = $(parent).find('.geodir-converter-progress').hide();
                 var formData = $(this).serialize();
-                var failed = 0;
-                var imported = 0;
 
                 //Hide errors
                 $(this).find(".geodir-converter-errors").html('').hide();
+
+                //Hide progress bar
+                parent.find('.geodir-converter-progress').hide()
 
                 //Display the loader
                 parent.addClass('geodir-converter-loading')
 
                 //Success cb
                 var success_cb = function(str) {
-                    $(progress).hide();
+                    parent.find('.geodir-converter-progress').hide()
                     $(parent).find('form').replaceWith(str)
                     var newForm = $(parent).find('form')
                     GD_Converter_attach_handlers(newForm);
@@ -68,41 +68,47 @@
 
                 //Error cb
                 var error_cb = function(str) {
-                    $(progress).hide();
+                    parent.find('.geodir-converter-progress').hide()
                     $('.geodir-converter-errors').html(str).show()
                     parent.removeClass('geodir-converter-loading')
                 }
 
-                //Progress cb
-                var progress_cb = function(obj) {
+                //Custom action cb
+                var custom_cb = function(obj) {
 
-                    parent.removeClass('geodir-converter-loading')
+                    $(parent).removeClass('geodir-converter-loading')
 
-                    //update the failed and imported count
-                    failed = failed + obj.failed
-                    imported = imported + obj.imported
+                    if (true == obj.hasprogress) {
+                        var w = (obj.offset / obj.count) * 100
+                        parent
+                            .find('.geodir-converter-progress')
+                            .show()
+                            .find('.gmw')
+                            .css({
+                                width: w + '%',
+                            })
+                    } else {
+                        parent
+                            .find('.geodir-converter-progress')
+                            .hide()
+                    }
 
-                    //Show the user current progress
-                    $(progress).show();
-                    $(progress).find('.total em').text(obj.count)
-                    $(progress).find('.processed em').text(obj['progress-offset'])
-                    $(progress).find('.imported em').text(imported)
-                    $(progress).find('.failed em').text(failed)
-                    var w = (obj['progress-offset'] / obj.count) * 100
-                    $(progress).find('.gmw').css({
-                        width: w + '%',
+                    $(parent).find('form').replaceWith(obj.form)
+                    var _form = $(parent).find('form')
+                    $(_form).on('submit', function(e) {
+                        e.preventDefault();
+
+                        var _formData = $(this).serialize();
+
+                        GD_Converter_fetch(
+                            _formData,
+                            error_cb,
+                            success_cb,
+                            custom_cb
+                        )
                     })
+                    $(_form).submit()
 
-                    //Continue with the import
-                    obj.nonce = GD_Converter.nonce;
-                    obj.action = 'gdconverter_handle_progress';
-
-                    GD_Converter_fetch(
-                        obj,
-                        error_cb,
-                        success_cb,
-                        progress_cb
-                    )
                 }
 
                 //Fetch the next step from the db
@@ -110,7 +116,7 @@
                     formData,
                     error_cb,
                     success_cb,
-                    progress_cb
+                    custom_cb
                 )
             })
     }

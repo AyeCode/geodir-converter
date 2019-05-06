@@ -48,7 +48,7 @@ class GDCONVERTER_Loarder {
         new GDCONVERTER_Admin();
 
         //Init PMD
-        new GDCONVERTER_PMD();
+		new GDCONVERTER_PMD();
     }
     
     /**
@@ -71,7 +71,7 @@ class GDCONVERTER_Loarder {
 	private function setup_hooks() {
         add_action( 'wp_ajax_gdconverter_handle_import', array( $this, 'handle_import' ) );
 		add_action( 'admin_init', array( $this, 'maybe_redirect' ) );
-		add_filter( 'plugin_action_links', 				array( $this, 'modify_plugin_action_links' ), 10, 2 );
+		add_filter( 'plugin_action_links', array( $this, 'modify_plugin_action_links' ), 10, 2 );
 	}
 
 	/**
@@ -214,17 +214,6 @@ class GDCONVERTER_Loarder {
 
 		$importer = esc_attr( $_REQUEST['gd-converter'] );
 		$html = '
-			<div class="geodir-converter-form-wrapper">
-				<div class="geodir-converter-progress">
-					<span class="total">Total <em></em></span><br>
-					<span class="processed">Processed <em></em></span><br>
-					<span class="imported">Imported <em></em></span><br>
-					<span class="failed">Failed <em></em></span><br>
-					<div class="meter">
-  						<span class="gmw" style="width: 0"><span></span></span>
-					</div>
-				</div>
-				<div class="geodir-converter-errors"></div>
 				<form method="post" action="" class="geodir-converter-form geodir-converter-form1">
 				<input type="hidden" name="action" value="gdconverter_handle_import">
 		';
@@ -234,7 +223,7 @@ class GDCONVERTER_Loarder {
 		$html .= "<input type='hidden' name='step' value='$step'>";
 		$html .= $next_step;
 		$html .= wp_nonce_field( 'gdconverter_nonce_action', 'gdconverter_nonce_field', true, false );
-		$html .= '</form></div>';		
+		$html .= '</form>';		
 
 		return $html;
 
