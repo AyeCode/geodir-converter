@@ -1,9 +1,6 @@
 .geodir-converter-inner {
-    background: #fff;
     max-width: 560px;
-    padding: 20px;
     margin-top: 30px;
-    border-top: 4px solid #ff5722;
     position: relative;
 }
 
@@ -81,9 +78,6 @@
 }
 
 .geodir-conveter-centered {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     margin-top: 20px;
     margin-bottom: 20px;
 }
@@ -97,41 +91,12 @@
     margin-bottom: 10px;
 }
 
-.geodir-converter input[type="text"] {
+.geodir-converter input:not(type="submit") {
     display: block;
     margin-top: 5px;
+    padding: 4px;
     width: 100%;
     max-width: 420px;
-    height: 36px;
-    border-radius: 4px;
-}
-
-.geodir-converter input[type="submit"] {
-    background-color: #ff5722;
-    border: 1px solid #ff5722;
-    border-radius: 2px;
-    -webkit-box-shadow: 0 5px 11px 0 rgba(0, 0, 0, .18), 0 4px 15px 0 rgba(0, 0, 0, .15);
-    box-shadow: 0 5px 11px 0 rgba(0, 0, 0, .18), 0 4px 15px 0 rgba(0, 0, 0, .15);
-    color: white;
-    font-size: 16px;
-    position: relative;
-    display: inline-block;
-    padding: 8px 24px;
-    letter-spacing: .5px;
-    -webkit-transition: .2s ease-out;
-    -moz-transition: .2s ease-out;
-    transition: .2s ease-out;
-    text-align: center;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.geodir-converter input[type="submit"]:hover,
-.geodir-converter input[type="submit"]:focus,
-.geodir-converter input[type="submit"]:active {
-    background-color: #ff7e55;
-    border-color: #ff7e55;
-    outline: none;
 }
 
 .geodir-converter .geodir-converter-select {
@@ -243,5 +208,33 @@ tr[data-slug="geodirectory-converter"] .convert a {
     100% {
         transform: perspective(120px) rotateX(-180deg) rotateY(-179.9deg);
         -webkit-transform: perspective(120px) rotateX(-180deg) rotateY(-179.9deg);
+    }
+}
+
+@media only screen and (min-width: 601px) {
+    .geodir-label-grid {
+        margin-bottom: 20px;
+    }
+    .geodir-label-grid:after {
+        content: "";
+        display: table;
+        clear: both
+    }
+    .geodir-label-grid .geodir-label-grid-label,
+    .geodir-label-grid input {
+        float: left;
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+        margin-left: auto;
+        left: auto;
+        right: auto
+    }
+    .geodir-label-grid .geodir-label-grid-label {
+        width: 30%;
+        font-weight: 600;
+    }
+    .geodir-label-grid input {
+        width: 60%;
     }
 }
