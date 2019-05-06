@@ -53,37 +53,30 @@
                 //Hide errors
                 $(this).find(".geodir-converter-errors").html('').hide();
 
-                //Fade the parent
-                parent.css({
-                    opacity: 0.4,
-                })
+                //Display the loader
+                parent.addClass('geodir-converter-loading')
 
                 //Success cb
                 var success_cb = function(str) {
                     $(progress).hide();
-                    $(parent).html(str)
+                    $(parent).find('form').replaceWith(str)
                     var newForm = $(parent).find('form')
                     GD_Converter_attach_handlers(newForm);
-                    parent.css({
-                        opacity: 1,
-                    })
+                    //Hide the loader
+                    parent.removeClass('geodir-converter-loading')
                 }
 
                 //Error cb
                 var error_cb = function(str) {
                     $(progress).hide();
                     $('.geodir-converter-errors').html(str).show()
-                    parent.css({
-                        opacity: 1,
-                    })
+                    parent.removeClass('geodir-converter-loading')
                 }
 
                 //Progress cb
                 var progress_cb = function(obj) {
 
-                    parent.css({
-                        opacity: 1,
-                    })
+                    parent.removeClass('geodir-converter-loading')
 
                     //update the failed and imported count
                     failed = failed + obj.failed

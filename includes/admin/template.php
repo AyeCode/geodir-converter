@@ -14,7 +14,6 @@ $importers = GDCONVERTER_Loarder::get_importers();
 <div class="wrap geodir-converter">
 	<h1>GeoDirectory Converter</h1>
 	<div class="geodir-converter-inner">
-		<p>If you have listings in another system, GeoDirectory can import those into this site. To get started, choose a system to import from below:</p>
 		<div class="geodir-converter-form-wrapper">
 			<div class="geodir-converter-progress">
 				<span class="total">Total <em></em></span><br>
@@ -27,6 +26,7 @@ $importers = GDCONVERTER_Loarder::get_importers();
 			</div>
 			<div class="geodir-converter-errors"></div>
 			<form method="post" action="" class="geodir-converter-form geodir-converter-form1">
+			<p>If you have listings in another system, GeoDirectory can import those into this site. To get started, choose a system to import from below:</p>
 				<?php 
 					foreach( $importers as $id => $details ) {
 						$value	 = esc_attr( $id );
@@ -43,5 +43,6 @@ $importers = GDCONVERTER_Loarder::get_importers();
 				<input type="hidden" name="step" value="1">
 			</form>
 		</div>
+		<div class="geodir-converter-loader"></div>
 	</div>
 </div>
