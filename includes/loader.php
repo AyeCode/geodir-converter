@@ -28,11 +28,6 @@ class GDCONVERTER_Loarder {
 	 *
 	 */
 	public function __construct() {
-
-        //Maybe abort early and save resources
-        if(! is_admin() && !wp_doing_ajax()){
-            return;
-		}
         
         //Setup class globals
         $this->includes_dir = plugin_dir_path( GEODIR_CONVERTER_PLUGIN_FILE ) . 'includes/';

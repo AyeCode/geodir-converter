@@ -41,6 +41,9 @@ class GDCONVERTER_PMD {
 		//Handles progress requests
 		add_action( 'wp_ajax_gdconverter_pmd_handle_progress', array( $this, 'handle_progress' ) );
 
+		//Handle logins for imported users
+		add_filter( 'wp_authenticate_user',	array( $this, 'handle_login' ), 10, 2 );
+
 	}
 
 	/**
@@ -575,6 +578,51 @@ class GDCONVERTER_PMD {
 		$form  .= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
 
+	}
+
+	/**
+	 * Handles logins for imported users
+	 *
+	 * @since GeoDirectory Converter 1.0.0
+	 */
+	public function handle_login( $user, $password ) {
+		
+		if (! $user instanceof WP_User ) {
+			return $user;
+		}
+
+		
+		$login= false;
+		$hash = get_user_meta( $user->ID, 'pmd_password_hash' );
+		$salt = get_user_meta( $user->ID, 'pmd_password_salt' );
+		if(!$salt){
+			$salt = '';	 
+		}
+		
+		if( 'md5' == $hash  ){
+				if( md5( $password . $salt ) == $user->user_pass ){
+					$login= true;
+				} else if( md5( $salt . $password ) == $user->user_pass ){
+					$login= true;
+				}
+		}
+
+		if( 'sha256' == $hash  ){
+			if( hash ( 'sha256' , $password . $salt ) == $user->user_pass ){
+				$login= true;
+			} else if( hash ( 'sha256' , $salt . $password ) == $user->user_pass ){
+				$login= true;
+			}
+		}
+
+		if( true == $login){
+				$user->user_pass = wp_hash_password( $password );
+				wp_set_password( $password, $user->ID );
+				delete_user_meta( $user->ID, 'pmd_password_hash' );
+				delete_user_meta( $user->ID, 'pmd_password_hash' );
+		}
+
+		return $user;
 	}
 
 	/**
