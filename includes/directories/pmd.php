@@ -220,7 +220,7 @@ class GDCONVERTER_PMD {
 			'user'		=> $name,
 			'prefix'	=> $pre
 		);
-		set_transient( 'geodir_converter_pmd_db_details', $cache, HOUR_IN_SECONDS  );
+		set_transient( 'geodir_converter_pmd_db_details', $cache, DAY_IN_SECONDS  );
 
 		$title 			  = esc_html__( 'Successfully connected to PhpMyDirectory', 'geodirectory-converter');
 		$sub_title 		= esc_html__( 'Click the button below to import all your PhpMyDirectory data into this website.', 'geodirectory-converter');
@@ -344,7 +344,7 @@ class GDCONVERTER_PMD {
 			$form   .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('listings'));
 			$message = '<em>' . __('There are no listings in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
 			$form   .= $message;
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$this->update_progress( $form );
 		}
 		
@@ -360,7 +360,7 @@ class GDCONVERTER_PMD {
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('listings'));
 			$message = '<em>' . __('Finished importing listings...', 'geodirectory-converter') . '</em><br>';
 			$form   .= $message;
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$this->update_progress( $form );
 		}
 
@@ -502,7 +502,7 @@ class GDCONVERTER_PMD {
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('users'));
 			$message= '<em>' . __('There are no users in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -518,7 +518,7 @@ class GDCONVERTER_PMD {
 		if( empty($pmd_users) ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('users'));
 			$message= '<em>' . __('Finished importing users...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -692,7 +692,7 @@ class GDCONVERTER_PMD {
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('categories'));
 			$message= '<em>' . __('There are no categories in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -709,7 +709,7 @@ class GDCONVERTER_PMD {
 		if( empty($pmd_cats)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('categories'));
 			$message= '<em>' . __('Finished importing categories...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -796,7 +796,7 @@ class GDCONVERTER_PMD {
 		if ( !defined( 'WPINV_VERSION' ) ) {
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
 			$message= '<em>' . __('The Invoicing plugin is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -809,7 +809,7 @@ class GDCONVERTER_PMD {
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
 			$message= '<em>' . __('There are no invoices in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -825,7 +825,7 @@ class GDCONVERTER_PMD {
 		if( empty($pmd_invoices)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
 			$message= '<em>' . __('Finished importing invoices...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -959,7 +959,7 @@ class GDCONVERTER_PMD {
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('reviews'));
 			$message= '<em>' . __('There are no reviews in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -978,7 +978,7 @@ class GDCONVERTER_PMD {
 		if( empty($pmd_reviews)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('reviews'));
 			$message= '<em>' . __('Finished importing reviews...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -1057,7 +1057,7 @@ class GDCONVERTER_PMD {
 		if ( !defined( 'GEODIR_EVENT_VERSION' ) ) {
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
 			$message = '<em>' . __('The events addon is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -1070,7 +1070,7 @@ class GDCONVERTER_PMD {
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
 			$message = '<em>' . __('There are no events in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -1110,7 +1110,7 @@ class GDCONVERTER_PMD {
 		if( empty($pmd_events)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
 			$message= '<em>' . __('Finished importing events...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -1324,7 +1324,7 @@ class GDCONVERTER_PMD {
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('fields'));
 			$message = '<em>' . __('There are no custom fields in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress', $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
@@ -1340,7 +1340,7 @@ class GDCONVERTER_PMD {
 		if( empty($fields)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('fields'));
 			$message = '<em>' . __('Finished importing custom fields...', 'geodirectory-converter') . '</em><br>';
-			set_transient('_geodir_converter_pmd_progress',  $progress . $message, HOUR_IN_SECONDS);
+			set_transient('_geodir_converter_pmd_progress',  $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
 		}
