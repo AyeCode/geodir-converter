@@ -328,11 +328,11 @@ class GDCONVERTER_PMD {
 	private function import_listings() {
 		global $wpdb;
 
-		$table 					= $this->prefix . 'listings';
+		$table 				= $this->prefix . 'listings';
 		$posts_table 		= $wpdb->posts;
 		$places_table		= geodir_db_cpt_table( 'gd_place' );
-		$total 					= $this->db->get_var("SELECT COUNT(id) as count from $table");
-		$form   				= '<h3>' . __('Importing listings', 'geodirectory-converter') . '</h3>';
+		$total 				= $this->db->get_var("SELECT COUNT(id) as count from $table");
+		$form   			= '<h3>' . __('Importing listings', 'geodirectory-converter') . '</h3>';
 		$progress 			= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
 			$progress = '';
@@ -355,7 +355,8 @@ class GDCONVERTER_PMD {
 		}
 
 		//Fetch the listings and abort in case we have imported all of them
-		$listings_results 	= $this->db->get_results("SELECT * from $table LIMIT $offset,20");
+		$listings_results 	= $this->db->get_results("SELECT * from $table LIMIT $offset,10");
+
 		if( empty($listings_results)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('listings'));
 			$message = '<em>' . __('Finished importing listings...', 'geodirectory-converter') . '</em><br>';
@@ -383,7 +384,7 @@ class GDCONVERTER_PMD {
 			}
 			
 			//Avoid throwing an error in case a post with this id already exists
-			$sql = $wpdb->prepare( "DELETE FROM `{$wpdb->posts}` WHERE `{$wpdb->posts}`.`ID` = %d", $listing->id );
+			$sql = $wpdb->prepare( "DELETE FROM `$posts_table` WHERE `$posts_table`.`ID` = %d", $listing->id );
 			$wpdb->query( $sql );
 
 			//Prepare and insert the listing into the db
@@ -466,7 +467,7 @@ class GDCONVERTER_PMD {
 				),
 				array( '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d')
 			);
-		
+
 			$imported ++;
 		}
 		
@@ -512,7 +513,7 @@ class GDCONVERTER_PMD {
 		}
 		
 		//Where should we start from
-		$offset = 0;
+		$offset = 5538;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
 		}
@@ -681,11 +682,11 @@ class GDCONVERTER_PMD {
 		global $wpdb;
 
 
-		$table 				  = $this->prefix . 'categories';
+		$table 				= $this->prefix . 'categories';
 		$posts_table 		= $wpdb->posts;
 		$places_table		= geodir_db_cpt_table( 'gd_place' );
-		$total 					= $this->db->get_var("SELECT COUNT(id) as count from $table");
-		$form   				= '<h3>' . __('Importing categories', 'geodirectory-converter') . '</h3>';
+		$total 				= $this->db->get_var("SELECT COUNT(id) as count from $table");
+		$form   			= '<h3>' . __('Importing categories', 'geodirectory-converter') . '</h3>';
 		$progress 			= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
 			$progress = '';
@@ -703,7 +704,7 @@ class GDCONVERTER_PMD {
 
 		
 		//Where should we start from
-		$offset = 0;
+		$offset = 1490;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
 		}
@@ -878,7 +879,6 @@ class GDCONVERTER_PMD {
 			), true);
 
 			if( is_wp_error( $id ) ){
-				var_dump($id); exit;
 				$failed++;
 				continue;
 			}
@@ -1068,9 +1068,9 @@ class GDCONVERTER_PMD {
 			$this->update_progress( $form );
 		}
 
-		$table 						= $this->prefix . 'events';
+		$table 				= $this->prefix . 'events';
 		$listings_table		= $this->prefix . 'listings';
-		$total 						= $this->db->get_var("SELECT COUNT(id) as count from $table");
+		$total 				= $this->db->get_var("SELECT COUNT(id) as count from $table");
 		
 		//Abort early if there are no events
 		if( 0 == $total ){
