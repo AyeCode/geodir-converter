@@ -513,7 +513,7 @@ class GDCONVERTER_PMD {
 		}
 		
 		//Where should we start from
-		$offset = 5538;
+		$offset = 0;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
 		}
@@ -704,7 +704,7 @@ class GDCONVERTER_PMD {
 
 		
 		//Where should we start from
-		$offset = 1490;
+		$offset = 0;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
 		}
