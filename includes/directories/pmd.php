@@ -575,8 +575,8 @@ class GDCONVERTER_PMD {
 				array('%d','%s','%s','%s','%s','%s','%s' )
 			);
 
-			$user = new WP_User( $user->id );
-			$sql  = $wpdb->prepare( "SELECT `group_id` FROM `$roles` WHERE `user_id` = %d", $user->id );
+			$_user = new WP_User( $user->id );
+			$sql  = $wpdb->prepare( "SELECT `group_id` FROM `$roles` WHERE `user_id` = %d", $_user->ID );
 			$level = absint( $this->db->get_var($sql) );
 			
 			switch($level){
@@ -592,20 +592,20 @@ class GDCONVERTER_PMD {
     		default:
 					$role = 'subscriber';
 			}
-			$user->set_role( $role );
+			$_user->set_role( $role );
 			
-			update_user_meta( $user->ID, 'first_name', $user->user_first_name );
-			update_user_meta( $user->ID, 'last_name', $user->user_last_name );
-			update_user_meta( $user->ID, 'pmd_password_hash', $user->password_hash );
-			update_user_meta( $user->ID, 'pmd_password_salt', $user->password_salt );
-			update_user_meta( $user->ID, 'user_organization', $user->user_organization );
-			update_user_meta( $user->ID, 'user_address1', $user->user_address1 );
-			update_user_meta( $user->ID, 'user_address2', $user->user_address2 );
-			update_user_meta( $user->ID, 'user_city', $user->user_city );
-			update_user_meta( $user->ID, 'user_state', $user->user_state );
-			update_user_meta( $user->ID, 'user_country', $user->user_country );
-			update_user_meta( $user->ID, 'user_zip', $user->user_zip );
-			update_user_meta( $user->ID, 'user_phone', $user->user_phone );
+			update_user_meta( $_user->ID, 'first_name', $user->user_first_name );
+			update_user_meta( $_user->ID, 'last_name', $user->user_last_name );
+			update_user_meta( $_user->ID, 'pmd_password_hash', $user->password_hash );
+			update_user_meta( $_user->ID, 'pmd_password_salt', $user->password_salt );
+			update_user_meta( $_user->ID, 'user_organization', $user->user_organization );
+			update_user_meta( $_user->ID, 'user_address1', $user->user_address1 );
+			update_user_meta( $_user->ID, 'user_address2', $user->user_address2 );
+			update_user_meta( $_user->ID, 'user_city', $user->user_city );
+			update_user_meta( $_user->ID, 'user_state', $user->user_state );
+			update_user_meta( $_user->ID, 'user_country', $user->user_country );
+			update_user_meta( $_user->ID, 'user_zip', $user->user_zip );
+			update_user_meta( $_user->ID, 'user_phone', $user->user_phone );
 		
 			$imported++;
 		}
@@ -733,6 +733,8 @@ class GDCONVERTER_PMD {
 			}
 
 			$sql = $wpdb->prepare( "DELETE FROM `{$wpdb->terms}` WHERE `{$wpdb->terms}`.`term_id` = %d", $cat->id );
+			$sql = $wpdb->prepare( "DELETE FROM `{$wpdb->term_taxonomy}` WHERE `{$wpdb->term_taxonomy}`.`term_id` = %d", $cat->id );
+			
 			$wpdb->query( $sql );
 
 			$wpdb->insert(
