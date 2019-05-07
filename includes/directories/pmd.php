@@ -423,6 +423,8 @@ class GDCONVERTER_PMD {
 				$cats = $listing->primary_category_id;
 			}
 			
+			wp_set_post_terms( $listing->id, $cats, 'gd_placecategory' );
+			
 			//In case there was a listing with this id, delete it
 			$sql = $wpdb->prepare( "DELETE FROM `{$places_table}` WHERE `{$places_table}`.`post_id` = %d", $listing->id );
 			$wpdb->query( $sql );
