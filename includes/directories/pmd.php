@@ -387,26 +387,26 @@ class GDCONVERTER_PMD {
 			$wpdb->query( $sql );
 
 			//Prepare and insert the listing into the db
-			$excerpt = ( !empty( $listing->description_short ) )? $listing->description_short: '';
+			$slug    = ( $listing->friendly_url )? $listing->friendly_url : 'listing-' . $listing->id;
 			$status  = ( !empty( $listing->status ) && 'active' == $listing->status )? 'publish': $listing->status;
 			$status  = ( !empty( $listing->status ) && 'suspended' == $listing->status )? 'trash': $status;			
 			$wpdb->insert(
 				$posts_table,
 				array(
 					'ID' 				=> $listing->id,
-					'post_author' 		=> $listing->user_id,
-					'post_title' 		=> $listing->title,
-					'post_name' 		=> $listing->friendly_url,
-					'post_excerpt' 		=> $excerpt,
-					'post_content' 		=> $listing->description,
-					'post_date' 		=> $listing->date,
-					'post_date_gmt' 	=> $listing->date,
-					'post_modified' 	=> $listing->date_update,
-					'post_modified_gmt' => $listing->date_update,
+					'post_author' 		=> ( $listing->user_id )? $listing->user_id : 1,
+					'post_title' 		=> ( $listing->title )? $listing->title : 'NO TITLE',
+					'post_name' 		=> $slug,
+					'post_excerpt' 		=> ( $listing->description_short )? $listing->description_short : '',
+					'post_content' 		=> ( $listing->description )? $listing->description : '',
+					'post_date' 		=> ( $listing->date )? $listing->date : date('Y-m-d'),
+					'post_date_gmt' 	=> ( $listing->date )? $listing->date : date('Y-m-d'),
+					'post_modified' 	=> ( $listing->date_update )? $listing->date_update : date('Y-m-d'),
+					'post_modified_gmt' => ( $listing->date_update )? $listing->date_update : date('Y-m-d'),
 					'comment_status' 	=> 'open',
 					'ping_status' 		=> 'closed',
 					'post_parent' 		=> 0,
-					'guid' 				=> get_site_url() . '/places/' . $listing->friendly_url,
+					'guid' 				=> get_site_url() . '/places/' . $slug,
 					'menu_order' 		=> 0,
 					'post_type' 		=> 'gd_place',
 					'comment_count' 	=> 0,
@@ -422,9 +422,11 @@ class GDCONVERTER_PMD {
 			} else {
 				$cats = $listing->primary_category_id;
 			}
-			
-			wp_set_post_terms( $listing->id, $cats, 'gd_placecategory' );
-			
+
+			if( $cats ){
+				wp_set_post_terms( $listing->id, $cats, 'gd_placecategory' );
+			}
+
 			//In case there was a listing with this id, delete it
 			$sql = $wpdb->prepare( "DELETE FROM `{$places_table}` WHERE `{$places_table}`.`post_id` = %d", $listing->id );
 			$wpdb->query( $sql );
@@ -433,34 +435,34 @@ class GDCONVERTER_PMD {
 				$places_table,
 				array(
 					'post_id' 			=> $listing->id,
-					'post_title' 		=> $listing->title,
+					'post_title' 		=> ( $listing->title )? $listing->title : 'NO TITLE',
 					'post_status' 		=> $status,
 					'post_tags' 		=> '',
 					'post_category' 	=> $cats,
-					'default_category'  => $listing->primary_category_id,
+					'default_category'  => ( $listing->primary_category_id )? $listing->primary_category_id : 0,
 					'featured_image' 	=> '',
-					'submit_ip' 		=> $listing->ip,
-					'overall_rating' 	=> $listing->rating,
-					'rating_count' 		=> $listing->rating,
-					'street' 			=> $listing->listing_address1,
-					'city' 				=> $listing->listing_address2,
-					'region' 			=> $listing->location_text_1,
-					'country' 			=> $listing->location_text_2,
-					'zip' 				=>  $listing->listing_zip,
-					'latitude' 			=> $listing->latitude,
-					'longitude' 		=> $listing->longitude,
+					'submit_ip' 		=> ( $listing->ip )? $listing->ip : '',
+					'overall_rating' 	=> ( $listing->rating )? $listing->rating : 0,
+					'rating_count' 		=> ( $listing->rating )? $listing->votes : 0,
+					'street' 			=> ( $listing->listing_address1 )? $listing->listing_address1 : '',
+					'city' 				=> ( $listing->listing_address2 )? $listing->listing_address2 : '',
+					'region' 			=> ( $listing->location_text_1 )? $listing->location_text_1 : '',
+					'country' 			=> ( $listing->location_text_2 )? $listing->location_text_2 : '',
+					'zip' 				=>  ( $listing->listing_zip )? $listing->listing_zip : '',
+					'latitude' 			=> ( $listing->latitude )? $listing->latitude : '',
+					'longitude' 		=> ( $listing->longitude )? $listing->longitude : '',
 					'mapview' 			=> '',
 					'mapzoom' 			=> '',
-					'phone' 			=> $listing->phone,
+					'phone' 			=> ( $listing->phone )? $listing->phone : '',
 					'post_dummy' 		=> 0,
-					'email' 			=> $listing->mail,
-					'website' 			=> $listing->www,
-					'twitter' 			=> 'http://twitter.com/' . $listing->twitter_id,
-					'facebook' 			=> 'http://facebook.com/' . $listing->facebook_page_id,
+					'email' 			=> ( $listing->mail )? $listing->mail : '',
+					'website' 			=> ( $listing->www )? $listing->www : '',
+					'twitter' 			=> ( $listing->twitter_id )? 'http://twitter.com/' . $listing->twitter_id : '',
+					'facebook' 			=> ( $listing->facebook_page_id )? 'http://facebook.com/' . $listing->facebook_page_id : '',
 					'video' 			=> '',
 					'special_offers' 	=> '',
-					'business_hours' 	=> $listing->hours,
-					'featured' 			=> $listing->featured,
+					'business_hours' 	=> ( $listing->hours )? $listing->hours : '',
+					'featured' 			=> ( $listing->featured )? $listing->featured : '',
 				),
 				array( '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d')
 			);
@@ -544,7 +546,7 @@ class GDCONVERTER_PMD {
 		foreach ( $pmd_users as $key => $user ){
 			$offset++;
 
-			if( empty( $user->id ) ){
+			if( empty( $user->id ) || empty( $user->login ) ){
 				$failed++;
 				continue;
 			}
@@ -568,10 +570,10 @@ class GDCONVERTER_PMD {
 				array(
 					'id' 				=> $user->id,
 					'user_login' 		=> $user->login,
-					'user_pass' 		=> $user->pass,
+					'user_pass' 		=> ( $user->pass )? $user->pass : '',
 					'user_nicename' 	=> $user->login,
-					'user_email' 		=> $user->user_email,
-					'user_registered' 	=> $user->created,
+					'user_email' 		=> ( $user->user_email ) ? $user->user_email : '',
+					'user_registered' 	=> ( $user->created )? $user->pass : date('Y-m-d'),
 					'display_name' 		=> $display_name,
 				),
 				array('%d','%s','%s','%s','%s','%s','%s' )
@@ -735,16 +737,17 @@ class GDCONVERTER_PMD {
 			}
 
 			$sql = $wpdb->prepare( "DELETE FROM `{$wpdb->terms}` WHERE `{$wpdb->terms}`.`term_id` = %d", $cat->id );
-			$sql = $wpdb->prepare( "DELETE FROM `{$wpdb->term_taxonomy}` WHERE `{$wpdb->term_taxonomy}`.`term_id` = %d", $cat->id );
-			
+			$wpdb->query( $sql );
+
+			$sql = $wpdb->prepare( "DELETE FROM `{$wpdb->term_taxonomy}` WHERE `{$wpdb->term_taxonomy}`.`term_id` = %d", $cat->id );	
 			$wpdb->query( $sql );
 
 			$wpdb->insert(
 				$wpdb->terms,
 				array(
-					'term_id' 	=> $cat->id,
-					'name' 		  => $cat->title,
-					'slug' 		  => $cat->friendly_url
+					'term_id' 	  => $cat->id,
+					'name' 		  => ( $cat->title ) ? $cat->title : 'Category ' . $cat->id,
+					'slug' 		  => ( $cat->friendly_url ) ? $cat->friendly_url : 'category-' . $cat->id,
 				),
 				array('%d','%s', '%s')
 			);
@@ -752,12 +755,13 @@ class GDCONVERTER_PMD {
 			$wpdb->insert(
 				$wpdb->term_taxonomy,
 				array(
-					'term_id' 	=> $cat->id,
-					'taxonomy' 	=> 'gd_placecategory',
-					'parent' 	=> $cat->parent_id,
-					'count' 	=> $cat->count_total, //? $cat->count??
+					'term_id' 		=> $cat->id,
+					'taxonomy' 		=> 'gd_placecategory',
+					'parent' 		=> ( $cat->parent_id ) ? $cat->parent_id : 0,
+					'description' 	=> ( $cat->description ) ? $cat->description : '',
+					'count' 		=> ( $cat->count_total ) ? $cat->count_total : 0, //? $cat->count??
 				),
-				array('%d','%s', '%d', '%d')
+				array('%d','%s', '%d', '%s', '%d')
 			);
 
 			if(! empty($cat->description) ){
@@ -861,7 +865,7 @@ class GDCONVERTER_PMD {
 				'post_content'          => ( $invoice->description )? $invoice->description : '',
 				'post_content_filtered' => ( $invoice->description )? $invoice->description : '',
 				'post_title'            => 'WPINV-00'.$invoice->id ,
-				'post_name' 						=> 'inv-'.$invoice->id,
+				'post_name' 			=> 'inv-'.$invoice->id,
 				'post_excerpt'          => '',
 				'post_status'           => $status,
 				'post_type'             => 'wpi_invoice',
@@ -1367,7 +1371,7 @@ class GDCONVERTER_PMD {
 			}
 							
 			$id = geodir_custom_field_save( array(
-				    'post_type' 		=> 'gd_place',
+				'post_type' 		=> 'gd_place',
 		        'data_type' 		=> 'VARCHAR',
 		        'field_type' 		=> $field->type,
 		        'admin_title' 		=> $field->name,
