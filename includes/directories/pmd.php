@@ -1153,14 +1153,14 @@ class GDCONVERTER_PMD {
 				'uses'              => $discount->used,
 			);
 			wpinv_store_discount( $id, $data, $post );
-
+			update_post_meta($id, '_pmd_original_id', $discount->id);
 			$imported++;
 		}
 		
 		//Update the user on their progress
-		$total_text  	 = esc_html__( 'Total Invoices', 'geodirectory-converter' );
-		$imported_text   = esc_html__( 'Imported Invoices', 'geodirectory-converter' );
-		$processed_text  = esc_html__( 'Processed Invoices', 'geodirectory-converter' );
+		$total_text  	 = esc_html__( 'Total Codes', 'geodirectory-converter' );
+		$imported_text   = esc_html__( 'Imported Codes', 'geodirectory-converter' );
+		$processed_text  = esc_html__( 'Processed Codes', 'geodirectory-converter' );
 		$failed_text  	 = esc_html__( 'Failed', 'geodirectory-converter' );
 		$form  			.= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
 		$form  			.= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
@@ -1168,7 +1168,116 @@ class GDCONVERTER_PMD {
 		$form  			.= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
 		$form  			.= $this->get_hidden_field_html( 'imported', $imported);
 		$form  			.= $this->get_hidden_field_html( 'failed', $failed);
-		$form  			.= $this->get_hidden_field_html( 'type', 'invoices');
+		$form  			.= $this->get_hidden_field_html( 'type', 'discounts');
+		$form  			.= $this->get_hidden_field_html( 'offset', $offset);
+		$this->update_progress( $form, $total, $offset );
+	}
+
+	/**
+	 * Imports products
+	 *
+	 * @since GeoDirectory Converter 1.0.0
+	 */
+	private function import_products() {
+		global $wpdb;
+
+		$form		= '<h3>' . esc_html__('Importing products', 'geodirectory-converter') . '</h3>';
+		$progress 	= get_transient('_geodir_converter_pmd_progress');
+		if(! $progress ){
+			$progress = '';
+		}
+		$form   = $progress . $form;
+
+		//Abort early if the invoicing plugin is not installed
+		if ( !defined( 'WPINV_VERSION' ) ) {
+			$form  		.= $this->get_hidden_field_html( 'type', $this->get_next_import_type('products'));
+			$message	 = '<em>' . esc_html__('The Invoicing plugin is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
+			$form 		.= $message;
+			$this->update_progress( $form );
+		}
+
+		$table 			= $this->prefix . 'products';
+		$posts_table 	= $wpdb->posts;
+		$total 			= $this->db->get_var("SELECT COUNT(id) as count from $table");
+		
+		//Abort early if there are no discounts
+		if( 0 == $total ){
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('products'));
+			$message= '<em>' . esc_html__('There are no products in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
+			$form .= $message;
+			$this->update_progress( $form );
+		}
+		
+		//Where should we start from
+		$offset = 0;
+		if(! empty($_REQUEST['offset']) ){
+			$offset = absint($_REQUEST['offset']);
+		}
+
+		//Fetch the products and abort in case we have imported all of them
+		$pricing_table  = $table . '_pricing';
+		$pmd_products 	= $this->db->get_results("SELECT `$table`.`id` as product_id, `name`, `active`, `description`, `period`, `period_count`, `setup_price`, `price`, `renewable` FROM `$table` LEFT JOIN `$pricing_table` ON `$table`.`id` = `$pricing_table`.`product_id` LIMIT $offset,5");
+		
+		if( empty($pmd_products)){
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('products'));
+			$message= '<em>' . esc_html__('Finished importing products...', 'geodirectory-converter') . '</em><br>';
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
+			$form .= $message;
+			$this->update_progress( $form );
+		}
+
+		$imported = 0;
+		if(! empty($_REQUEST['imported']) ){
+			$imported = absint($_REQUEST['imported']);
+		}
+
+		$failed   = 0;
+		if(! empty($_REQUEST['failed']) ){
+			$failed = absint($_REQUEST['failed']);
+		}
+
+		foreach ( $pmd_products as $key => $product ){
+
+			$offset++;
+
+			if( empty( $product->product_id ) ){
+				$failed++;
+				continue;
+			}
+			
+			$args = array(
+				'title'                => $product->name,
+				'price'                => $product->price,
+				'status'               => ( $product->active ) ? 'publish' : 'pending',
+				'excerpt'              => ( $product->description ) ? $product->description : '',
+				'is_recurring'         => $product->renewable,
+				'recurring_period'     => ( $product->period ) ? strtoupper( substr( $product->period, 0, 1) ) : 'M',
+				'recurring_interval'   => $product->period_count,
+			);
+			$item = wpinv_create_item( $args );
+			if( $item instanceof WPInv_Item ){
+				update_post_meta($item->ID, '_pmd_original_id', $product->product_id);
+				$imported++;
+			} else {
+				$failed++;
+			}
+			
+		}
+		
+		//Update the user on their progress
+		$total_text  	 = esc_html__( 'Total Products', 'geodirectory-converter' );
+		$imported_text   = esc_html__( 'Imported Products', 'geodirectory-converter' );
+		$processed_text  = esc_html__( 'Processed Products', 'geodirectory-converter' );
+		$failed_text  	 = esc_html__( 'Failed', 'geodirectory-converter' );
+		$form  			.= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$form  			.= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
+		$form  			.= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$form  			.= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
+		$form  			.= $this->get_hidden_field_html( 'imported', $imported);
+		$form  			.= $this->get_hidden_field_html( 'failed', $failed);
+		$form  			.= $this->get_hidden_field_html( 'type', 'products');
 		$form  			.= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
 	}
