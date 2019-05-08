@@ -852,12 +852,17 @@ class GDCONVERTER_PMD {
 				array('%d','%s', '%s')
 			);
 		
+			$parent = 0;
+			if( $cat->parent_id && $cat->parent_id > 1 ){
+				$parent = $cat->parent_id;
+			}
+
 			$wpdb->insert(
 				$wpdb->term_taxonomy,
 				array(
 					'term_id' 		=> $cat->id,
 					'taxonomy' 		=> 'gd_placecategory',
-					'parent' 		=> ( $cat->parent_id ) ? $cat->parent_id : 0,
+					'parent' 		=> $parent,
 					'description' 	=> ( $cat->description ) ? $cat->description : '',
 					'count' 		=> ( $cat->count_total ) ? $cat->count_total : 0, //? $cat->count??
 				),
@@ -1283,7 +1288,7 @@ class GDCONVERTER_PMD {
 	}
 
 	/**
-	 * Imports categories
+	 * Imports reviews
 	 *
 	 * @since GeoDirectory Converter 1.0.0
 	 */
