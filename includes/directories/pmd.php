@@ -498,6 +498,16 @@ class GDCONVERTER_PMD {
 			$wpdb->query( $sql );
 
 			//Insert the listing into the places_detail table
+			$address = '';
+			if( $listing->listing_address1 ){
+				$address = $listing->listing_address1 + '
+				
+				';
+			}
+			if( $listing->listing_address2 ){
+				$address .= $listing->listing_address2;
+			}
+
 			$wpdb->insert(
 				$places_table,
 				array(
@@ -511,10 +521,10 @@ class GDCONVERTER_PMD {
 					'submit_ip' 		=> ( $listing->ip )? $listing->ip : '',
 					'overall_rating' 	=> ( $listing->rating )? $listing->rating : 0,
 					'rating_count' 		=> ( $listing->rating )? $listing->votes : 0,
-					'street' 			=> ( $listing->listing_address1 )? $listing->listing_address1 : '',
-					'city' 				=> ( $listing->listing_address2 )? $listing->listing_address2 : '',
-					'region' 			=> ( $listing->location_text_1 )? $listing->location_text_1 : '',
-					'country' 			=> ( $listing->location_text_2 )? $listing->location_text_2 : '',
+					'street' 			=> $address,
+					'city' 				=> ( $listing->location_text_1 )? $listing->location_text_1 : '',
+					'region' 			=> ( $listing->location_text_2 )? $listing->location_text_2 : '',
+					'country' 			=> '',
 					'zip' 				=>  ( $listing->listing_zip )? $listing->listing_zip : '',
 					'latitude' 			=> ( $listing->latitude )? $listing->latitude : '',
 					'longitude' 		=> ( $listing->longitude )? $listing->longitude : '',
@@ -1041,6 +1051,129 @@ class GDCONVERTER_PMD {
 	}
 
 	/**
+	 * Imports discount codes
+	 *
+	 * @since GeoDirectory Converter 1.0.0
+	 */
+	private function import_discounts() {
+		global $wpdb;
+
+		$form		= '<h3>' . esc_html__('Importing discount codes', 'geodirectory-converter') . '</h3>';
+		$progress 	= get_transient('_geodir_converter_pmd_progress');
+		if(! $progress ){
+			$progress = '';
+		}
+		$form   = $progress . $form;
+
+		//Abort early if the invoicing plugin is not installed
+		if ( !defined( 'WPINV_VERSION' ) ) {
+			$form  		.= $this->get_hidden_field_html( 'type', $this->get_next_import_type('discounts'));
+			$message	 = '<em>' . esc_html__('The Invoicing plugin is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
+			$form 		.= $message;
+			$this->update_progress( $form );
+		}
+
+		$table 			= $this->prefix . 'discount_codes';
+		$posts_table 	= $wpdb->posts;
+		$total 			= $this->db->get_var("SELECT COUNT(id) as count from $table");
+		
+		//Abort early if there are no discounts
+		if( 0 == $total ){
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('discounts'));
+			$message= '<em>' . esc_html__('There are no discount codes in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
+			$form .= $message;
+			$this->update_progress( $form );
+		}
+		
+		//Where should we start from
+		$offset = 0;
+		if(! empty($_REQUEST['offset']) ){
+			$offset = absint($_REQUEST['offset']);
+		}
+
+		//Fetch the discounts and abort in case we have imported all of them
+		$pmd_discounts 	= $this->db->get_results("SELECT * from $table LIMIT $offset,5");
+		if( empty($pmd_discounts)){
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('discounts'));
+			$message= '<em>' . esc_html__('Finished importing discount codes...', 'geodirectory-converter') . '</em><br>';
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
+			$form .= $message;
+			$this->update_progress( $form );
+		}
+
+		$imported = 0;
+		if(! empty($_REQUEST['imported']) ){
+			$imported = absint($_REQUEST['imported']);
+		}
+
+		$failed   = 0;
+		if(! empty($_REQUEST['failed']) ){
+			$failed = absint($_REQUEST['failed']);
+		}
+
+		foreach ( $pmd_discounts as $key => $discount ){
+
+			$offset++;
+
+			if( empty( $discount->id ) || empty( $discount->code ) ){
+				$failed++;
+				continue;
+			}
+			
+			$id = wp_insert_post( array(
+				'post_name' 			=> $discount->id,
+				'post_status'           => 'publish',
+				'post_type'             => 'wpi_discount',
+				'comment_status'        => 'closed',
+				'ping_status'           => 'closed',
+			), true);
+
+			$discount_types = array(
+				'percent'   => __( 'Percentage', 'invoicing' ),
+				'flat'     => __( 'Flat Amount', 'invoicing' ),
+			);
+
+			if( is_wp_error( $id ) ){
+				$failed++;
+				continue;
+			}
+
+			$post = get_post($id);
+			$data = array(
+				'code'              => $discount->code,
+				'type'              => ( $discount->discount_type == 'percentage' )    ?   'percent'  : 'flat',
+				'amount'            => (int) $discount->value,
+				'start'             => $discount->date_start,
+				'expiration'        => $discount->date_expire,
+				'max_uses'          => $discount->used_limit,
+				'items'             => ( $discount->pricing_ids ) ?  explode(',', $discount->pricing_ids)   : array(),
+				'is_recurring'      => ( $discount->type == 'onetime' )    ?   false  : true,
+				'uses'              => $discount->used,
+			);
+			wpinv_store_discount( $id, $data, $post );
+
+			$imported++;
+		}
+		
+		//Update the user on their progress
+		$total_text  	 = esc_html__( 'Total Invoices', 'geodirectory-converter' );
+		$imported_text   = esc_html__( 'Imported Invoices', 'geodirectory-converter' );
+		$processed_text  = esc_html__( 'Processed Invoices', 'geodirectory-converter' );
+		$failed_text  	 = esc_html__( 'Failed', 'geodirectory-converter' );
+		$form  			.= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$form  			.= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
+		$form  			.= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$form  			.= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
+		$form  			.= $this->get_hidden_field_html( 'imported', $imported);
+		$form  			.= $this->get_hidden_field_html( 'failed', $failed);
+		$form  			.= $this->get_hidden_field_html( 'type', 'invoices');
+		$form  			.= $this->get_hidden_field_html( 'offset', $offset);
+		$this->update_progress( $form, $total, $offset );
+	}
+
+	/**
 	 * Imports categories
 	 *
 	 * @since GeoDirectory Converter 1.0.0
@@ -1523,12 +1656,13 @@ class GDCONVERTER_PMD {
 	private function get_next_import_type( $current = 'fields' ) {
 
 		$order = array(
-			'fields' 			  => 'users',
-			'users'  			  => 'categories',
+			'fields' 			=> 'users',
+			'users'  			=> 'categories',
 			'categories' 		=> 'listings',
 			'listings' 			=> 'reviews',
 			'reviews' 			=> 'events',
-			'events'			  => 'invoices',
+			'events'			=> 'discounts',
+			'discounts'			=> 'invoices',
 			'invoices'			=> 'done',
 			//'pages',
 			//'blog'
