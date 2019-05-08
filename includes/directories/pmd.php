@@ -1570,12 +1570,106 @@ class GDCONVERTER_PMD {
 		$processed_text = esc_html__( 'Processed Events', 'geodirectory-converter' );
 		$failed_text  	= esc_html__( 'Failed Events', 'geodirectory-converter' );
 		$form  		   .= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
-		$form          .= "<div><strong>$processed_text Events &mdash;</strong><em> $offset</em></div>";
+		$form          .= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
 		$form          .= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
 		$form          .= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
 		$form          .= $this->get_hidden_field_html( 'imported', $imported);
 		$form          .= $this->get_hidden_field_html( 'failed', $failed);
 		$form          .= $this->get_hidden_field_html( 'type', 'events');
+		$form          .= $this->get_hidden_field_html( 'offset', $offset);
+		$this->update_progress( $form, $total, $offset );
+	}
+
+	/**
+	 * Imports event categories
+	 *
+	 * @since GeoDirectory Converter 1.0.0
+	 */
+	private function import_event_categories() {
+		global $wpdb;
+
+		$form	= '<h3>' . esc_html__('Importing event categories', 'geodirectory-converter') . '</h3>';
+		$progress 			= get_transient('_geodir_converter_pmd_progress');
+		if(! $progress ){
+			$progress = '';
+		}
+		$form   = $progress . $form;
+
+		//Abort early if the events addon is not installed
+		if ( !defined( 'GEODIR_EVENT_VERSION' ) ) {
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('event_categories'));
+			$message = '<em>' . esc_html__('The events addon is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
+			$form .= $message;
+			$this->update_progress( $form );
+		}
+
+		$table 				= $this->prefix . 'events_categories';
+		$total 				= $this->db->get_var("SELECT COUNT(id) as count from $table");
+		
+		//Abort early if there are no events
+		if( 0 == $total ){
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('event_categories'));
+			$message = '<em>' . esc_html__('There are no event categories in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
+			$form .= $message;
+			$this->update_progress( $form );
+		}
+		
+		//Where should we start from
+		$offset = 0;
+		if(! empty($_REQUEST['offset']) ){
+			$offset = absint($_REQUEST['offset']);
+		}
+
+		$cats   = $this->db->get_col( "SELECT title FROM `$table` LIMIT $offset,10" );
+		
+		if( empty($cats)){
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('event_categories'));
+			$message= '<em>' . esc_html__('Finished importing event categories...', 'geodirectory-converter') . '</em><br>';
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
+			$form .= $message;
+			$this->update_progress( $form );
+		}
+
+		$imported = 0;
+		if(! empty($_REQUEST['imported']) ){
+			$imported = absint($_REQUEST['imported']);
+		}
+
+		$failed   = 0;
+		if(! empty($_REQUEST['failed']) ){
+			$failed = absint($_REQUEST['failed']);
+		}
+
+		foreach ( $cats as $cat ){
+			$offset++;
+
+			if( empty( $cat ) ){
+				$failed++;
+				continue;
+			}
+
+			if( is_array( wp_insert_term( $cat, 'gd_eventcategory' ))){
+				$imported++;
+				continue;
+			}
+			
+			$failed++;
+		}
+
+		//Update the user on their progress
+		$total_text  	= esc_html__( 'Total Event Categories', 'geodirectory-converter' );
+		$imported_text  = esc_html__( 'Imported Event Categories', 'geodirectory-converter' );
+		$processed_text = esc_html__( 'Processed Event Categories', 'geodirectory-converter' );
+		$failed_text  	= esc_html__( 'Failed', 'geodirectory-converter' );
+		$form  		   .= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$form          .= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
+		$form          .= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$form          .= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
+		$form          .= $this->get_hidden_field_html( 'imported', $imported);
+		$form          .= $this->get_hidden_field_html( 'failed', $failed);
+		$form          .= $this->get_hidden_field_html( 'type', 'event_categories');
 		$form          .= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
 	}
@@ -1774,14 +1868,15 @@ class GDCONVERTER_PMD {
 			'users'  			=> 'categories',
 			'categories' 		=> 'listings',
 			'listings' 			=> 'reviews',
-			'reviews' 			=> 'events',
+			'reviews' 			=> 'event_categories',
+			'event_categories'  => 'events',
 			'events'			=> 'discounts',
-			'discounts'			=> 'invoices',
+			'discounts'			=> 'products',
+			'products'			=> 'invoices',
 			'invoices'			=> 'done',
 			//'pages',
 			//'blog'
 			//ratings
-			//products
 		);
 
 		if(isset($order[$current])){
