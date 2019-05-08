@@ -159,6 +159,35 @@ class GDCONVERTER_PMD {
 			return $fields;
 		}
 		delete_transient('_geodir_converter_pmd_progress');
+		$published_posts = wp_count_posts()->publish;
+		$users           = count_users();
+		$message 		 = false;
+
+		if( $published_posts > 1 && $users['total_users'] > 1){
+
+			$message = sprintf(
+				__('Detected %s users and %s published blog posts.', 'geodirectory-converter'),
+				$users['total_users'],
+				$published_posts);
+
+		} elseif( $published_posts > 1 ){
+			$message = sprintf(
+				__('Detected %s published blog posts.', 'geodirectory-converter'),
+				$published_posts);
+		} elseif( $users['total_users'] > 1 ){
+			$message = sprintf(
+				__('Detected %s users.', 'geodirectory-converter'),
+				$users['total_users']);
+		}
+
+		if( $message ) {
+			return $fields . sprintf( 
+				'<h3 class="geodir-converter-header-error">%s</h3><p>%s</p>',
+				$message,
+				__('You must use a fresh install of WordPress to use this converter since existing data will be overidden.', 'geodirectory-converter')
+			);
+		}
+
 		$fields .= '
 		<h3>Next, we need to connect to your PhpMyDirectory installation</h3>
 		<label class="geodir-label-grid"><div class="geodir-label-grid-label">Database Host Name</div><input type="text" value="localhost" name="database-host"></label>
@@ -1131,7 +1160,7 @@ class GDCONVERTER_PMD {
 			$failed = absint($_REQUEST['failed']);
 		}
 
-		$events_table	= geodir_db_cpt_table( 'gd_events' );
+		$events_table	= geodir_db_cpt_table( 'gd_event' );
 
 		foreach ( $pmd_events as $key => $event ){
 			$offset++;

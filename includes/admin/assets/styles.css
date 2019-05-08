@@ -133,6 +133,12 @@
     color: #f00;
 }
 
+.geodir-converter-header-error {
+    border-left: 2px solid #f00;
+    padding-left: 20px;
+    color: #f00;
+}
+
 .geodir-converter-header-success {
     color: #40ad6e;
     margin-bottom: 25px;
