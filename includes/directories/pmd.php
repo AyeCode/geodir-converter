@@ -9,13 +9,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 
 /**
- * Loads the plugin admin area
+ * Converts PhpMyDirectory to GeoDirectory
  *
  * @since GeoDirectory Converter 1.0.0
  */
 class GDCONVERTER_PMD {
 
-	//PMD db connection
+	//PMD db connection details
 	private $db = null;
 
 	//PMD table prefix
@@ -32,13 +32,13 @@ class GDCONVERTER_PMD {
 		//register our importer
 		add_action( 'geodir_converter_importers',	array( $this, 'register_importer' ));
 
-		//render settings fields
+		//Render converter form fields
 		add_action( 'geodirectory_pmd_importer_fields',	array( $this, 'show_initial_settings' ), 10, 2);
 		add_action( 'geodirectory_pmd_importer_fields',	array( $this, 'step_2' ), 10, 2);
 		add_action( 'geodirectory_pmd_importer_fields',	array( $this, 'step_3' ), 10, 2);
 		add_action( 'geodirectory_pmd_importer_fields',	array( $this, 'import_posts' ), 10, 2);
 
-		//Handles progress requests
+		//Handles ajax conversion progress requests
 		add_action( 'wp_ajax_gdconverter_pmd_handle_progress', array( $this, 'handle_progress' ) );
 
 		//Handle logins for imported users
@@ -49,12 +49,13 @@ class GDCONVERTER_PMD {
 	/**
 	 * Registers the importer
 	 *
+	 * @param $importers array. An array of registered importers
 	 * @since GeoDirectory Converter 1.0.0
 	 */
 	public function register_importer( $importers ) {
 		$importers['pmd'] = array(
-			'title' 		=> __( 'PhpMyDirectory', 'geodir-converter' ),
-			'description' 	=> __( 'Import listings, events, users and invoices from your PhpMyDirectory installation.', 'geodir-converter' ),
+			'title' 		=> esc_html__( 'PhpMyDirectory', 'geodir-converter' ),
+			'description' 	=> esc_html__( 'Import listings, events, users and invoices from your PhpMyDirectory installation.', 'geodir-converter' ),
 		);
 		return $importers;
 	}
@@ -82,32 +83,39 @@ class GDCONVERTER_PMD {
 		$db_config = get_transient( 'geodir_converter_pmd_db_details');
 
 		if(! $db_config || ! is_array($db_config) ){
-			$error = __('Your PMD database settings are missing. Please refresh the page and try again.', 'geodirectory-converter');
+			$error = esc_html__('Your PMD database settings are missing. Please refresh the page and try again.', 'geodirectory-converter');
 			GDCONVERTER_Loarder::send_response( 'error', $error );
 		}
 		
 		//Try connecting to the db
 		$this->db = new wpdb( $db_config['user'] ,$db_config['pass'] ,$db_config['db_name'] ,$db_config['host'] );
 		
-		//Tables
+		//If we are here, we connected successfully. Next, set the table prefix
 		$this->prefix = $db_config['prefix'] ;
 
+		//What data are we currently importing?
 		$type = trim($_REQUEST['type']);
+
+		//Check if we are through importing
 		if( 'done' == $type ){
-			$progress 			= get_transient('_geodir_converter_pmd_progress');
+			$progress	= get_transient('_geodir_converter_pmd_progress');
 			if(! $progress ){
 				$progress = '';
 			}
+			$import_posts_text  = esc_attr__( 'Import Blog Posts', 'geodirectory-converter' );
+			$success_text 		= esc_html__( 'Successfully imported all data', 'geodirectory-converter' );
+			$next_step_text     = esc_html__( 'Click on the button below to import blog posts.', 'geodirectory-converter' );
+
 			$html = '
 				<form method="post" action="" class="geodir-converter-form">
 					<input type="hidden" name="action" value="gdconverter_handle_import">
 					<input type="hidden" name="step" value="14">
 					<input type="hidden" name="gd-converter" value="pmd">
 					' . $progress .'
-					<h3 class="geodir-converter-header-success">Successfully imported all data</h3>
-					<p>Click on the button below to import blog posts.</p>
+					<h3 class="geodir-converter-header-success">' . $success_text .'</h3>
+					<p>' . $next_step_text .'</p>
 					<div class="geodir-conveter-centered">
-						<input type="submit"  class="button button-primary" value="Import Blog Posts">
+						<input type="submit"  class="button button-primary" value="' . $import_posts_text .'">
 					</div>
 			';
 			$html .= wp_nonce_field( 'gdconverter_nonce_action', 'gdconverter_nonce_field', true, false );
@@ -115,14 +123,19 @@ class GDCONVERTER_PMD {
 			GDCONVERTER_Loarder::send_response( 'success', $html );
 
 		} else {
+			//continue importing data
 			call_user_func( array( $this, "import_" . $type) );
 		}
 		
 	}
 
 	/**
-	 * Updates the user on the current progress
+	 * Updates the user on the current progress via ajax
 	 *
+	 * @param $fields string. String of HTML to show the user
+	 * @param $count  Integer. Optional. The total number of items to import
+	 * @param $offset Integer. Optional. The total number of processed items
+	 * 
 	 * @since GeoDirectory Converter 1.0.0
 	 */
 	public function update_progress( $fields, $count = 0, $offset = 0 ) {
@@ -135,6 +148,7 @@ class GDCONVERTER_PMD {
 		$form .= $fields;
 		$form .= '</form>';
 
+		//If offset and count has been set, display a progress bar
 		$hasprogress = ($count && $offset);
 
 		wp_send_json( array(
@@ -151,6 +165,8 @@ class GDCONVERTER_PMD {
 	/**
 	 * Displays initial setting fields
 	 *
+	 * @param $fields Form fields to display to the user
+	 * @param $step The current import step
 	 * @since GeoDirectory Converter 1.0.0
 	 */
 	public function show_initial_settings( $fields, $step ) {
@@ -158,51 +174,74 @@ class GDCONVERTER_PMD {
 		if( 1 != $step ){
 			return $fields;
 		}
+
+		//Delete previous progress details
 		delete_transient('_geodir_converter_pmd_progress');
+
+		//Check if this is a fresh install
 		$published_posts = wp_count_posts()->publish;
 		$users           = count_users();
 		$message 		 = false;
 
 		if( $published_posts > 1 && $users['total_users'] > 1){
 
+			//The blog has published some posts and has some users
 			$message = sprintf(
-				__('Detected %s users and %s published blog posts.', 'geodirectory-converter'),
+				esc_html__('Detected %s users and %s published blog posts', 'geodirectory-converter'),
 				$users['total_users'],
 				$published_posts);
 
 		} elseif( $published_posts > 1 ){
+
+			//The website has published some posts but has no extra user(besides admin)
 			$message = sprintf(
-				__('Detected %s published blog posts.', 'geodirectory-converter'),
+				esc_html__('Detected %s published blog posts', 'geodirectory-converter'),
 				$published_posts);
+
 		} elseif( $users['total_users'] > 1 ){
+
+			//The website has not published any posts but has users 
 			$message = sprintf(
-				__('Detected %s users.', 'geodirectory-converter'),
+				esc_html__('Detected %s users', 'geodirectory-converter'),
 				$users['total_users']);
+
 		}
 
+		//In case this is not a fresh install, stop the import process
 		if( $message ) {
 			return $fields . sprintf( 
 				'<h3 class="geodir-converter-header-error">%s</h3><p>%s</p>',
 				$message,
-				__('You must use a fresh install of WordPress to use this converter since existing data will be overidden.', 'geodirectory-converter')
+				esc_html__('You must use a fresh install of WordPress to use this converter since existing data will be overidden.', 'geodirectory-converter')
 			);
 		}
 
-		$fields .= '
-		<h3>Next, we need to connect to your PhpMyDirectory installation</h3>
-		<label class="geodir-label-grid"><div class="geodir-label-grid-label">Database Host Name</div><input type="text" value="localhost" name="database-host"></label>
-		<label class="geodir-label-grid"><div class="geodir-label-grid-label">Database Name</div><input type="text" value="pmd" name="database-name"></label>
-		<label class="geodir-label-grid"><div class="geodir-label-grid-label">Database Username</div><input type="text" value="root" name="database-user"></label>
-		<label class="geodir-label-grid"><div class="geodir-label-grid-label">Database Password</div><input type="text" name="database-password"></label>
-		<label class="geodir-label-grid"><div class="geodir-label-grid-label">Table Prefix</div><input type="text" value="pmd_" name="table-prefix"></label>
-		<input type="submit" class="button button-primary" value="Connect">
+		//Display DB connection details
+		$form     = '
+			<h3>%s</h3>
+			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" value="localhost" name="database-host"></label>
+			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" value="pmd" name="database-name"></label>
+			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" value="root" name="database-user"></label>
+			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" name="database-password"></label>
+			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" value="pmd_" name="table-prefix"></label>		
 		';
+		$fields  .= sprintf(
+			$form,
+			esc_html__('Next, we need to connect to your PhpMyDirectory installation', 'geodirectory-converter'),
+			esc_html__('Database Host Name', 'geodirectory-converter'),
+			esc_html__('Database Name', 'geodirectory-converter'),
+			esc_html__('Database Username', 'geodirectory-converter'),
+			esc_html__('Database Password', 'geodirectory-converter'),
+			esc_html__('Table Prefix', 'geodirectory-converter')
+		);
 		return $fields;
 	}
 
 	/**
-	 * Tries to connect to the pmd database
+	 * Verify the user db details
 	 *
+	 * @param $fields Form fields to display to the user
+	 * @param $step The current import step
 	 * @since GeoDirectory Converter 1.0.0
 	 */
 	public function step_2( $fields, $step ) {
@@ -241,7 +280,8 @@ class GDCONVERTER_PMD {
 		//Try connecting to the db
 		$db = new wpdb( $name ,$pass ,$db_name ,$host );
 
-		//Cache the db connection details for an hour
+		//If we are here, db connection details are correct
+		//Let's cache them for a day
 		$cache = array(
 			'host' 		=> $host,
 			'db_name' 	=> $db_name,
@@ -251,15 +291,17 @@ class GDCONVERTER_PMD {
 		);
 		set_transient( 'geodir_converter_pmd_db_details', $cache, DAY_IN_SECONDS  );
 
-		$title 			  = esc_html__( 'Successfully connected to PhpMyDirectory', 'geodirectory-converter');
+		//Display the next step to the user
+		$title 			= esc_html__( 'Successfully connected to PhpMyDirectory', 'geodirectory-converter');
 		$sub_title 		= esc_html__( 'Click the button below to import all your PhpMyDirectory data into this website.', 'geodirectory-converter');
 		$notes_title	= esc_html__( 'Notes', 'geodirectory-converter');
-		
+		$button			= esc_attr__( 'Start Importing Data', 'geodirectory-converter');
+
 		$fields .= "
 				<h3 class='geodir-converter-header-success'>$title</h3>
 				<p>$sub_title</p>
 				<div class='geodir-conveter-centered'>
-						<input type='submit' class='button button-primary' value='Start Importing Data'>
+					<input type='submit' class='button button-primary' value='$button'>
 				</div>
 				<h4>$notes_title</h4>
 				<ul class='geodir-conveter-notes'>
@@ -281,12 +323,13 @@ class GDCONVERTER_PMD {
 	 */
 	public function get_notes() {
 
-		$notes			= array(
+		$notes	= array(
 			esc_html__( 'You will be able to import your blog posts later.', 'geodirectory-converter'),
 		);
 
+		//Inform the user that invoices won't be imported since the invoicing plugin is not active
 		if ( !defined( 'WPINV_VERSION' ) ) {
-			$url 			= esc_url( 'https://wordpress.org/plugins/invoicing' );
+			$url 	 = esc_url( 'https://wordpress.org/plugins/invoicing' );
 			$notes[] = 	sprintf( 
 				esc_html__( 'The Invoicing plugin is not active. Invoices will not be imported unless you %s install and activate the Invoicing plugin %s first.', 'geodirectory-converter'),
 				"<a href='$url'>",
@@ -294,8 +337,9 @@ class GDCONVERTER_PMD {
 			);
 		}
 
+		//Inform the user that events won't be imported unless they activate the events addon
 		if ( !defined( 'GEODIR_EVENT_VERSION' ) ) {
-			$url 			= esc_url( 'https://wpgeodirectory.com/downloads/events/' );
+			$url 	 = esc_url( 'https://wpgeodirectory.com/downloads/events/' );
 			$notes[] = 	sprintf( 
 				esc_html__( 'The Events Addon is not active. Events will not be imported unless you %s install and activate the Events Addon %s first.', 'geodirectory-converter'),
 				"<a href='$url'>",
@@ -308,8 +352,9 @@ class GDCONVERTER_PMD {
 	}
 
 	/**
-	 * Handles all the other steps
-	 *
+	 * Kickstarts the data import process
+	 * @param $fields Form fields to display to the user
+	 * @param $step The current import step
 	 * @since GeoDirectory Converter 1.0.0
 	 */
 	public function step_3( $fields, $step ) {
@@ -318,34 +363,23 @@ class GDCONVERTER_PMD {
 			return $fields;
 		}
 
-		//Do we have any database connection details?
+		//Fetch database connection details...
 		$db_config = get_transient( 'geodir_converter_pmd_db_details');
 
+		//... and alert the user in case none is available
 		if(! $db_config || ! is_array($db_config) ){
-			$error = __('Your PMD database settings are missing. Please refresh the page and try again.', 'geodirectory-converter');
+			$error = esc_html__('Your PhpMyDirectory database settings are missing. Please refresh the page and try again.', 'geodirectory-converter');
 			GDCONVERTER_Loarder::send_response( 'error', $error );
 		}
 
 		//Try connecting to the db
 		$this->db = new wpdb( $db_config['user'] ,$db_config['pass'] ,$db_config['db_name'] ,$db_config['host'] );
 
-		//Tables
+		//Set the PMD db prefix
 		$this->prefix = $db_config['prefix'] ;
 
-		//What should we import next?
-		$current = 'fields';
-		if(! empty($_REQUEST['pmd-current'])  ){
-			$current = trim( sanitize_text_field( $_REQUEST['pmd-current'] ) );
-		}
-
-		//can we import it?
-		if(! method_exists($this, "import_$current") ){
-			$error = __('There was a problem importing the data. Please try again.', 'geodirectory-converter');
-			GDCONVERTER_Loarder::send_response( 'error', $error );
-		}
-
-		//Let's import it
-		call_user_func( array( $this, "import_$current") );
+		//Then start the import process
+		$this->import_fields();
 
 	}
 
@@ -361,7 +395,7 @@ class GDCONVERTER_PMD {
 		$posts_table 		= $wpdb->posts;
 		$places_table		= geodir_db_cpt_table( 'gd_place' );
 		$total 				= $this->db->get_var("SELECT COUNT(id) as count from $table");
-		$form   			= '<h3>' . __('Importing listings', 'geodirectory-converter') . '</h3>';
+		$form   			= '<h3>' . esc_html__('Importing listings', 'geodirectory-converter') . '</h3>';
 		$progress 			= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
 			$progress = '';
@@ -371,7 +405,7 @@ class GDCONVERTER_PMD {
 		//Abort early if there are no listings
 		if( 0 == $total ){
 			$form   .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('listings'));
-			$message = '<em>' . __('There are no listings in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message = '<em>' . esc_html__('There are no listings in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
 			$form   .= $message;
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$this->update_progress( $form );
@@ -384,11 +418,11 @@ class GDCONVERTER_PMD {
 		}
 
 		//Fetch the listings and abort in case we have imported all of them
-		$listings_results 	= $this->db->get_results("SELECT * from $table LIMIT $offset,10");
+		$listings_results 	= $this->db->get_results("SELECT * from $table LIMIT $offset,5");
 
 		if( empty($listings_results)){
-			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('listings'));
-			$message = '<em>' . __('Finished importing listings...', 'geodirectory-converter') . '</em><br>';
+			$form   .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('listings'));
+			$message = '<em>' . esc_html__('Finished importing listings...', 'geodirectory-converter') . '</em><br>';
 			$form   .= $message;
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$this->update_progress( $form );
@@ -400,7 +434,7 @@ class GDCONVERTER_PMD {
 		}
 
 		$failed   = 0;
-		if( empty($_REQUEST['failed']) ){
+		if(! empty($_REQUEST['failed']) ){
 			$failed = absint($_REQUEST['failed']);
 		}
 
@@ -461,6 +495,7 @@ class GDCONVERTER_PMD {
 			$sql = $wpdb->prepare( "DELETE FROM `{$places_table}` WHERE `{$places_table}`.`post_id` = %d", $listing->id );
 			$wpdb->query( $sql );
 
+			//Insert the listing into the places_detail table
 			$wpdb->insert(
 				$places_table,
 				array(
@@ -501,15 +536,18 @@ class GDCONVERTER_PMD {
 		}
 		
 		//Update the user on their progress
-		$form  .= $progress;
-		$form  .= "<div><strong>Total Listings &mdash;</strong><em> $total</em></div>";
-		$form  .= "<div><strong>Processed Listings &mdash;</strong><em> $offset</em></div>";
-		$form  .= "<div><strong>Imported &mdash;</strong><em> $imported</em></div>";
-		$form  .= "<div><strong>Failed &mdash;</strong><em> $failed</em></div>";
-		$form  .= $this->get_hidden_field_html( 'imported', $imported);
-		$form  .= $this->get_hidden_field_html( 'failed', $failed);
-		$form  .= $this->get_hidden_field_html( 'type', 'listings');
-		$form  .= $this->get_hidden_field_html( 'offset', $offset);
+		$total_text  	 = esc_html__( 'Total Listings', 'geodirectory-converter' );
+		$imported_text   = esc_html__( 'Imported Listings', 'geodirectory-converter' );
+		$processed_text  = esc_html__( 'Processed Listings', 'geodirectory-converter' );
+		$failed_text  	 = esc_html__( 'Failed', 'geodirectory-converter' );
+		$form  			.= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$form  			.= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
+		$form  			.= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$form  			.= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
+		$form  			.= $this->get_hidden_field_html( 'imported', $imported);
+		$form  			.= $this->get_hidden_field_html( 'failed', $failed);
+		$form  			.= $this->get_hidden_field_html( 'type', 'listings');
+		$form  			.= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
 	}
 
@@ -522,11 +560,11 @@ class GDCONVERTER_PMD {
 
 		global $wpdb;
 
-		$table	= $this->prefix . 'users';
-		$roles	= $this->prefix . 'users_groups_lookup';
-		$total 	= $this->db->get_var("SELECT COUNT(id) as count from $table");
-		$form   = '<h3>' . __('Importing users', 'geodirectory-converter') . '</h3>';
-		$progress 			= get_transient('_geodir_converter_pmd_progress');
+		$table		= $this->prefix . 'users';
+		$roles		= $this->prefix . 'users_groups_lookup';
+		$total 		= $this->db->get_var("SELECT COUNT(id) as count from $table");
+		$form   	= '<h3>' . esc_html__('Importing users', 'geodirectory-converter') . '</h3>';
+		$progress 	= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
 			$progress = '';
 		}
@@ -534,11 +572,13 @@ class GDCONVERTER_PMD {
 		
 		//Abort early if there are no users
 		if( 0 == $total ){
-			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('users'));
-			$message= '<em>' . __('There are no users in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
+
+			$form  		.= $this->get_hidden_field_html( 'type', $this->get_next_import_type('users'));
+			$message	 = '<em>' . esc_html__('There are no users in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
-			$form .= $message;
+			$form 		.= $message;
 			$this->update_progress( $form );
+
 		}
 		
 		//Where should we start from
@@ -548,13 +588,15 @@ class GDCONVERTER_PMD {
 		}
 
 		//Fetch the listings and abort in case we have imported all of them
-		$pmd_users 	= $this->db->get_results("SELECT * from $table LIMIT $offset,8");
+		$pmd_users 	= $this->db->get_results("SELECT * from $table LIMIT $offset,4");
 		if( empty($pmd_users) ){
+
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('users'));
-			$message= '<em>' . __('Finished importing users...', 'geodirectory-converter') . '</em><br>';
+			$message= '<em>' . esc_html__('Finished importing users...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
+
 		}
 
 		$imported = 0;
@@ -610,24 +652,26 @@ class GDCONVERTER_PMD {
 			);
 
 			$_user = new WP_User( $user->id );
-			$sql  = $wpdb->prepare( "SELECT `group_id` FROM `$roles` WHERE `user_id` = %d", $_user->ID );
+			$sql   = $wpdb->prepare( "SELECT `group_id` FROM `$roles` WHERE `user_id` = %d", $_user->ID );
 			$level = absint( $this->db->get_var($sql) );
 			
+			//Set the user role
 			switch($level){
-				case 1:
-        	$role = 'administrator';
-        	break;
+			case 1:
+        		$role = 'administrator';
+        		break;
     		case 2:
-					$role = 'editor';
-        	break;
+				$role = 'editor';
+        		break;
     		case 3:
-					$role = 'author';
-        	break;
+				$role = 'author';
+        		break;
     		default:
-					$role = 'subscriber';
+				$role = 'subscriber';
 			}
 			$_user->set_role( $role );
 			
+			//Update user meta
 			update_user_meta( $_user->ID, 'first_name', $user->user_first_name );
 			update_user_meta( $_user->ID, 'last_name', $user->user_last_name );
 			update_user_meta( $_user->ID, 'pmd_password_hash', $user->password_hash );
@@ -645,14 +689,18 @@ class GDCONVERTER_PMD {
 		}
 
 		//Update the user on their progress
-		$form  .= "<div><strong>Total Users &mdash;</strong><em> $total</em></div>";
-		$form  .= "<div><strong>Processed Users &mdash;</strong><em> $offset</em></div>";
-		$form  .= "<div><strong>Imported &mdash;</strong><em> $imported</em></div>";
-		$form  .= "<div><strong>Failed &mdash;</strong><em> $failed</em></div>";
-		$form  .= $this->get_hidden_field_html( 'imported', $imported);
-		$form  .= $this->get_hidden_field_html( 'failed', $failed);
-		$form  .= $this->get_hidden_field_html( 'type', 'users');
-		$form  .= $this->get_hidden_field_html( 'offset', $offset);
+		$total_text  	 = esc_html__( 'Total Users', 'geodirectory-converter' );
+		$imported_text   = esc_html__( 'Imported Users', 'geodirectory-converter' );
+		$processed_text  = esc_html__( 'Processed Users', 'geodirectory-converter' );
+		$failed_text  	 = esc_html__( 'Failed', 'geodirectory-converter' );
+		$form  			.= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$form  			.= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
+		$form  			.= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$form  			.= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
+		$form  			.= $this->get_hidden_field_html( 'imported', $imported);
+		$form  			.= $this->get_hidden_field_html( 'failed', $failed);
+		$form  			.= $this->get_hidden_field_html( 'type', 'users');
+		$form  			.= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
 
 	}
@@ -664,18 +712,28 @@ class GDCONVERTER_PMD {
 	 */
 	public function handle_login( $user, $password ) {
 		
+		//abort early if the user has not been set
 		if (! $user instanceof WP_User ) {
 			return $user;
 		}
-
 		
 		$login= false;
+
+		//Get user's pmd hash and salt
 		$hash = get_user_meta( $user->ID, 'pmd_password_hash' );
 		$salt = get_user_meta( $user->ID, 'pmd_password_salt' );
+
+		//If this is not a pmd user abort early
+		if(empty($hash)){
+			return $user;
+		}
+		
+		//Not all users have salts
 		if(!$salt){
 			$salt = '';	 
 		}
 		
+		//Check if the provided password matches the original pmd password
 		if( 'md5' == $hash  ){
 				if( md5( $password . $salt ) == $user->user_pass ){
 					$login= true;
@@ -715,7 +773,7 @@ class GDCONVERTER_PMD {
 		$posts_table 		= $wpdb->posts;
 		$places_table		= geodir_db_cpt_table( 'gd_place' );
 		$total 				= $this->db->get_var("SELECT COUNT(id) as count from $table");
-		$form   			= '<h3>' . __('Importing categories', 'geodirectory-converter') . '</h3>';
+		$form   			= '<h3>' . esc_html__('Importing categories', 'geodirectory-converter') . '</h3>';
 		$progress 			= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
 			$progress = '';
@@ -725,7 +783,7 @@ class GDCONVERTER_PMD {
 		//Abort early if there are no cats
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('categories'));
-			$message= '<em>' . __('There are no categories in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message= '<em>' . esc_html__('There are no categories in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -739,10 +797,10 @@ class GDCONVERTER_PMD {
 		}
 
 		//Fetch the listings and abort in case we have imported all of them
-		$pmd_cats 	= $this->db->get_results("SELECT * from $table LIMIT $offset,10");
+		$pmd_cats 	= $this->db->get_results("SELECT * from $table LIMIT $offset,5");
 		if( empty($pmd_cats)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('categories'));
-			$message= '<em>' . __('Finished importing categories...', 'geodirectory-converter') . '</em><br>';
+			$message= '<em>' . esc_html__('Finished importing categories...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -802,14 +860,18 @@ class GDCONVERTER_PMD {
 		}
 
 		//Update the user on their progress
-		$form  .= "<div><strong>Total Categories &mdash;</strong><em> $total</em></div>";
-		$form  .= "<div><strong>Processed Categories &mdash;</strong><em> $offset</em></div>";
-		$form  .= "<div><strong>Imported &mdash;</strong><em> $imported</em></div>";
-		$form  .= "<div><strong>Failed &mdash;</strong><em> $failed</em></div>";
-		$form  .= $this->get_hidden_field_html( 'imported', $imported);
-		$form  .= $this->get_hidden_field_html( 'failed', $failed);
-		$form  .= $this->get_hidden_field_html( 'type', 'categories');
-		$form  .= $this->get_hidden_field_html( 'offset', $offset);
+		$total_text  	 = esc_html__( 'Total Categories', 'geodirectory-converter' );
+		$imported_text   = esc_html__( 'Imported Categories', 'geodirectory-converter' );
+		$processed_text  = esc_html__( 'Processed Categories', 'geodirectory-converter' );
+		$failed_text  	 = esc_html__( 'Failed', 'geodirectory-converter' );
+		$form  			.= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$form  			.= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
+		$form  			.= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$form  			.= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
+		$form  			.= $this->get_hidden_field_html( 'imported', $imported);
+		$form  			.= $this->get_hidden_field_html( 'failed', $failed);
+		$form  			.= $this->get_hidden_field_html( 'type', 'categories');
+		$form  			.= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
 	}
 
@@ -821,8 +883,8 @@ class GDCONVERTER_PMD {
 	private function import_invoices() {
 		global $wpdb;
 
-		$form	= '<h3>' . __('Importing invoices', 'geodirectory-converter') . '</h3>';
-		$progress 			= get_transient('_geodir_converter_pmd_progress');
+		$form		= '<h3>' . esc_html__('Importing invoices', 'geodirectory-converter') . '</h3>';
+		$progress 	= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
 			$progress = '';
 		}
@@ -830,21 +892,21 @@ class GDCONVERTER_PMD {
 
 		//Abort early if the invoicing plugin is not installed
 		if ( !defined( 'WPINV_VERSION' ) ) {
-			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
-			$message= '<em>' . __('The Invoicing plugin is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$form  		.= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
+			$message	 = '<em>' . esc_html__('The Invoicing plugin is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
-			$form .= $message;
+			$form 		.= $message;
 			$this->update_progress( $form );
 		}
 
-		$table 				  = $this->prefix . 'invoices';
-		$posts_table 		= $wpdb->posts;
-		$total 					= $this->db->get_var("SELECT COUNT(id) as count from $table");
+		$table 			= $this->prefix . 'invoices';
+		$posts_table 	= $wpdb->posts;
+		$total 			= $this->db->get_var("SELECT COUNT(id) as count from $table");
 		
 		//Abort early if there are no invoices
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
-			$message= '<em>' . __('There are no invoices in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message= '<em>' . esc_html__('There are no invoices in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -857,10 +919,10 @@ class GDCONVERTER_PMD {
 		}
 
 		//Fetch the invoices and abort in case we have imported all of them
-		$pmd_invoices 	= $this->db->get_results("SELECT * from $table LIMIT $offset,10");
+		$pmd_invoices 	= $this->db->get_results("SELECT * from $table LIMIT $offset,5");
 		if( empty($pmd_invoices)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
-			$message= '<em>' . __('Finished importing invoices...', 'geodirectory-converter') . '</em><br>';
+			$message= '<em>' . esc_html__('Finished importing invoices...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -885,9 +947,9 @@ class GDCONVERTER_PMD {
 				continue;
 			}
 			
-			$status = ( !empty( $invoice->status ) && 'unpaid' == $invoice->status )? 'wpi-pending': $invoice->status;
-			$status = ( !empty( $invoice->status ) && 'canceled' == $invoice->status )? 'wpi-cancelled': $status;
-			$status = ( !empty( $invoice->status ) && 'paid' == $invoice->status )? 'publish': $status;
+			$status  = ( !empty( $invoice->status ) && 'unpaid' == $invoice->status )? 'wpi-pending': $invoice->status;
+			$status  = ( !empty( $invoice->status ) && 'canceled' == $invoice->status )? 'wpi-cancelled': $status;
+			$status  = ( !empty( $invoice->status ) && 'paid' == $invoice->status )? 'publish': $status;
 			$excerpt = ( !empty( $invoice->description ) )? $invoice->description: '';
 			
 			$id = wp_insert_post( array(
@@ -961,18 +1023,22 @@ class GDCONVERTER_PMD {
 		}
 		
 		//Update the user on their progress
-		$form  .= "<div><strong>Total Invoices &mdash;</strong><em> $total</em></div>";
-		$form  .= "<div><strong>Processed Invoices &mdash;</strong><em> $offset</em></div>";
-		$form  .= "<div><strong>Imported &mdash;</strong><em> $imported</em></div>";
-		$form  .= "<div><strong>Failed &mdash;</strong><em> $failed</em></div>";
-		$form  .= $this->get_hidden_field_html( 'imported', $imported);
-		$form  .= $this->get_hidden_field_html( 'failed', $failed);
-		$form  .= $this->get_hidden_field_html( 'type', 'invoices');
-		$form  .= $this->get_hidden_field_html( 'offset', $offset);
+		$total_text  	 = esc_html__( 'Total Invoices', 'geodirectory-converter' );
+		$imported_text   = esc_html__( 'Imported Invoices', 'geodirectory-converter' );
+		$processed_text  = esc_html__( 'Processed Invoices', 'geodirectory-converter' );
+		$failed_text  	 = esc_html__( 'Failed', 'geodirectory-converter' );
+		$form  			.= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$form  			.= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
+		$form  			.= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$form  			.= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
+		$form  			.= $this->get_hidden_field_html( 'imported', $imported);
+		$form  			.= $this->get_hidden_field_html( 'failed', $failed);
+		$form  			.= $this->get_hidden_field_html( 'type', 'invoices');
+		$form  			.= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
 	}
 
-		/**
+	/**
 	 * Imports categories
 	 *
 	 * @since GeoDirectory Converter 1.0.0
@@ -980,11 +1046,11 @@ class GDCONVERTER_PMD {
 	private function import_reviews() {
 		global $wpdb;
 
-		$table 					= $this->prefix . 'reviews';
-		$users_table		= $this->prefix . 'users';
-		$total 					= $this->db->get_var("SELECT COUNT(id) as count from $table");
-		$form   				= '<h3>' . __('Importing reviews', 'geodirectory-converter') . '</h3>';
-		$progress 			= get_transient('_geodir_converter_pmd_progress');
+		$table 			= $this->prefix . 'reviews';
+		$users_table	= $this->prefix . 'users';
+		$total 			= $this->db->get_var("SELECT COUNT(id) as count from $table");
+		$form   		= '<h3>' . esc_html__('Importing reviews', 'geodirectory-converter') . '</h3>';
+		$progress 		= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
 			$progress = '';
 		}
@@ -993,7 +1059,7 @@ class GDCONVERTER_PMD {
 		//Abort early if there are no reviews
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('reviews'));
-			$message= '<em>' . __('There are no reviews in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message= '<em>' . esc_html__('There are no reviews in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -1008,11 +1074,11 @@ class GDCONVERTER_PMD {
 		//Fetch the reviews and abort in case we have imported all of them
 		$pmd_reviews   = $this->db->get_results(
 			"SELECT `$table`.`id` as `review_id`, `status`, `listing_id`, `user_id`, `date`, `review`, `user_first_name`, `user_last_name`, `user_email` 
-			FROM `$table` LEFT JOIN `$users_table` ON `$table`.`user_id` = `$users_table`.`id`  LIMIT $offset,10");
+			FROM `$table` LEFT JOIN `$users_table` ON `$table`.`user_id` = `$users_table`.`id`  LIMIT $offset,5");
 
 		if( empty($pmd_reviews)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('reviews'));
-			$message= '<em>' . __('Finished importing reviews...', 'geodirectory-converter') . '</em><br>';
+			$message= '<em>' . esc_html__('Finished importing reviews...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -1062,14 +1128,18 @@ class GDCONVERTER_PMD {
 		}
 
 		//Update the user on their progress
-		$form  .= "<div><strong>Total Reviews &mdash;</strong><em> $total</em></div>";
-		$form  .= "<div><strong>Processed Reviews &mdash;</strong><em> $offset</em></div>";
-		$form  .= "<div><strong>Imported &mdash;</strong><em> $imported</em></div>";
-		$form  .= "<div><strong>Failed &mdash;</strong><em> $failed</em></div>";
-		$form  .= $this->get_hidden_field_html( 'imported', $imported);
-		$form  .= $this->get_hidden_field_html( 'failed', $failed);
-		$form  .= $this->get_hidden_field_html( 'type', 'reviews');
-		$form  .= $this->get_hidden_field_html( 'offset', $offset);
+		$total_text  	 = esc_html__( 'Total Reviews', 'geodirectory-converter' );
+		$imported_text   = esc_html__( 'Imported Reviews', 'geodirectory-converter' );
+		$processed_text  = esc_html__( 'Processed Reviews', 'geodirectory-converter' );
+		$failed_text  	 = esc_html__( 'Failed', 'geodirectory-converter' );
+		$form  			.= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$form  			.= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
+		$form  			.= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$form  			.= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
+		$form  			.= $this->get_hidden_field_html( 'imported', $imported);
+		$form  			.= $this->get_hidden_field_html( 'failed', $failed);
+		$form  			.= $this->get_hidden_field_html( 'type', 'reviews');
+		$form  			.= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
 	}
 
@@ -1081,7 +1151,7 @@ class GDCONVERTER_PMD {
 	private function import_events() {
 		global $wpdb;
 
-		$form	= '<h3>' . __('Importing events', 'geodirectory-converter') . '</h3>';
+		$form	= '<h3>' . esc_html__('Importing events', 'geodirectory-converter') . '</h3>';
 		$progress 			= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
 			$progress = '';
@@ -1091,7 +1161,7 @@ class GDCONVERTER_PMD {
 		//Abort early if the events addon is not installed
 		if ( !defined( 'GEODIR_EVENT_VERSION' ) ) {
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
-			$message = '<em>' . __('The events addon is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message = '<em>' . esc_html__('The events addon is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -1104,7 +1174,7 @@ class GDCONVERTER_PMD {
 		//Abort early if there are no events
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
-			$message = '<em>' . __('There are no events in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message = '<em>' . esc_html__('There are no events in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -1139,12 +1209,12 @@ class GDCONVERTER_PMD {
 
 		$sql = rtrim($sql, ', ');
 
-		$sql 		 .= "  FROM `$table` LEFT JOIN `$listings_table` ON `$table`.`listing_id` = `$listings_table`.`id`  LIMIT $offset,10 ";
+		$sql 		 .= "  FROM `$table` LEFT JOIN `$listings_table` ON `$table`.`listing_id` = `$listings_table`.`id`  LIMIT $offset,5 ";
 		$pmd_events   = $this->db->get_results( $sql );
 		
 		if( empty($pmd_events)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
-			$message= '<em>' . __('Finished importing events...', 'geodirectory-converter') . '</em><br>';
+			$message= '<em>' . esc_html__('Finished importing events...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -1246,14 +1316,18 @@ class GDCONVERTER_PMD {
 		}
 
 		//Update the user on their progress
-		$form  .= "<div><strong>Total Events &mdash;</strong><em> $total</em></div>";
-		$form  .= "<div><strong>Processed Events &mdash;</strong><em> $offset</em></div>";
-		$form  .= "<div><strong>Imported &mdash;</strong><em> $imported</em></div>";
-		$form  .= "<div><strong>Failed &mdash;</strong><em> $failed</em></div>";
-		$form  .= $this->get_hidden_field_html( 'imported', $imported);
-		$form  .= $this->get_hidden_field_html( 'failed', $failed);
-		$form  .= $this->get_hidden_field_html( 'type', 'events');
-		$form  .= $this->get_hidden_field_html( 'offset', $offset);
+		$total_text  	= esc_html__( 'Total Events', 'geodirectory-converter' );
+		$imported_text  = esc_html__( 'Imported Events', 'geodirectory-converter' );
+		$processed_text = esc_html__( 'Processed Events', 'geodirectory-converter' );
+		$failed_text  	= esc_html__( 'Failed Events', 'geodirectory-converter' );
+		$form  		   .= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$form          .= "<div><strong>$processed_text Events &mdash;</strong><em> $offset</em></div>";
+		$form          .= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$form          .= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
+		$form          .= $this->get_hidden_field_html( 'imported', $imported);
+		$form          .= $this->get_hidden_field_html( 'failed', $failed);
+		$form          .= $this->get_hidden_field_html( 'type', 'events');
+		$form          .= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
 	}
 
@@ -1273,7 +1347,7 @@ class GDCONVERTER_PMD {
 		$db_config = get_transient( 'geodir_converter_pmd_db_details');
 
 		if(! $db_config || ! is_array($db_config) ){
-				$error = __('Your PMD database settings are missing. Please refresh the page and try again.', 'geodirectory-converter');
+				$error = esc_html__('Your PMD database settings are missing. Please refresh the page and try again.', 'geodirectory-converter');
 				GDCONVERTER_Loarder::send_response( 'error', $error );
 		}
 	
@@ -1288,7 +1362,7 @@ class GDCONVERTER_PMD {
 			
 		//Abort early if there are no blog posts
 		if( 0 == $total ){
-			$error = __('There are no blog posts in your PhpMyDirectory installation.', 'geodirectory-converter');
+			$error = esc_html__('There are no blog posts in your PhpMyDirectory installation.', 'geodirectory-converter');
 			GDCONVERTER_Loarder::send_response( 'error', $error );
 		}
 
@@ -1332,9 +1406,12 @@ class GDCONVERTER_PMD {
 		}
 		
 		//Update the user on their progress
-		$fields  .= "<div><strong>Total Posts &mdash;</strong><em> $total</em></div>";
-		$fields  .= "<div><strong>Imported &mdash;</strong><em> $imported</em></div>";
-		$fields  .= "<div><strong>Failed &mdash;</strong><em> $failed</em></div>";
+		$total_text  	= esc_html__( 'Total Posts', 'geodirectory-converter' );
+		$imported_text  = esc_html__( 'Imported Posts', 'geodirectory-converter' );
+		$failed_text  	= esc_html__( 'Failed Posts', 'geodirectory-converter' );
+		$fields  	   .= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$fields        .= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$fields        .= "<div><strong>$failed_text  &mdash;</strong><em> $failed</em></div>";
 		return $fields;
 	}
 
@@ -1348,8 +1425,8 @@ class GDCONVERTER_PMD {
 
 		$table 	= $this->prefix . 'fields';
 		$total 	= $this->db->get_var("SELECT COUNT(id) as count from $table");
-		$form   = '<h3>' . __('Importing custom fields', 'geodirectory-converter') . '</h3>';
-		$progress 			= get_transient('_geodir_converter_pmd_progress');
+		$form   = '<h3>' . esc_html__('Importing custom fields', 'geodirectory-converter') . '</h3>';
+		$progress 	= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
 			$progress = '';
 		}
@@ -1358,7 +1435,7 @@ class GDCONVERTER_PMD {
 		//Abort early if there are no fields
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('fields'));
-			$message = '<em>' . __('There are no custom fields in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message = '<em>' . esc_html__('There are no custom fields in your PhpMyDirectory installation. Skipping...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -1374,7 +1451,7 @@ class GDCONVERTER_PMD {
 		$fields 	= $this->db->get_results("SELECT * from $table LIMIT $offset,3");
 		if( empty($fields)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('fields'));
-			$message = '<em>' . __('Finished importing custom fields...', 'geodirectory-converter') . '</em><br>';
+			$message = '<em>' . esc_html__('Finished importing custom fields...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress',  $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -1421,14 +1498,18 @@ class GDCONVERTER_PMD {
 		}
 		
 		//Update the user on their progress
-		$form  .= "<div><strong>Total Fields &mdash;</strong><em> $total</em></div>";
-		$form  .= "<div><strong>Processed Fields &mdash;</strong><em> $offset</em></div>";
-		$form  .= "<div><strong>Imported &mdash;</strong><em> $imported</em></div>";
-		$form  .= "<div><strong>Failed &mdash;</strong><em> $failed</em></div>";
-		$form  .= $this->get_hidden_field_html( 'imported', $imported);
-		$form  .= $this->get_hidden_field_html( 'failed', $failed);
-		$form  .= $this->get_hidden_field_html( 'type', 'fields');
-		$form  .= $this->get_hidden_field_html( 'offset', $offset);
+		$total_text  	= esc_html__( 'Total Fields', 'geodirectory-converter' );
+		$processed_text = esc_html__( 'Processed Fields', 'geodirectory-converter' );
+		$imported_text  = esc_html__( 'Imported Fields', 'geodirectory-converter' );
+		$failed_text  	= esc_html__( 'Failed Fields', 'geodirectory-converter' );
+		$form  		   .= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$form  		   .= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
+		$form  		   .= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$form  		   .= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
+		$form  		   .= $this->get_hidden_field_html( 'imported', $imported);
+		$form  		   .= $this->get_hidden_field_html( 'failed', $failed);
+		$form  		   .= $this->get_hidden_field_html( 'type', 'fields');
+		$form  		   .= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
 	}
 

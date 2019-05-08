@@ -23,20 +23,6 @@
  * Update URL: https://wpgeodirectory.com
  */
 
-/**
- ***> Plan:
- ** Create a parent abstract class
- ** create folders with related classes for each directory systems. ex. PDP
- *
- ** Create setting in backend
- ***> Setting for entering database entries
- ***> Show directory system that supported in form of radio button
- ***> Setting for table prefix
- ***> Convert button on clicking on which the process will begin
- */
-
-
-
 if ( ! defined( 'WPINC' ) ) {
 	die;
 }
@@ -51,14 +37,14 @@ if ( ! defined( 'GEODIR_CONVERTER_PLUGIN_FILE' ) ) {
 
 /**
  * Begins execution of the plugin.
- *
+ * 
+ * Loads the plugin after GD has been loaded
+ * 
  * @since    1.0.0
  */
-function geodir_load_geodir_converter() {
-	
+function geodir_load_geodir_converter() {	
 	require_once ( plugin_dir_path( GEODIR_CONVERTER_PLUGIN_FILE ) . 'includes/loader.php' );
 	new GDCONVERTER_Loarder();
-
 }
 add_action( 'geodirectory_loaded', 'geodir_load_geodir_converter' );
 
@@ -91,7 +77,7 @@ function geodir_converter_check_if_geodir_is_installed() {
 			);
 
 		printf( 
-			__( '%s requires the %sGeodirectory%s plugin to be installed and active. %sClick here to activate it.%s', 'geodirectory-converter' ),
+			esc_html__( '%s requires the %sGeodirectory%s plugin to be installed and active. %sClick here to activate it.%s', 'geodirectory-converter' ),
 			"<div class='$class'><p><strong>GeoDirectory Converter", 
 			'<a href="https://wpgeodirectory.com" target="_blank" title=" GeoDirectory">', 
 			'</a>', 
@@ -112,7 +98,7 @@ function geodir_converter_check_if_geodir_is_installed() {
 		) );
 		
 		printf( 
-			__( '%s requires the %ssGeodirectory%s plugin to be installed and active. %sClick here to install it.%s', 'geodirectory-converter' ),
+			esc_html__( '%s requires the %ssGeodirectory%s plugin to be installed and active. %sClick here to install it.%s', 'geodirectory-converter' ),
 			"<div class='$class'><p><strong>GeoDirectory Converter", 
 			'<a href="https://wpgeodirectory.com" target="_blank" title=" GeoDirectory">', 
 			'</a>', 
@@ -127,10 +113,11 @@ add_action( 'admin_notices', 'geodir_converter_check_if_geodir_is_installed' );
 
 /**
  * The code that runs during plugin activation.
- *
+ * 
  * @since 1.0.0
  */
 function activate_geodir_converter() {
+	//Set a transient showing the plugin has been activated. Used to redirect users to the plugin page
     set_transient( '_geodir_converter_installed', '1', MINUTE_IN_SECONDS  );
 }
 register_activation_hook( __FILE__, 'activate_geodir_converter' );
