@@ -224,6 +224,7 @@ class GDCONVERTER_PMD {
 			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" value="root" name="database-user"></label>
 			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" name="database-password"></label>
 			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" value="pmd_" name="table-prefix"></label>		
+			<input type="submit" class="button button-primary" value="%s">
 		';
 		$fields  .= sprintf(
 			$form,
@@ -232,7 +233,8 @@ class GDCONVERTER_PMD {
 			esc_html__('Database Name', 'geodirectory-converter'),
 			esc_html__('Database Username', 'geodirectory-converter'),
 			esc_html__('Database Password', 'geodirectory-converter'),
-			esc_html__('Table Prefix', 'geodirectory-converter')
+			esc_html__('Table Prefix', 'geodirectory-converter'),
+			esc_attr__('Connect', 'geodirectory-converter')
 		);
 		return $fields;
 	}
