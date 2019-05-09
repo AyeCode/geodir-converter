@@ -1129,6 +1129,7 @@ class GDCONVERTER_PMD {
 			
 			$id = wp_insert_post( array(
 				'post_name' 			=> $discount->id,
+				'post_title' 			=> ( $discount->title ) ? $discount->title : '',
 				'post_status'           => 'publish',
 				'post_type'             => 'wpi_discount',
 				'comment_status'        => 'closed',
@@ -1205,7 +1206,7 @@ class GDCONVERTER_PMD {
 		$table 			= $this->prefix . 'products';
 		$posts_table 	= $wpdb->posts;
 		$total 			= $this->db->get_var("SELECT COUNT(id) as count from $table");
-		
+	
 		//Abort early if there are no discounts
 		if( 0 == $total ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('products'));
@@ -1223,8 +1224,8 @@ class GDCONVERTER_PMD {
 
 		//Fetch the products and abort in case we have imported all of them
 		$pricing_table  = $table . '_pricing';
-		$pmd_products 	= $this->db->get_results("SELECT `$table`.`id` as product_id, `name`, `active`, `description`, `period`, `period_count`, `setup_price`, `price`, `renewable` FROM `$table` LEFT JOIN `$pricing_table` ON `$table`.`id` = `$pricing_table`.`product_id` LIMIT $offset,5");
-		
+		$pmd_products 	= $this->db->get_results("SELECT `$table`.`id` as product_id, `name`, `$table`.`active`, `description`, `period`, `period_count`, `setup_price`, `price`, `renewable` FROM `$table` LEFT JOIN `$pricing_table` ON `$table`.`id` = `$pricing_table`.`product_id` LIMIT $offset,5");
+			
 		if( empty($pmd_products)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('products'));
 			$message= '<em>' . esc_html__('Finished importing products...', 'geodirectory-converter') . '</em><br>';
