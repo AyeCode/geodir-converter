@@ -208,7 +208,7 @@ class GDCONVERTER_PMD {
 		}
 
 		//In case this is not a fresh install, stop the import process
-		if( $message ) {
+		if(! $message ) {
 			return $fields . sprintf( 
 				'<h3 class="geodir-converter-header-error">%s</h3><p>%s</p>',
 				$message,
@@ -381,7 +381,7 @@ class GDCONVERTER_PMD {
 		$this->prefix = $db_config['prefix'] ;
 
 		//Then start the import process
-		$this->import_fields();
+		$this->import_listings();
 
 	}
 
@@ -392,6 +392,7 @@ class GDCONVERTER_PMD {
 	 */
 	private function import_listings() {
 		global $wpdb;
+		global $geodirectory;
 
 		$table 				= $this->prefix . 'listings';
 		$posts_table 		= $wpdb->posts;
@@ -508,40 +509,89 @@ class GDCONVERTER_PMD {
 				$address .= $listing->listing_address2;
 			}
 
+			$default_location   = $geodirectory->location->get_default_location();
+			$country    		= ( $location->country ) ? $location->country : '';
+			$region     		= ( $location->region ) ? $location->region : '';
+			$city       		= ( $location->city ) ? $location->city : '';
+			$latitude   		= ( $location->latitude ) ? $location->latitude : '';
+			$longitude  		= ( $location->longitude ) ? $location->longitude : '';
+
+			$values = array(
+				'post_id' 			=> $listing->id,
+				'post_title' 		=> ( $listing->title )? $listing->title : 'NO TITLE',
+				'post_status' 		=> $status,
+				'post_tags' 		=> '',
+				'post_category' 	=> $cats,
+				'default_category'  => ( $listing->primary_category_id )? $listing->primary_category_id : 0,
+				'featured_image' 	=> '',
+				'submit_ip' 		=> ( $listing->ip )? $listing->ip : '',
+				'overall_rating' 	=> ( $listing->rating )? $listing->rating : 0,
+				'rating_count' 		=> ( $listing->rating )? $listing->votes : 0,
+				'street' 			=> $address,
+				'city' 				=> ( $listing->location_text_1 )? $listing->location_text_1 : $city,
+				'region' 			=> ( $listing->location_text_2 )? $listing->location_text_2 : $region,
+				'country' 			=> $country,
+				'zip' 				=>  ( $listing->listing_zip )? $listing->listing_zip : '',
+				'latitude' 			=> ( $listing->latitude )? $listing->latitude : $latitude,
+				'longitude' 		=> ( $listing->longitude )? $listing->longitude : $longitude,
+				'mapview' 			=> '',
+				'mapzoom' 			=> '',
+				'phone' 			=> ( $listing->phone )? $listing->phone : '',
+				'email' 			=> ( $listing->mail )? $listing->mail : '',
+				'website' 			=> ( $listing->www )? $listing->www : '',
+				'twitter' 			=> ( $listing->twitter_id )? 'http://twitter.com/' . $listing->twitter_id : '',
+				'facebook' 			=> ( $listing->facebook_page_id )? 'http://facebook.com/' . $listing->facebook_page_id : '',
+				'video' 			=> '',
+				'special_offers' 	=> '',
+				'business_hours' 	=> ( $listing->hours )? $listing->hours : '',
+				'featured' 			=> ( $listing->featured )? $listing->featured : '',
+			);
+
+			$types = array(
+				'post_id' 			=> '%d',
+				'post_title' 		=> '%s',
+				'post_status' 		=> '%s',
+				'post_tags' 		=> '%s',
+				'post_category' 	=> '%s',
+				'default_category'  => '%d',
+				'featured_image' 	=> '%s',
+				'submit_ip' 		=> '%s',
+				'overall_rating' 	=> '%f',
+				'rating_count' 		=> '%d',
+				'street' 			=> '%s',
+				'city' 				=> '%s',
+				'region' 			=> '%s',
+				'country' 			=> '%s',
+				'zip' 				=> '%s',
+				'latitude' 			=> '%s',
+				'longitude' 		=> '%s',
+				'mapview' 			=> '%s',
+				'mapzoom' 			=> '%s',
+				'phone' 			=> '%s',
+				'email' 			=> '%s',
+				'website' 			=> '%s',
+				'twitter' 			=> '%s',
+				'facebook' 			=> '%s',
+				'video' 			=> '%s',
+				'special_offers' 	=> '%s',
+				'business_hours' 	=> '%s',
+				'featured' 			=> '%d',
+			);
+
+
+			$columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$places_table}`");
+
+			foreach ($values as $key => $value) {
+				if(! in_array( $key, $columns ) ){
+					unset($values[$key]);
+					unset($types[$key]);
+				}
+			}
+
 			$wpdb->insert(
 				$places_table,
-				array(
-					'post_id' 			=> $listing->id,
-					'post_title' 		=> ( $listing->title )? $listing->title : 'NO TITLE',
-					'post_status' 		=> $status,
-					'post_tags' 		=> '',
-					'post_category' 	=> $cats,
-					'default_category'  => ( $listing->primary_category_id )? $listing->primary_category_id : 0,
-					'featured_image' 	=> '',
-					'submit_ip' 		=> ( $listing->ip )? $listing->ip : '',
-					'overall_rating' 	=> ( $listing->rating )? $listing->rating : 0,
-					'rating_count' 		=> ( $listing->rating )? $listing->votes : 0,
-					'street' 			=> $address,
-					'city' 				=> ( $listing->location_text_1 )? $listing->location_text_1 : '',
-					'region' 			=> ( $listing->location_text_2 )? $listing->location_text_2 : '',
-					'country' 			=> '',
-					'zip' 				=>  ( $listing->listing_zip )? $listing->listing_zip : '',
-					'latitude' 			=> ( $listing->latitude )? $listing->latitude : '',
-					'longitude' 		=> ( $listing->longitude )? $listing->longitude : '',
-					'mapview' 			=> '',
-					'mapzoom' 			=> '',
-					'phone' 			=> ( $listing->phone )? $listing->phone : '',
-					'post_dummy' 		=> 0,
-					'email' 			=> ( $listing->mail )? $listing->mail : '',
-					'website' 			=> ( $listing->www )? $listing->www : '',
-					'twitter' 			=> ( $listing->twitter_id )? 'http://twitter.com/' . $listing->twitter_id : '',
-					'facebook' 			=> ( $listing->facebook_page_id )? 'http://facebook.com/' . $listing->facebook_page_id : '',
-					'video' 			=> '',
-					'special_offers' 	=> '',
-					'business_hours' 	=> ( $listing->hours )? $listing->hours : '',
-					'featured' 			=> ( $listing->featured )? $listing->featured : '',
-				),
-				array( '%d', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d')
+				$values,
+				array_values($types)
 			);
 
 			$imported ++;
@@ -1535,33 +1585,67 @@ class GDCONVERTER_PMD {
 				'repeat_weeks' 		=> '',
 			));
 
+			$values = array(
+				'post_id' 			=> $id,
+				'post_title' 		=> $event->title,
+				'post_status' 		=> $status,
+				'submit_ip' 		=> $event->ip,
+				'street' 			=> $event->listing_address2,
+				'city' 				=> $event->location_text_1,
+				'region' 			=> $event->location_text_2,
+				'country' 			=> $event->location_text_3,
+				'zip' 				=> $event->listing_zip,
+				'latitude' 			=> $event->latitude,
+				'longitude' 		=> $event->longitude,
+				'phone' 			=> $event->phone,
+				'email' 			=> $event->email,
+				'website' 			=> $event->website,
+				'twitter' 			=> 'http://twitter.com/' . $event->twitter_id,
+				'facebook' 			=> 'http://facebook.com/' . $event->facebook_page_id,
+				'featured' 			=> 0,
+				'recurring' 		=> $event->recurring,
+				'event_dates' 		=> $event_dates,
+				'rsvp_count' 		=> 0,
+			);
+
+			$types = array(
+				'post_id' 			=> '%d',
+				'post_title' 		=> '%s',
+				'post_status' 		=> '%s',
+				'submit_ip' 		=> '%s',
+				'street' 			=> '%s',
+				'city' 				=> '%s',
+				'region' 			=> '%s',
+				'country' 			=> '%s',
+				'zip' 				=> '%s',
+				'latitude' 			=> '%s',
+				'longitude' 		=> '%s',
+				'phone' 			=> '%s',
+				'email' 			=> '%s',
+				'website' 			=> '%s',
+				'twitter' 			=> '%s',
+				'facebook' 			=> '%s',
+				'featured' 			=> '%s',
+				'recurring' 		=> '%s',
+				'event_dates' 		=> '%s',
+				'rsvp_count' 		=> '%s',
+			);
+
+			$columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$events_table}`");
+
+			foreach ($values as $key => $value) {
+				if(! in_array( $key, $columns ) ){
+					unset($values[$key]);
+					unset($types[$key]);
+				}
+			}
+
 			$wpdb->insert(
 				$events_table,
-				array(
-					'post_id' 			=> $id,
-					'post_title' 		=> $event->title,
-					'post_status' 		=> $status,
-					'submit_ip' 		=> $event->ip,
-					'street' 			=> $event->listing_address2,
-					'city' 				=> $event->location_text_1,
-					'region' 			=> $event->location_text_2,
-					'country' 			=> $event->location_text_3,
-					'zip' 				=> $event->listing_zip,
-					'latitude' 			=> $event->latitude,
-					'longitude' 		=> $event->longitude,
-					'phone' 			=> $event->phone,
-					'email' 			=> $event->email,
-					'website' 			=> $event->website,
-					'twitter' 			=> 'http://twitter.com/' . $event->twitter_id,
-					'facebook' 			=> 'http://facebook.com/' . $event->facebook_page_id,
-					'featured' 			=> 0,
-					'recurring' 		=> $event->recurring,
-					'event_dates' 		=> $event_dates,
-					'rsvp_count' 		=> 0,
-				),
-				array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s', '%d')
+				$values,
+				$types
 			);
-			
+
 			$imported++;
 		}
 
