@@ -98,7 +98,7 @@ function geodir_converter_check_if_geodir_is_installed() {
 		) );
 		
 		printf( 
-			esc_html__( '%s requires the %ssGeodirectory%s plugin to be installed and active. %sClick here to install it.%s', 'geodirectory-converter' ),
+			esc_html__( '%s requires the %sGeodirectory%s plugin to be installed and active. %sClick here to install it.%s', 'geodirectory-converter' ),
 			"<div class='$class'><p><strong>GeoDirectory Converter", 
 			'<a href="https://wpgeodirectory.com" target="_blank" title=" GeoDirectory">', 
 			'</a>', 

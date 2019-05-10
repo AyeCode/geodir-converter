@@ -501,7 +501,7 @@ class GDCONVERTER_PMD {
 			//Insert the listing into the places_detail table
 			$address = '';
 			if( $listing->listing_address1 ){
-				$address = $listing->listing_address1 + '
+				$address = $listing->listing_address1 . '
 				
 				';
 			}
