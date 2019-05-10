@@ -960,7 +960,7 @@ class GDCONVERTER_PMD {
 		//Abort early if the invoicing plugin is not installed
 		if ( !defined( 'WPINV_VERSION' ) ) {
 			$form  		.= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
-			$message	 = '<em>' . esc_html__('The Invoicing plugin is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message	 = '<em>' . esc_html__('The Invoicing plugin is not active. Skipping invoices...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form 		.= $message;
 			$this->update_progress( $form );
@@ -1123,7 +1123,7 @@ class GDCONVERTER_PMD {
 		//Abort early if the invoicing plugin is not installed
 		if ( !defined( 'WPINV_VERSION' ) ) {
 			$form  		.= $this->get_hidden_field_html( 'type', $this->get_next_import_type('discounts'));
-			$message	 = '<em>' . esc_html__('The Invoicing plugin is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message	 = '<em>' . esc_html__('The Invoicing plugin is not active. Skipping discount codes...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form 		.= $message;
 			$this->update_progress( $form );
@@ -1247,7 +1247,7 @@ class GDCONVERTER_PMD {
 		//Abort early if the invoicing plugin is not installed
 		if ( !defined( 'WPINV_VERSION' ) ) {
 			$form  		.= $this->get_hidden_field_html( 'type', $this->get_next_import_type('products'));
-			$message	 = '<em>' . esc_html__('The Invoicing plugin is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message	 = '<em>' . esc_html__('The Invoicing plugin is not active. Skipping products...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form 		.= $message;
 			$this->update_progress( $form );
@@ -1461,7 +1461,7 @@ class GDCONVERTER_PMD {
 		//Abort early if the events addon is not installed
 		if ( !defined( 'GEODIR_EVENT_VERSION' ) ) {
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
-			$message = '<em>' . esc_html__('The events addon is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message = '<em>' . esc_html__('The events addon is not active. Skipping events...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
@@ -1683,7 +1683,7 @@ class GDCONVERTER_PMD {
 		//Abort early if the events addon is not installed
 		if ( !defined( 'GEODIR_EVENT_VERSION' ) ) {
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('event_categories'));
-			$message = '<em>' . esc_html__('The events addon is not active. Skipping...', 'geodirectory-converter') . '</em><br>';
+			$message = '<em>' . esc_html__('The events addon is not active. Skipping event categories...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form .= $message;
 			$this->update_progress( $form );
