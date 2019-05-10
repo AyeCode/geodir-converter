@@ -448,38 +448,32 @@ class GDCONVERTER_PMD {
 				$failed ++;
 				continue;
 			}
-			
-			//Avoid throwing an error in case a post with this id already exists
-			$sql = $wpdb->prepare( "DELETE FROM `$posts_table` WHERE `$posts_table`.`ID` = %d", $listing->id );
-			$wpdb->query( $sql );
 
 			//Prepare and insert the listing into the db
-			$slug    = ( $listing->friendly_url )? $listing->friendly_url : 'listing-' . $listing->id;
 			$status  = ( !empty( $listing->status ) && 'active' == $listing->status )? 'publish': $listing->status;
 			$status  = ( !empty( $listing->status ) && 'suspended' == $listing->status )? 'trash': $status;			
-			$wpdb->insert(
-				$posts_table,
-				array(
-					'ID' 				=> $listing->id,
-					'post_author' 		=> ( $listing->user_id )? $listing->user_id : 1,
-					'post_title' 		=> ( $listing->title )? $listing->title : 'NO TITLE',
-					'post_name' 		=> $slug,
-					'post_excerpt' 		=> ( $listing->description_short )? $listing->description_short : '',
-					'post_content' 		=> ( $listing->description )? $listing->description : '',
-					'post_date' 		=> ( $listing->date )? $listing->date : date('Y-m-d'),
-					'post_date_gmt' 	=> ( $listing->date )? $listing->date : date('Y-m-d'),
-					'post_modified' 	=> ( $listing->date_update )? $listing->date_update : date('Y-m-d'),
-					'post_modified_gmt' => ( $listing->date_update )? $listing->date_update : date('Y-m-d'),
-					'comment_status' 	=> 'open',
-					'ping_status' 		=> 'closed',
-					'post_parent' 		=> 0,
-					'guid' 				=> get_site_url() . '/places/' . $slug,
-					'menu_order' 		=> 0,
-					'post_type' 		=> 'gd_place',
-					'comment_count' 	=> 0,
-					),
-				array('%d','%d','%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%d')
-			);
+			
+			$id = wp_insert_post( array(
+				'post_author'           => ( $listing->user_id )? $listing->user_id : 1,
+				'post_content'          => ( $listing->description )? $listing->description : '',
+				'post_content_filtered' => ( $listing->description )? $listing->description : '',
+				'post_title'            => ( $listing->title )? $listing->title : 'NO TITLE',
+				'post_excerpt'          => ( $listing->description_short )? $listing->description_short : '',
+				'post_status'           => $status,
+				'post_type'             => 'gd_place',
+				'comment_status'        => 'open',
+				'ping_status'           => 'closed',
+				'post_name'				=> ( $listing->friendly_url )? $listing->friendly_url : 'listing-' . $listing->id,
+				'post_date_gmt'         => ( $listing->date )? $listing->date : date('Y-m-d'),
+				'post_date'             => ( $listing->date )? $listing->date : date('Y-m-d'),
+				'post_modified_gmt'     => ( $listing->date_update )? $listing->date_update : date('Y-m-d'),
+				'post_modified'         => ( $listing->date_update )? $listing->date_update : date('Y-m-d'),
+			), true);
+
+			if( is_wp_error( $id ) ){
+				$failed ++;
+				continue;
+			}
 
 			//Prepare the categories
 			$sql  = $this->db->prepare("SELECT cat_id from {$table}_categories WHERE list_id = %d", $listing->id );
@@ -491,11 +485,11 @@ class GDCONVERTER_PMD {
 			}
 
 			if( $cats ){
-				wp_set_post_terms( $listing->id, $cats, 'gd_placecategory' );
+				wp_set_post_terms( $id, $cats, 'gd_placecategory' );
 			}
 
 			//In case there was a listing with this id, delete it
-			$sql = $wpdb->prepare( "DELETE FROM `{$places_table}` WHERE `{$places_table}`.`post_id` = %d", $listing->id );
+			$sql = $wpdb->prepare( "DELETE FROM `{$places_table}` WHERE `{$places_table}`.`post_id` = %d", $id );
 			$wpdb->query( $sql );
 
 			//Insert the listing into the places_detail table
@@ -517,7 +511,7 @@ class GDCONVERTER_PMD {
 			$longitude  		= !empty( $location->longitude ) ? $location->longitude : '';
 
 			$values = array(
-				'post_id' 			=> $listing->id,
+				'post_id' 			=> $id,
 				'post_title' 		=> !empty( $listing->title )? $listing->title : 'NO TITLE',
 				'post_status' 		=> $status,
 				'post_tags' 		=> '',
