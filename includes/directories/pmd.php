@@ -208,7 +208,7 @@ class GDCONVERTER_PMD {
 		}
 
 		//In case this is not a fresh install, stop the import process
-		if(! $message ) {
+		if( $message ) {
 			return $fields . sprintf( 
 				'<h3 class="geodir-converter-header-error">%s</h3><p>%s</p>',
 				$message,
@@ -381,7 +381,7 @@ class GDCONVERTER_PMD {
 		$this->prefix = $db_config['prefix'] ;
 
 		//Then start the import process
-		$this->import_listings();
+		$this->import_fields();
 
 	}
 
