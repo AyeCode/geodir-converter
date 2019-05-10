@@ -510,41 +510,41 @@ class GDCONVERTER_PMD {
 			}
 
 			$default_location   = $geodirectory->location->get_default_location();
-			$country    		= ( $location->country ) ? $location->country : '';
-			$region     		= ( $location->region ) ? $location->region : '';
-			$city       		= ( $location->city ) ? $location->city : '';
-			$latitude   		= ( $location->latitude ) ? $location->latitude : '';
-			$longitude  		= ( $location->longitude ) ? $location->longitude : '';
+			$country    		= !empty( $location->country ) ? $location->country : '';
+			$region     		= !empty( $location->region ) ? $location->region : '';
+			$city       		= !empty( $location->city ) ? $location->city : '';
+			$latitude   		= !empty( $location->latitude ) ? $location->latitude : '';
+			$longitude  		= !empty( $location->longitude ) ? $location->longitude : '';
 
 			$values = array(
 				'post_id' 			=> $listing->id,
-				'post_title' 		=> ( $listing->title )? $listing->title : 'NO TITLE',
+				'post_title' 		=> !empty( $listing->title )? $listing->title : 'NO TITLE',
 				'post_status' 		=> $status,
 				'post_tags' 		=> '',
 				'post_category' 	=> $cats,
-				'default_category'  => ( $listing->primary_category_id )? $listing->primary_category_id : 0,
+				'default_category'  => !empty( $listing->primary_category_id )? $listing->primary_category_id : 0,
 				'featured_image' 	=> '',
-				'submit_ip' 		=> ( $listing->ip )? $listing->ip : '',
-				'overall_rating' 	=> ( $listing->rating )? $listing->rating : 0,
-				'rating_count' 		=> ( $listing->rating )? $listing->votes : 0,
+				'submit_ip' 		=> !empty( $listing->ip )? $listing->ip : '',
+				'overall_rating' 	=> !empty( $listing->rating )? $listing->rating : 0,
+				'rating_count' 		=> !empty( $listing->rating )? $listing->votes : 0,
 				'street' 			=> $address,
-				'city' 				=> ( $listing->location_text_1 )? $listing->location_text_1 : $city,
-				'region' 			=> ( $listing->location_text_2 )? $listing->location_text_2 : $region,
+				'city' 				=> !empty( $listing->location_text_1 )? $listing->location_text_1 : $city,
+				'region' 			=> !empty( $listing->location_text_2 )? $listing->location_text_2 : $region,
 				'country' 			=> $country,
-				'zip' 				=>  ( $listing->listing_zip )? $listing->listing_zip : '',
-				'latitude' 			=> ( $listing->latitude )? $listing->latitude : $latitude,
-				'longitude' 		=> ( $listing->longitude )? $listing->longitude : $longitude,
+				'zip' 				=> !empty( $listing->listing_zip )? $listing->listing_zip : '',
+				'latitude' 			=> !empty( $listing->latitude )? $listing->latitude : $latitude,
+				'longitude' 		=> !empty( $listing->longitude )? $listing->longitude : $longitude,
 				'mapview' 			=> '',
 				'mapzoom' 			=> '',
-				'phone' 			=> ( $listing->phone )? $listing->phone : '',
-				'email' 			=> ( $listing->mail )? $listing->mail : '',
-				'website' 			=> ( $listing->www )? $listing->www : '',
-				'twitter' 			=> ( $listing->twitter_id )? 'http://twitter.com/' . $listing->twitter_id : '',
-				'facebook' 			=> ( $listing->facebook_page_id )? 'http://facebook.com/' . $listing->facebook_page_id : '',
+				'phone' 			=> !empty( $listing->phone )? $listing->phone : '',
+				'email' 			=> !empty( $listing->mail )? $listing->mail : '',
+				'website' 			=> !empty( $listing->www )? $listing->www : '',
+				'twitter' 			=> !empty( $listing->twitter_id )? 'http://twitter.com/' . $listing->twitter_id : '',
+				'facebook' 			=> !empty( $listing->facebook_page_id )? 'http://facebook.com/' . $listing->facebook_page_id : '',
 				'video' 			=> '',
 				'special_offers' 	=> '',
-				'business_hours' 	=> ( $listing->hours )? $listing->hours : '',
-				'featured' 			=> ( $listing->featured )? $listing->featured : '',
+				'business_hours' 	=> !empty( $listing->hours )? $listing->hours : '',
+				'featured' 			=> !empty( $listing->featured )? $listing->featured : '',
 			);
 
 			$types = array(
