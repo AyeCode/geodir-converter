@@ -12,12 +12,12 @@ $importers = GDCONVERTER_Loarder::get_importers();
 
 ?>
 <div class="wrap geodir-converter">
-	<h1><?php esc_html__( "GeoDirectory Converter", "geodirectory-converter"); ?></h1>
+	<h1><?php esc_html_e( "GeoDirectory Converter", "geodirectory-converter"); ?></h1>
 	<div class="geodir-converter-inner">
 		<div class="geodir-converter-form-wrapper">
 			<div class="geodir-converter-errors"></div>
 			<form method="post" action="" class="geodir-converter-form geodir-converter-form1">
-			<p><?php esc_html__( "If you have listings in another system, GeoDirectory can import those into this site. To get started, choose a system to import from below:", "geodirectory-converter"); ?></p>
+			<p><?php esc_html_e( "If you have listings in another system, GeoDirectory can import those into this site. To get started, choose a system to import from below:", "geodirectory-converter"); ?></p>
 				<?php 
 					foreach( $importers as $id => $details ) {
 						$value	 = esc_attr( $id );

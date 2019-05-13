@@ -15,21 +15,31 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class GDCONVERTER_PMD {
 
-	//PMD db connection details
+	/**
+	 * Stores our on instance of $wpdb
+	 * 
+	 * Used to connect to and query the PMD db
+	 * 
+	 */
 	private $db = null;
 
-	//PMD table prefix
+	/**
+	 * Stores PMD db tables prefix string
+	 * 
+	 */
 	private $prefix = null;
 
 	/**
 	 * The main class constructor
+	 * 
+	 * Initializes the PMD converter and registers custom actions and filter hooks
 	 *
 	 * @since GeoDirectory Converter 1.0.0
 	 *
 	 */
 	public function __construct() {
 
-		//register our importer
+		//register our converter
 		add_action( 'geodir_converter_importers',	array( $this, 'register_importer' ));
 
 		//Render converter form fields
@@ -38,7 +48,7 @@ class GDCONVERTER_PMD {
 		add_action( 'geodirectory_pmd_importer_fields',	array( $this, 'step_3' ), 10, 2);
 		add_action( 'geodirectory_pmd_importer_fields',	array( $this, 'import_posts' ), 10, 2);
 
-		//Handles ajax conversion progress requests
+		//Handles ajax requers for imports progress
 		add_action( 'wp_ajax_gdconverter_pmd_handle_progress', array( $this, 'handle_progress' ) );
 
 		//Handle logins for imported users
@@ -178,42 +188,20 @@ class GDCONVERTER_PMD {
 		//Delete previous progress details
 		delete_transient('_geodir_converter_pmd_progress');
 
-		//Check if this is a fresh install
-		$published_posts = wp_count_posts()->publish;
-		$users           = count_users();
-		$message 		 = false;
+		//Ensure there are no users since this tool deletes all of them
+		$users = count_users();
+		if( $users['total_users'] > 1){
 
-		if( $published_posts > 1 && $users['total_users'] > 1){
-
-			//The blog has published some posts and has some users
-			$message = sprintf(
-				esc_html__('Detected %s users and %s published blog posts', 'geodirectory-converter'),
-				$users['total_users'],
-				$published_posts);
-
-		} elseif( $published_posts > 1 ){
-
-			//The website has published some posts but has no extra user(besides admin)
-			$message = sprintf(
-				esc_html__('Detected %s published blog posts', 'geodirectory-converter'),
-				$published_posts);
-
-		} elseif( $users['total_users'] > 1 ){
-
-			//The website has not published any posts but has users 
 			$message = sprintf(
 				esc_html__('Detected %s users', 'geodirectory-converter'),
 				$users['total_users']);
 
-		}
-
-		//In case this is not a fresh install, stop the import process
-		if( $message ) {
 			return $fields . sprintf( 
 				'<h3 class="geodir-converter-header-error">%s</h3><p>%s</p>',
 				$message,
 				esc_html__('You must use a fresh install of WordPress to use this converter since existing data will be overidden.', 'geodirectory-converter')
 			);
+
 		}
 
 		//Display DB connection details
@@ -416,12 +404,14 @@ class GDCONVERTER_PMD {
 		
 		//Where should we start from
 		$offset = 0;
+		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
+			$limit  = 5;
 		}
 
 		//Fetch the listings and abort in case we have imported all of them
-		$listings_results 	= $this->db->get_results("SELECT * from $table LIMIT $offset,5");
+		$listings_results 	= $this->db->get_results("SELECT * from $table LIMIT $offset,$limit");
 
 		if( empty($listings_results)){
 			$form   .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('listings'));
@@ -441,18 +431,21 @@ class GDCONVERTER_PMD {
 			$failed = absint($_REQUEST['failed']);
 		}
 
+		//Insert the listings into the db
 		foreach ( $listings_results as $key => $listing ){
 			$offset ++;
 
+			//Skip if the id is not set
 			if( empty( $listing->id ) ){
 				$failed ++;
 				continue;
 			}
 
-			//Prepare and insert the listing into the db
+			//Sanitize listing status...
 			$status  = ( !empty( $listing->status ) && 'active' == $listing->status )? 'publish': $listing->status;
 			$status  = ( !empty( $listing->status ) && 'suspended' == $listing->status )? 'trash': $status;			
 			
+			//... then insert it into the table
 			$id = wp_insert_post( array(
 				'post_author'           => ( $listing->user_id )? $listing->user_id : 1,
 				'post_content'          => ( $listing->description )? $listing->description : '',
@@ -478,13 +471,19 @@ class GDCONVERTER_PMD {
 			//Prepare the categories
 			$sql  = $this->db->prepare("SELECT cat_id from {$table}_categories WHERE list_id = %d", $listing->id );
 			$cats =  $this->db->get_col($sql);
-			if( is_array($cats) ){
-				$cats = implode( ',', $cats );
-			} else {
-				$cats = $listing->primary_category_id;
+			if(! is_array($cats) ){
+				$cats = array( $listing->primary_category_id );
 			}
 
-			if( $cats ){
+			$modified_cats = array();
+			foreach( $cats as $cat ){
+				$saved_cat_id = get_transient( '_pmd_place_category_original_id_' . $cat );
+				if( $saved_cat_id ){
+					$modified_cats[] = $saved_cat_id;
+				}
+			}
+
+			if( $modified_cats ){
 				wp_set_post_terms( $id, $cats, 'gd_placecategory' );
 			}
 
@@ -503,12 +502,13 @@ class GDCONVERTER_PMD {
 				$address .= $listing->listing_address2;
 			}
 
+			//Set the default locations
 			$default_location   = $geodirectory->location->get_default_location();
-			$country    		= !empty( $location->country ) ? $location->country : '';
-			$region     		= !empty( $location->region ) ? $location->region : '';
-			$city       		= !empty( $location->city ) ? $location->city : '';
-			$latitude   		= !empty( $location->latitude ) ? $location->latitude : '';
-			$longitude  		= !empty( $location->longitude ) ? $location->longitude : '';
+			$country    		= !empty( $default_location->country ) ? $default_location->country : '';
+			$region     		= !empty( $default_location->region ) ? $default_location->region : '';
+			$city       		= !empty( $default_location->city ) ? $default_location->city : '';
+			$latitude   		= !empty( $default_location->latitude ) ? $default_location->latitude : '';
+			$longitude  		= !empty( $default_location->longitude ) ? $default_location->longitude : '';
 
 			$values = array(
 				'post_id' 			=> $id,
@@ -639,12 +639,14 @@ class GDCONVERTER_PMD {
 		
 		//Where should we start from
 		$offset = 0;
+		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
+			$limit = 4;
 		}
 
-		//Fetch the listings and abort in case we have imported all of them
-		$pmd_users 	= $this->db->get_results("SELECT * from $table LIMIT $offset,4");
+		//Fetch the users and abort in case we have imported all of them
+		$pmd_users 	= $this->db->get_results("SELECT * from $table LIMIT $offset,$limit");
 		if( empty($pmd_users) ){
 
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('users'));
@@ -674,15 +676,18 @@ class GDCONVERTER_PMD {
 		foreach ( $pmd_users as $key => $user ){
 			$offset++;
 
+			//Abort if the user id or login is missing
 			if( empty( $user->id ) || empty( $user->login ) ){
 				$failed++;
 				continue;
 			}
 
+			//Skip the user running this conversion to prevent logging him out
 			if( $current_user_id == $user->id ){
 				continue;
 			}
 
+			//Set the user display name
 			$display_name = $user->login;
 			if(! empty($user->user_first_name) ){
 				$display_name = $user->user_first_name . ' ' . $user->user_last_name;
@@ -848,12 +853,14 @@ class GDCONVERTER_PMD {
 		
 		//Where should we start from
 		$offset = 0;
+		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
+			$limit  = 5;
 		}
 
 		//Fetch the listings and abort in case we have imported all of them
-		$pmd_cats 	= $this->db->get_results("SELECT * from $table LIMIT $offset,5");
+		$pmd_cats 	= $this->db->get_results("SELECT * from $table LIMIT $offset,$limit");
 		if( empty($pmd_cats)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('categories'));
 			$message= '<em>' . esc_html__('Finished importing categories...', 'geodirectory-converter') . '</em><br>';
@@ -879,45 +886,48 @@ class GDCONVERTER_PMD {
 				$failed++;
 				continue;
 			}
+			
+			
+			$args = array();
 
-			$sql = $wpdb->prepare( "DELETE FROM `{$wpdb->terms}` WHERE `{$wpdb->terms}`.`term_id` = %d", $cat->id );
-			$wpdb->query( $sql );
-
-			$sql = $wpdb->prepare( "DELETE FROM `{$wpdb->term_taxonomy}` WHERE `{$wpdb->term_taxonomy}`.`term_id` = %d", $cat->id );	
-			$wpdb->query( $sql );
-
-			$wpdb->insert(
-				$wpdb->terms,
-				array(
-					'term_id' 	  => $cat->id,
-					'name' 		  => ( $cat->title ) ? $cat->title : 'Category ' . $cat->id,
-					'slug' 		  => ( $cat->friendly_url ) ? $cat->friendly_url : 'category-' . $cat->id,
-				),
-				array('%d','%s', '%s')
-			);
-		
-			$parent = 0;
-			if( $cat->parent_id && $cat->parent_id > 1 ){
-				$parent = $cat->parent_id;
+			//Maybe set slug
+			if(!empty ( $cat->friendly_url ) ) {
+				$args['slug'] = $cat->friendly_url;
 			}
 
-			$wpdb->insert(
-				$wpdb->term_taxonomy,
-				array(
-					'term_id' 		=> $cat->id,
-					'taxonomy' 		=> 'gd_placecategory',
-					'parent' 		=> $parent,
-					'description' 	=> ( $cat->description ) ? $cat->description : '',
-					'count' 		=> ( $cat->count_total ) ? $cat->count_total : 0, //? $cat->count??
-				),
-				array('%d','%s', '%d', '%s', '%d')
-			);
-
-			if(! empty($cat->description) ){
-				update_term_meta( $cat->id, 'ct_cat_top_desc', $cat->description );
+			//Maybe set parent
+			if(!empty ( $cat->parent_id && $cat->parent_id > 1 ) ) {
+				$parent = get_transient( '_pmd_place_category_original_id_' . $cat->parent_id );
+				$args['parent'] = $parent;
 			}
 
-			$imported++;
+			//Maybe set description
+			if(!empty ( $cat->description ) ) {
+				$args['description'] = $cat->description;
+			}
+			
+			//Insert it into the db
+			$inserted = wp_insert_term( $cat->title, 'gd_placecategory', $args );
+
+			//If insert was successful...
+			if( is_array( $inserted )){
+
+				//Save original id for later use...
+				$key = '_pmd_place_category_original_id_' . $cat->id;
+				set_transient( $key , $inserted['term_id'], DAY_IN_SECONDS );
+
+				//Then maybe set the description
+				if(! empty($cat->description) ){
+					update_term_meta( $inserted['term_id'], 'ct_cat_top_desc', $cat->description );
+				}
+
+				//And move on to the next term
+				$imported++;
+				continue;
+			} 
+
+			
+			$failed++;
 		}
 
 		//Update the user on their progress
@@ -975,12 +985,14 @@ class GDCONVERTER_PMD {
 		
 		//Where should we start from
 		$offset = 0;
+		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
+			$limit  = 5;
 		}
 
 		//Fetch the invoices and abort in case we have imported all of them
-		$pmd_invoices 	= $this->db->get_results("SELECT * from $table LIMIT $offset,5");
+		$pmd_invoices 	= $this->db->get_results("SELECT * from $table LIMIT $offset,$limit");
 		if( empty($pmd_invoices)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('invoices'));
 			$message= '<em>' . esc_html__('Finished importing invoices...', 'geodirectory-converter') . '</em><br>';
@@ -1138,12 +1150,14 @@ class GDCONVERTER_PMD {
 		
 		//Where should we start from
 		$offset = 0;
+		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
+			$limit = 5;
 		}
 
 		//Fetch the discounts and abort in case we have imported all of them
-		$pmd_discounts 	= $this->db->get_results("SELECT * from $table LIMIT $offset,5");
+		$pmd_discounts 	= $this->db->get_results("SELECT * from $table LIMIT $offset,$limit");
 		if( empty($pmd_discounts)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('discounts'));
 			$message= '<em>' . esc_html__('Finished importing discount codes...', 'geodirectory-converter') . '</em><br>';
@@ -1262,13 +1276,15 @@ class GDCONVERTER_PMD {
 		
 		//Where should we start from
 		$offset = 0;
+		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
+			$limit  = 5;
 		}
 
 		//Fetch the products and abort in case we have imported all of them
 		$pricing_table  = $table . '_pricing';
-		$pmd_products 	= $this->db->get_results("SELECT `$table`.`id` as product_id, `name`, `$table`.`active`, `description`, `period`, `period_count`, `setup_price`, `price`, `renewable` FROM `$table` LEFT JOIN `$pricing_table` ON `$table`.`id` = `$pricing_table`.`product_id` LIMIT $offset,5");
+		$pmd_products 	= $this->db->get_results("SELECT `$table`.`id` as product_id, `name`, `$table`.`active`, `description`, `period`, `period_count`, `setup_price`, `price`, `renewable` FROM `$table` LEFT JOIN `$pricing_table` ON `$table`.`id` = `$pricing_table`.`product_id` LIMIT $offset,$limit");
 			
 		if( empty($pmd_products)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('products'));
@@ -1361,14 +1377,16 @@ class GDCONVERTER_PMD {
 		
 		//Where should we start from
 		$offset = 0;
+		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
+			$limit  = 5;
 		}
 
 		//Fetch the reviews and abort in case we have imported all of them
 		$pmd_reviews   = $this->db->get_results(
 			"SELECT `$table`.`id` as `review_id`, `status`, `listing_id`, `user_id`, `date`, `review`, `user_first_name`, `user_last_name`, `user_email` 
-			FROM `$table` LEFT JOIN `$users_table` ON `$table`.`user_id` = `$users_table`.`id`  LIMIT $offset,5");
+			FROM `$table` LEFT JOIN `$users_table` ON `$table`.`user_id` = `$users_table`.`id`  LIMIT $offset,$limit");
 
 		if( empty($pmd_reviews)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('reviews'));
@@ -1476,13 +1494,15 @@ class GDCONVERTER_PMD {
 		
 		//Where should we start from
 		$offset = 0;
+		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
+			$limit  = 5;
 		}
 
 		//Fetch the events and abort in case we have imported all of them
 		$events_fields = array(	
-			'user_id','description','title','description_short',
+			'id','user_id','description','title','description_short',
 			'status','date','date_update','date_start','date_end',
 			'recurring_type', 'recurring_interval', 'recurring_days',
 			'latitude', 'longitude', 'phone', 'email', 'website'
@@ -1503,7 +1523,7 @@ class GDCONVERTER_PMD {
 
 		$sql = rtrim($sql, ', ');
 
-		$sql 		 .= "  FROM `$table` LEFT JOIN `$listings_table` ON `$table`.`listing_id` = `$listings_table`.`id`  LIMIT $offset,5 ";
+		$sql 		 .= "  FROM `$table` LEFT JOIN `$listings_table` ON `$table`.`listing_id` = `$listings_table`.`id`  LIMIT $offset,$limit ";
 		$pmd_events   = $this->db->get_results( $sql );
 		
 		if( empty($pmd_events)){
@@ -1559,6 +1579,25 @@ class GDCONVERTER_PMD {
 				continue;
 			}
 
+			//Prepare the categories
+			$sql  = $this->db->prepare("SELECT * from {$table}_categories_lookup WHERE event_id = %d", $event->id );
+			$cats =  $this->db->get_results($sql);
+
+			//Assign them to the events
+			if( is_array($cats) ){
+
+				$modified_cats = array();
+				foreach( $cats as $cat ){
+					$saved_cat_id = get_transient( '_pmd_event_category_original_id_' . $cat->event_id );
+					if( $saved_cat_id ){
+						$modified_cats[] = $saved_cat_id;
+					}
+				}
+				wp_set_post_terms( $id, $modified_cats, 'gd_eventcategory' );
+
+			}
+
+			//Insert the event into the events table
 			$event_dates = maybe_serialize( array(
 				'recurring' 		=> $event->recurring,
 				'start_date' 		=> date( "Y-m-d", strtotime( $event->date_start  ) ),
@@ -1668,7 +1707,7 @@ class GDCONVERTER_PMD {
 		global $wpdb;
 
 		$form	= '<h3>' . esc_html__('Importing event categories', 'geodirectory-converter') . '</h3>';
-		$progress 			= get_transient('_geodir_converter_pmd_progress');
+		$progress 	= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
 			$progress = '';
 		}
@@ -1697,11 +1736,13 @@ class GDCONVERTER_PMD {
 		
 		//Where should we start from
 		$offset = 0;
+		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
+			$limit  = 10;
 		}
 
-		$cats   = $this->db->get_col( "SELECT title FROM `$table` LIMIT $offset,10" );
+		$cats   = $this->db->get_results( "SELECT id, title FROM `$table` LIMIT $offset,$limit" );
 		
 		if( empty($cats)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('event_categories'));
@@ -1724,12 +1765,15 @@ class GDCONVERTER_PMD {
 		foreach ( $cats as $cat ){
 			$offset++;
 
-			if( empty( $cat ) ){
+			if( empty( $cat->id ) ){
 				$failed++;
 				continue;
 			}
 
-			if( is_array( wp_insert_term( $cat, 'gd_eventcategory' ))){
+			$inserted = wp_insert_term( $cat->title, 'gd_eventcategory' );
+			if( is_array( $inserted )){
+				$key = '_pmd_event_category_original_id_' . $cat->id;
+				set_transient( $key , $inserted['term_id'], DAY_IN_SECONDS );
 				$imported++;
 				continue;
 			}
@@ -1846,7 +1890,7 @@ class GDCONVERTER_PMD {
 		global $wpdb;
 
 		$table 	= $this->prefix . 'fields';
-		$total 	= $this->db->get_var("SELECT COUNT(id) as count from $table");
+		$total 	= $this->db->get_var("SELECT COUNT(id) AS count FROM $table");
 		$form   = '<h3>' . esc_html__('Importing custom fields', 'geodirectory-converter') . '</h3>';
 		$progress 	= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
