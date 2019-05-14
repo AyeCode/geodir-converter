@@ -190,7 +190,7 @@ class GDCONVERTER_PMD {
 
 		//Ensure there are no users since this tool deletes all of them
 		$users = count_users();
-		if(! $users['total_users'] > 1){
+		if( $users['total_users'] > 1){
 
 			$message = sprintf(
 				esc_html__('Detected %s users', 'geodirectory-converter'),
@@ -369,7 +369,7 @@ class GDCONVERTER_PMD {
 		$this->prefix = $db_config['prefix'] ;
 
 		//Then start the import process
-		$this->import_reviews();
+		$this->import_fields();
 
 	}
 
@@ -487,7 +487,7 @@ class GDCONVERTER_PMD {
 			}
 
 			if( $modified_cats ){
-				wp_set_post_terms( $id, $cats, 'gd_placecategory' );
+				wp_set_post_terms( $id, $modified_cats, 'gd_placecategory' );
 			}
 
 			//In case there was a listing with this id, delete it
@@ -927,8 +927,7 @@ class GDCONVERTER_PMD {
 				//And move on to the next term
 				$imported++;
 				continue;
-			} 
-
+			}
 			
 			$failed++;
 		}
