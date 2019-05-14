@@ -190,7 +190,7 @@ class GDCONVERTER_PMD {
 
 		//Ensure there are no users since this tool deletes all of them
 		$users = count_users();
-		if( $users['total_users'] > 1){
+		if(! $users['total_users'] > 1){
 
 			$message = sprintf(
 				esc_html__('Detected %s users', 'geodirectory-converter'),
@@ -369,7 +369,7 @@ class GDCONVERTER_PMD {
 		$this->prefix = $db_config['prefix'] ;
 
 		//Then start the import process
-		$this->import_fields();
+		$this->import_reviews();
 
 	}
 
@@ -467,6 +467,9 @@ class GDCONVERTER_PMD {
 				$failed ++;
 				continue;
 			}
+
+			//Save the original ID
+			set_transient('_pmd_place_original_id_' . $listing->id, $id, DAY_IN_SECONDS);
 
 			//Prepare the categories
 			$sql  = $this->db->prepare("SELECT cat_id from {$table}_categories WHERE list_id = %d", $listing->id );
@@ -1420,8 +1423,10 @@ class GDCONVERTER_PMD {
 				$approved = 1;
 			}
 
+			$place_id = get_transient('_pmd_place_original_id_' . $review->listing_id);
+
 			$id = wp_insert_comment( array(
-				'comment_post_ID' 		=> $review->listing_id,
+				'comment_post_ID' 		=> $place_id,
 				'user_id' 				=> $review->user_id,
 				'comment_date' 			=> $review->date,
 				'comment_date_gmt' 		=> $review->date,
