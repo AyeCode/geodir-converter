@@ -2334,6 +2334,21 @@ class GDCONVERTER_PMD {
 
 			$imported++;
 		}
+
+		//Update the user on their progress
+		$total_text  	= esc_html__( 'Total Fields', 'geodirectory-converter' );
+		$imported_text  = esc_html__( 'Imported Fields', 'geodirectory-converter' );
+		$processed_text = esc_html__( 'Processed Fields', 'geodirectory-converter' );
+		$failed_text  	= esc_html__( 'Failed', 'geodirectory-converter' );
+		$form  		   .= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
+		$form          .= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
+		$form          .= "<div><strong>$imported_text &mdash;</strong><em> $imported</em></div>";
+		$form          .= "<div><strong>$failed_text &mdash;</strong><em> $failed</em></div>";
+		$form          .= $this->get_hidden_field_html( 'imported', $imported);
+		$form          .= $this->get_hidden_field_html( 'failed', $failed);
+		$form          .= $this->get_hidden_field_html( 'type', 'fields');
+		$form          .= $this->get_hidden_field_html( 'offset', $offset);
+		$this->update_progress( $form, $total, $offset );
 	}
 
 	/**
