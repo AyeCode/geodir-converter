@@ -1622,18 +1622,26 @@ class GDCONVERTER_PMD {
 				'repeat_weeks' 		=> '',
 			));
 
+			//Set the default locations
+			$default_location   = $geodirectory->location->get_default_location();
+			$country    		= !empty( $default_location->country ) ? $default_location->country : '';
+			$region     		= !empty( $default_location->region ) ? $default_location->region : '';
+			$city       		= !empty( $default_location->city ) ? $default_location->city : '';
+			$latitude   		= !empty( $default_location->latitude ) ? $default_location->latitude : '';
+			$longitude  		= !empty( $default_location->longitude ) ? $default_location->longitude : '';
+
 			$values = array(
 				'post_id' 			=> $id,
 				'post_title' 		=> $event->title,
 				'post_status' 		=> $status,
 				'submit_ip' 		=> $event->ip,
 				'street' 			=> $event->listing_address2,
-				'city' 				=> $event->location_text_1,
-				'region' 			=> $event->location_text_2,
-				'country' 			=> $event->location_text_3,
+				'city' 				=> !empty( $event->location_text_1 )? $event->location_text_1 : $city,
+				'region' 			=> !empty( $event->location_text_2 )? $event->location_text_2 : $region,
+				'country' 			=> $country,
 				'zip' 				=> $event->listing_zip,
-				'latitude' 			=> $event->latitude,
-				'longitude' 		=> $event->longitude,
+				'latitude' 			=> !empty( $event->latitude )? $event->latitude : $latitude,
+				'longitude' 		=> !empty( $event->longitude )? $event->longitude : $longitude,
 				'phone' 			=> $event->phone,
 				'email' 			=> $event->email,
 				'website' 			=> $event->website,
