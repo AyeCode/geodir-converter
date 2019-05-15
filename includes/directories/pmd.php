@@ -286,6 +286,8 @@ class GDCONVERTER_PMD {
 		$notes	= array(
 			esc_html__( 'You will be able to import your blog posts later.', 'geodirectory-converter'),
 		);
+		
+		$notes[]= esc_html__( "Don't forget to set up your default location before running this tool.", 'geodirectory-converter');
 
 		//Inform the user that invoices won't be imported since the invoicing plugin is not active
 		if ( !defined( 'WPINV_VERSION' ) ) {
