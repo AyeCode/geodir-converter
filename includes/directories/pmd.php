@@ -1441,6 +1441,7 @@ class GDCONVERTER_PMD {
 	 */
 	private function import_events() {
 		global $wpdb;
+		global $geodirectory;
 
 		$form	= '<h3>' . esc_html__('Importing events', 'geodirectory-converter') . '</h3>';
 		$progress 			= get_transient('_geodir_converter_pmd_progress');
@@ -2191,9 +2192,9 @@ class GDCONVERTER_PMD {
 		}
 		
 		//Update the user on their progress
-		$total_text  	= esc_html__( 'Total Blog Posts', 'geodirectory-converter' );
-		$imported_text  = esc_html__( 'Imported Blog Posts', 'geodirectory-converter' );
-		$processed_text = esc_html__( 'Processed Blog Posts', 'geodirectory-converter' );
+		$total_text  	= esc_html__( 'Total Pages', 'geodirectory-converter' );
+		$imported_text  = esc_html__( 'Imported Pages', 'geodirectory-converter' );
+		$processed_text = esc_html__( 'Processed Pages', 'geodirectory-converter' );
 		$failed_text  	= esc_html__( 'Failed', 'geodirectory-converter' );
 		$form  		   .= "<div><strong>$total_text &mdash;</strong><em> $total</em></div>";
 		$form          .= "<div><strong>$processed_text &mdash;</strong><em> $offset</em></div>";
