@@ -2323,7 +2323,7 @@ class GDCONVERTER_PMD {
 		        'field_type' 		=> $field->type,
 		        'admin_title' 		=> $field->name,
 		        'frontend_desc' 	=> $field->description,
-		        'frontend_title' 	=> $field->type,
+		        'frontend_title' 	=> $field->name,
 		        'htmlvar_name' 		=> 'pmd_' . $field->name,
 		        'option_values' 	=> $field->options,
 		        'is_required'		=> $field->required,
