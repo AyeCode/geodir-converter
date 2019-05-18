@@ -2327,6 +2327,7 @@ class GDCONVERTER_PMD {
 		        'htmlvar_name' 		=> 'pmd_' . $field->name,
 		        'option_values' 	=> $field->options,
 		        'is_required'		=> $field->required,
+				'is_active'			=> 1,
 			
 			));
 
