@@ -351,6 +351,53 @@ class GDCONVERTER_PMD {
 	}
 
 	/**
+	 * Convert PMD hours to GD hours.
+	 *
+	 * @param array $hours
+	 * @param int $offset
+	 *
+	 * @return string
+	 */
+	private function convert_business_hours($hours=array(),$offset = 0){
+		$new = "";
+		//["Mo 09:00-17:00,19:00-23:00","Tu 09:00-17:00","We 09:00-17:00","Th 09:00-17:00","Fr 09:00-17:00"],["UTC":"+1"]
+		$new_map = array(
+			"1" => "Mo",
+			"2" => "Tu",
+			"3" => "We",
+			"4" => "Th",
+			"5" => "Fr",
+			"6" => "Sa",
+			"7" => "Su",
+		);
+		$new_parts = array();
+
+
+		if(!empty($hours)){
+			foreach($hours as $times){
+				$time_parts = explode(" ",$times);
+				$key = $time_parts[0];
+				$map_key = $new_map[$key];
+				if(!isset($new_parts[$map_key] )){
+					$new_parts[$map_key] = $map_key." ".$time_parts[1]."-".$time_parts[2];
+				}else{
+					$new_parts[$map_key] .=",".$time_parts[1]."-".$time_parts[2];
+				}
+			}
+		}
+
+		// construct
+		if(!empty($new_parts)){
+			$new .="[";
+			$new .= implode('","', $new_parts);
+			$new .="]";
+			$new .= ',["UTC":"'. $offset .'"]';
+		}
+
+		return $new;
+	}
+
+	/**
 	 * Imports listings
 	 *
 	 * @since GeoDirectory Converter 1.0.0
@@ -420,10 +467,63 @@ class GDCONVERTER_PMD {
 
 			//Sanitize listing status...
 			$status  = ( !empty( $listing->status ) && 'active' == $listing->status )? 'publish': $listing->status;
-			$status  = ( !empty( $listing->status ) && 'suspended' == $listing->status )? 'trash': $status;			
+			$status  = ( !empty( $listing->status ) && 'suspended' == $listing->status )? 'trash': $status;
+
+
+
+			//Prepare the categories
+			$sql  = $this->db->prepare("SELECT cat_id from {$table}_categories WHERE list_id = %d", $listing->id );
+			$cats =  $this->db->get_col($sql);
+			if(! is_array($cats) ){
+				$cats = array( $listing->primary_category_id );
+			}
+
+			// get new cat ids
+			$new_cats = array();
+			if(!empty($cats)){
+				foreach($cats as $cat){
+					$new_cats[] = get_transient( '_pmd_place_category_original_id_' . $cat);
+				}
+			}
+
+//			$modified_cats = array();
+//			foreach( $cats as $cat ){
+//				$saved_cat_id = get_transient( '_pmd_place_category_original_id_' . $cat );
+//				if( $saved_cat_id ){
+//					$modified_cats[] = $saved_cat_id;
+//				}
+//			}
+//
+//			if( $modified_cats ){
+//				wp_set_post_terms( $id, $modified_cats, 'gd_placecategory' );
+//			}
+
+			//In case there was a listing with this id, delete it
+//			$sql = $wpdb->prepare( "DELETE FROM `{$places_table}` WHERE `{$places_table}`.`post_id` = %d", $id );
+//			$wpdb->query( $sql );
+
+			//Insert the listing into the places_detail table
+			$address = '';
+			if( $listing->listing_address1 ){
+				$address = $listing->listing_address1;
+			}
+			$address2 = '';
+			if( $listing->listing_address2 ){
+				$address2 = $listing->listing_address2;
+			}
+
+			//Set the default locations
+			$default_location   = $geodirectory->location->get_default_location();
+			$country    		= !empty( $default_location->country ) ? $default_location->country : '';
+			$region     		= !empty( $default_location->region ) ? $default_location->region : '';
+			$city       		= !empty( $default_location->city ) ? $default_location->city : '';
+			$latitude   		= !empty( $default_location->latitude ) ? $default_location->latitude : '';
+			$longitude  		= !empty( $default_location->longitude ) ? $default_location->longitude : '';
 			
 			//... then insert it into the table
-			$id = wp_insert_post( array(
+
+			$post_array = array(
+				// Standard WP Fields
 				'post_author'           => ( $listing->user_id )? $listing->user_id : 1,
 				'post_content'          => ( $listing->description )? $listing->description : '',
 				'post_content_filtered' => ( $listing->description )? $listing->description : '',
@@ -438,70 +538,20 @@ class GDCONVERTER_PMD {
 				'post_date'             => ( $listing->date )? $listing->date : date('Y-m-d'),
 				'post_modified_gmt'     => ( $listing->date_update )? $listing->date_update : date('Y-m-d'),
 				'post_modified'         => ( $listing->date_update )? $listing->date_update : date('Y-m-d'),
-			), true);
+				"tax_input"             => array(
+					"gd_placecategory" => $new_cats,
+					"gd_place_tags" => !empty( $listing->keywords ) ? array_map('trim', explode(',', $listing->keywords)) : array(),
+				),
 
-			if( is_wp_error( $id ) ){
-				$failed ++;
-				continue;
-			}
 
-			//Save the original ID
-			set_transient('_pmd_place_original_id_' . $listing->id, $id, DAY_IN_SECONDS);
-
-			//Prepare the categories
-			$sql  = $this->db->prepare("SELECT cat_id from {$table}_categories WHERE list_id = %d", $listing->id );
-			$cats =  $this->db->get_col($sql);
-			if(! is_array($cats) ){
-				$cats = array( $listing->primary_category_id );
-			}
-
-			$modified_cats = array();
-			foreach( $cats as $cat ){
-				$saved_cat_id = get_transient( '_pmd_place_category_original_id_' . $cat );
-				if( $saved_cat_id ){
-					$modified_cats[] = $saved_cat_id;
-				}
-			}
-
-			if( $modified_cats ){
-				wp_set_post_terms( $id, $modified_cats, 'gd_placecategory' );
-			}
-
-			//In case there was a listing with this id, delete it
-			$sql = $wpdb->prepare( "DELETE FROM `{$places_table}` WHERE `{$places_table}`.`post_id` = %d", $id );
-			$wpdb->query( $sql );
-
-			//Insert the listing into the places_detail table
-			$address = '';
-			if( $listing->listing_address1 ){
-				$address = $listing->listing_address1 . '
-				
-				';
-			}
-			if( $listing->listing_address2 ){
-				$address .= $listing->listing_address2;
-			}
-
-			//Set the default locations
-			$default_location   = $geodirectory->location->get_default_location();
-			$country    		= !empty( $default_location->country ) ? $default_location->country : '';
-			$region     		= !empty( $default_location->region ) ? $default_location->region : '';
-			$city       		= !empty( $default_location->city ) ? $default_location->city : '';
-			$latitude   		= !empty( $default_location->latitude ) ? $default_location->latitude : '';
-			$longitude  		= !empty( $default_location->longitude ) ? $default_location->longitude : '';
-
-			$values = array(
-				'post_id' 			=> $id,
-				'post_title' 		=> !empty( $listing->title )? $listing->title : 'NO TITLE',
-				'post_status' 		=> $status,
-				'post_tags' 		=> '',
-				'post_category' 	=> $cats,
+				// GD fields
 				'default_category'  => !empty( $listing->primary_category_id )? $listing->primary_category_id : 0,
 				'featured_image' 	=> '',
 				'submit_ip' 		=> !empty( $listing->ip )? $listing->ip : '',
 				'overall_rating' 	=> !empty( $listing->rating )? $listing->rating : 0,
 				'rating_count' 		=> !empty( $listing->rating )? $listing->votes : 0,
 				'street' 			=> $address,
+				'street2' 			=> $address2,
 				'city' 				=> !empty( $listing->location_text_1 )? $listing->location_text_1 : $city,
 				'region' 			=> !empty( $listing->location_text_2 )? $listing->location_text_2 : $region,
 				'country' 			=> $country,
@@ -510,63 +560,135 @@ class GDCONVERTER_PMD {
 				'longitude' 		=> !empty( $listing->longitude )? $listing->longitude : $longitude,
 				'mapview' 			=> '',
 				'mapzoom' 			=> '',
+
+				// PMD standard fields
+				'pmd_id' 			=> !empty( $listing->id )? $listing->id : '',
 				'phone' 			=> !empty( $listing->phone )? $listing->phone : '',
-				'email' 			=> !empty( $listing->mail )? $listing->mail : '',
+				'fax' 			=> !empty( $listing->phone )? $listing->fax : '',
+				'business_hours' 	=> !empty( $listing->hours )? $this->convert_business_hours( $listing->hours  ) : '',
 				'website' 			=> !empty( $listing->www )? $listing->www : '',
-				'twitter' 			=> !empty( $listing->twitter_id )? 'http://twitter.com/' . $listing->twitter_id : '',
-				'facebook' 			=> !empty( $listing->facebook_page_id )? 'http://facebook.com/' . $listing->facebook_page_id : '',
-				'video' 			=> '',
-				'special_offers' 	=> '',
-				'business_hours' 	=> !empty( $listing->hours )? $listing->hours : '',
+				'email' 			=> !empty( $listing->mail )? $listing->mail : '',
+				'claimed' 			=> !empty( $listing->claimed )? $listing->claimed : '',
+				'facebook' 			=> !empty( $listing->facebook_page_id )? 'https://facebook.com/' . $listing->facebook_page_id : '',
+				'google' 			=> !empty( $listing->google_page_id )? 'https://plus.google.com/' . $listing->google_page_id : '',
+				'linkedin' 			=> !empty( $listing->linkedin_company_id )? 'https://linkedin.com/company/' . $listing->linkedin_company_id : '',
+				'twitter' 			=> !empty( $listing->twitter_id )? 'https://twitter.com/' . $listing->twitter_id : '',
+				'pinterest' 	    => !empty( $listing->pinterest_id )? 'https://pinterest.com/' . $listing->pinterest_id : '',
+				'youtube' 			=> !empty( $listing->youtube_id )? 'https://youtube.com/user/' . $listing->youtube_id : '',
+				'foursquare' 		=> !empty( $listing->foursquare_id )? 'https://foursquare.com/' . $listing->foursquare_id : '',
+				'instagram'			=> !empty( $listing->instagram_id )? 'https://instagram.com/' . $listing->instagram_id : '',
 				'featured' 			=> !empty( $listing->featured )? $listing->featured : '',
 			);
 
-			$types = array(
-				'post_id' 			=> '%d',
-				'post_title' 		=> '%s',
-				'post_status' 		=> '%s',
-				'post_tags' 		=> '%s',
-				'post_category' 	=> '%s',
-				'default_category'  => '%d',
-				'featured_image' 	=> '%s',
-				'submit_ip' 		=> '%s',
-				'overall_rating' 	=> '%f',
-				'rating_count' 		=> '%d',
-				'street' 			=> '%s',
-				'city' 				=> '%s',
-				'region' 			=> '%s',
-				'country' 			=> '%s',
-				'zip' 				=> '%s',
-				'latitude' 			=> '%s',
-				'longitude' 		=> '%s',
-				'mapview' 			=> '%s',
-				'mapzoom' 			=> '%s',
-				'phone' 			=> '%s',
-				'email' 			=> '%s',
-				'website' 			=> '%s',
-				'twitter' 			=> '%s',
-				'facebook' 			=> '%s',
-				'video' 			=> '%s',
-				'special_offers' 	=> '%s',
-				'business_hours' 	=> '%s',
-				'featured' 			=> '%d',
-			);
-
-
-			$columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$places_table}`");
-
-			foreach ($values as $key => $value) {
-				if(! in_array( $key, $columns ) ){
-					unset($values[$key]);
-					unset($types[$key]);
+			// add custom fields
+			$fields_table 	= $this->prefix . 'fields';
+			$total_fields 	= $this->db->get_var("SELECT COUNT(id) AS count FROM $table");
+			if($total_fields){
+				$fields = $this->db->get_results("SELECT * from $fields_table");
+				if($fields){
+					foreach ( $fields as $key => $field ){
+						if( empty( $field->id ) ){
+							continue;
+						}
+						$field_key = "custom_".$field->id;
+						$post_array['pmd_'.$field->name] = !empty( $listing->{$field_key} )? $listing->{$field_key}: '';
+					}
 				}
 			}
 
-			$wpdb->insert(
-				$places_table,
-				$values,
-				array_values($types)
-			);
+			$id = wp_insert_post($post_array, true);
+
+			//Save the original ID
+			set_transient('_pmd_place_original_id_' . $listing->id, $id, DAY_IN_SECONDS);
+
+//			echo '###'.$id;
+//			print_r($post_array);
+//			exit;
+
+			if( is_wp_error( $id ) ){
+				$failed ++;
+				continue;
+			}
+
+
+
+//			$values = array(
+//				'post_id' 			=> $id,
+//				'post_title' 		=> !empty( $listing->title )? $listing->title : 'NO TITLE',
+//				'post_status' 		=> $status,
+//				'post_tags' 		=> '',
+//				'post_category' 	=> $cats,
+//				'default_category'  => !empty( $listing->primary_category_id )? $listing->primary_category_id : 0,
+//				'featured_image' 	=> '',
+//				'submit_ip' 		=> !empty( $listing->ip )? $listing->ip : '',
+//				'overall_rating' 	=> !empty( $listing->rating )? $listing->rating : 0,
+//				'rating_count' 		=> !empty( $listing->rating )? $listing->votes : 0,
+//				'street' 			=> $address,
+//				'city' 				=> !empty( $listing->location_text_1 )? $listing->location_text_1 : $city,
+//				'region' 			=> !empty( $listing->location_text_2 )? $listing->location_text_2 : $region,
+//				'country' 			=> $country,
+//				'zip' 				=> !empty( $listing->listing_zip )? $listing->listing_zip : '',
+//				'latitude' 			=> !empty( $listing->latitude )? $listing->latitude : $latitude,
+//				'longitude' 		=> !empty( $listing->longitude )? $listing->longitude : $longitude,
+//				'mapview' 			=> '',
+//				'mapzoom' 			=> '',
+//				'phone' 			=> !empty( $listing->phone )? $listing->phone : '',
+//				'email' 			=> !empty( $listing->mail )? $listing->mail : '',
+//				'website' 			=> !empty( $listing->www )? $listing->www : '',
+//				'twitter' 			=> !empty( $listing->twitter_id )? 'http://twitter.com/' . $listing->twitter_id : '',
+//				'facebook' 			=> !empty( $listing->facebook_page_id )? 'http://facebook.com/' . $listing->facebook_page_id : '',
+//				'video' 			=> '',
+//				'special_offers' 	=> '',
+//				'business_hours' 	=> !empty( $listing->hours )? $listing->hours : '',
+//				'featured' 			=> !empty( $listing->featured )? $listing->featured : '',
+//			);
+//
+//			$types = array(
+//				'post_id' 			=> '%d',
+//				'post_title' 		=> '%s',
+//				'post_status' 		=> '%s',
+//				'post_tags' 		=> '%s',
+//				'post_category' 	=> '%s',
+//				'default_category'  => '%d',
+//				'featured_image' 	=> '%s',
+//				'submit_ip' 		=> '%s',
+//				'overall_rating' 	=> '%f',
+//				'rating_count' 		=> '%d',
+//				'street' 			=> '%s',
+//				'city' 				=> '%s',
+//				'region' 			=> '%s',
+//				'country' 			=> '%s',
+//				'zip' 				=> '%s',
+//				'latitude' 			=> '%s',
+//				'longitude' 		=> '%s',
+//				'mapview' 			=> '%s',
+//				'mapzoom' 			=> '%s',
+//				'phone' 			=> '%s',
+//				'email' 			=> '%s',
+//				'website' 			=> '%s',
+//				'twitter' 			=> '%s',
+//				'facebook' 			=> '%s',
+//				'video' 			=> '%s',
+//				'special_offers' 	=> '%s',
+//				'business_hours' 	=> '%s',
+//				'featured' 			=> '%d',
+//			);
+//
+//
+//			$columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$places_table}`");
+//
+//			foreach ($values as $key => $value) {
+//				if(! in_array( $key, $columns ) ){
+//					unset($values[$key]);
+//					unset($types[$key]);
+//				}
+//			}
+//
+//			$wpdb->insert(
+//				$places_table,
+//				$values,
+//				array_values($types)
+//			);
 
 			$imported ++;
 		}
@@ -686,7 +808,7 @@ class GDCONVERTER_PMD {
 					'user_pass' 		=> ( $user->pass )? $user->pass : '',
 					'user_nicename' 	=> $user->login,
 					'user_email' 		=> ( $user->user_email ) ? $user->user_email : '',
-					'user_registered' 	=> ( $user->created )? $user->pass : date('Y-m-d'),
+					'user_registered' 	=> ( $user->created )? $user->created : date('Y-m-d'),
 					'display_name' 		=> $display_name,
 				),
 				array('%d','%s','%s','%s','%s','%s','%s' )
@@ -2255,6 +2377,263 @@ class GDCONVERTER_PMD {
 		$form .= "<div>$progress</div>";
 		GDCONVERTER_Loarder::send_response( 'success', $form );
 	}
+	
+	private function import_standard_fields($post_type='gd_place',$package_id=''){
+		$fields = array();
+		$package = ($package_id=='') ? '' : array($package_id);
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'INT',
+		                  'field_type' => 'number',
+		                  'admin_title' => __('PMD ID', 'geodirectory'),
+		                  'frontend_desc' => __('Original PMD ID', 'geodirectory'),
+		                  'frontend_title' => __('PMD ID', 'geodirectory'),
+		                  'htmlvar_name' => 'pmd_id',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' =>  '',
+		                  'show_on_pkg' => $package,
+					      'for_admin_use' => true,
+		                  'clabels' => __('PMD ID', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'VARCHAR',
+		                  'field_type' => 'phone',
+		                  'admin_title' => __('Phone', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter phone number.', 'geodirectory'),
+		                  'frontend_title' => __('Phone', 'geodirectory'),
+		                  'htmlvar_name' => 'phone',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' =>  '[detail],[mapbubble]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Phone', 'geodirectory'));
+
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'VARCHAR',
+		                  'field_type' => 'phone',
+		                  'admin_title' => __('Fax', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter fax number here.', 'geodirectory'),
+		                  'frontend_title' => __('Fax', 'geodirectory'),
+		                  'htmlvar_name' => 'fax',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' =>  '[detail],[mapbubble]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Fax', 'geodirectory'));
+
+
+		$fields[] = array('post_type' => $post_type,
+	                       'data_type' => 'TEXT',
+	                       'field_type' => 'business_hours',
+	                       'admin_title' => __('Business Hours', 'geodirectory'),
+	                       'frontend_desc' => __('Select your business opening/operating hours.', 'geodirectory'),
+	                       'frontend_title' => __('Business Hours', 'geodirectory'),
+	                       'htmlvar_name' => 'business_hours',
+	                       'default_value' => '',
+	                       'is_active' => '1',
+	                       'option_values' => '',
+	                       'is_default' => '0',
+	                       'show_in' => '[owntab],[detail]',
+	                       'field_icon' => 'fas fa-clock',
+                          'show_on_pkg' => $package,
+		                  'clabels' => __('Business Hours', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'url',
+		                  'admin_title' => __('Website', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter your business or listing website.', 'geodirectory'),
+		                  'frontend_title' => __('Website', 'geodirectory'),
+		                  'htmlvar_name' => 'website',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Website', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'VARCHAR',
+		                  'field_type' => 'email',
+		                  'admin_title' => __('Email', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter your business or listing email.', 'geodirectory'),
+		                  'frontend_title' => __('Email', 'geodirectory'),
+		                  'htmlvar_name' => 'email',
+		                  'is_active' => '1',
+		                  'default_value' => '',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Email', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TINYINT',
+		                  'field_type' => 'checkbox',
+		                  'admin_title' => __('Is Claimed?', 'geodirectory'),
+		                  'frontend_desc' => __('Mark listing as a claimed.', 'geodirectory'),
+		                  'frontend_title' => __('Business Owner/Associate?', 'geodirectory'),
+		                  'htmlvar_name' => 'claimed',
+		                  'is_active' => '1',
+		                  'default_value' => '',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Claimed', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'url',
+		                  'admin_title' => __('Facebook', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter your business or listing facebook url.', 'geodirectory'),
+		                  'frontend_title' => __('Facebook', 'geodirectory'),
+		                  'htmlvar_name' => 'facebook',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Facebook', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'url',
+		                  'admin_title' => __('Google', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter your business or listing google url.', 'geodirectory'),
+		                  'frontend_title' => __('Google', 'geodirectory'),
+		                  'htmlvar_name' => 'google',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Google', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'url',
+		                  'admin_title' => __('Linkedin', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter your business or listing Linkedin url.', 'geodirectory'),
+		                  'frontend_title' => __('Linkedin', 'geodirectory'),
+		                  'htmlvar_name' => 'linkedin',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Linkedin', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'url',
+		                  'admin_title' => __('Twitter', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter your business or listing Twitter url.', 'geodirectory'),
+		                  'frontend_title' => __('Twitter', 'geodirectory'),
+		                  'htmlvar_name' => 'twitter',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Twitter', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'url',
+		                  'admin_title' => __('Pinterest', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter your business or listing Pinterest url.', 'geodirectory'),
+		                  'frontend_title' => __('Pinterest', 'geodirectory'),
+		                  'htmlvar_name' => 'pinterest',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Pinterest', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'url',
+		                  'admin_title' => __('YouTube', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter your business or listing YouTube url.', 'geodirectory'),
+		                  'frontend_title' => __('YouTube', 'geodirectory'),
+		                  'htmlvar_name' => 'youtube',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('YouTube', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'url',
+		                  'admin_title' => __('Foursquare', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter your business or listing Foursquare url.', 'geodirectory'),
+		                  'frontend_title' => __('Foursquare', 'geodirectory'),
+		                  'htmlvar_name' => 'foursquare',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Foursquare', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'url',
+		                  'admin_title' => __('Instagram', 'geodirectory'),
+		                  'frontend_desc' => __('You can enter your business or listing Instagram url.', 'geodirectory'),
+		                  'frontend_title' => __('Instagram', 'geodirectory'),
+		                  'htmlvar_name' => 'instagram',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Instagram', 'geodirectory'));
+
+		$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TINYINT',
+		                  'field_type' => 'checkbox',
+		                  'admin_title' => __('Featured', 'geodirectory'),
+		                  'frontend_desc' => __('Mark listing as a featured.', 'geodirectory'),
+		                  'frontend_title' => __('Is Featured?', 'geodirectory'),
+		                  'htmlvar_name' => 'featured',
+		                  'is_active' => '1',
+		                  'default_value' => '',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Featured', 'geodirectory'));
+
+
+		// insert custom fields
+		if( !empty($fields) ){
+			foreach ($fields as $field_index => $field) {
+				geodir_custom_field_save($field);
+			}
+		}
+	}
 
 	/**
 	 * Imports fields
@@ -2271,6 +2650,18 @@ class GDCONVERTER_PMD {
 		if(! $progress ){
 			$progress = '';
 		}
+
+		//Where should we start from
+		$offset = 0;
+		if(! empty($_REQUEST['offset']) ){
+			$offset = absint($_REQUEST['offset']);
+		}
+
+		// import standard fields
+		if($offset=='1'){
+			$this->import_standard_fields();
+		}
+
 		$form   = $progress . $form;
 
 		//Abort early if there are no fields
@@ -2282,11 +2673,7 @@ class GDCONVERTER_PMD {
 			$this->update_progress( $form );
 		}
 		
-		//Where should we start from
-		$offset = 0;
-		if(! empty($_REQUEST['offset']) ){
-			$offset = absint($_REQUEST['offset']);
-		}
+
 
 		//Fetch the fields and abort in case we have imported all of them
 		$fields 	= $this->db->get_results("SELECT * from $table LIMIT $offset,3");
@@ -2327,8 +2714,8 @@ class GDCONVERTER_PMD {
 		        'htmlvar_name' 		=> 'pmd_' . $field->name,
 		        'option_values' 	=> $field->options,
 		        'is_required'		=> $field->required,
-				'is_active'			=> 1,
-			
+				'is_active' => '1',
+
 			));
 
 			if( is_string( $id ) ){
