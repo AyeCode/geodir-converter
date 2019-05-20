@@ -2658,7 +2658,7 @@ class GDCONVERTER_PMD {
 		}
 
 		// import standard fields
-		if($offset=='1'){
+		if( $offset==$total || $offset > $total ){
 			$this->import_standard_fields();
 		}
 
