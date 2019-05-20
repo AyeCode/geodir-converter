@@ -160,7 +160,7 @@ class GDCONVERTER_PMD {
 
 		//Ensure there are no users since this tool deletes all of them
 		$users = count_users();
-		if(! $users['total_users'] > 1){
+		if( $users['total_users'] > 1){
 
 			$message = sprintf(
 				esc_html__('Detected %s users', 'geodirectory-converter'),
