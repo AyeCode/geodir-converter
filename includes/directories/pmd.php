@@ -160,7 +160,7 @@ class GDCONVERTER_PMD {
 
 		//Ensure there are no users since this tool deletes all of them
 		$users = count_users();
-		if( $users['total_users'] > 1){
+		if(! $users['total_users'] > 1){
 
 			$message = sprintf(
 				esc_html__('Detected %s users', 'geodirectory-converter'),
@@ -342,7 +342,7 @@ class GDCONVERTER_PMD {
 
 		//Then start the import process
 		if(empty($_REQUEST['import_blog_data'])){
-			$this->import_fields();
+			$this->import_events();
 		} else {
 			$this->import_blog_categories();
 		}
@@ -431,7 +431,7 @@ class GDCONVERTER_PMD {
 		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
-			$limit  = 5;
+			$limit  = 3;
 		}
 
 		//Fetch the listings and abort in case we have imported all of them
@@ -486,21 +486,8 @@ class GDCONVERTER_PMD {
 				}
 			}
 
-//			$modified_cats = array();
-//			foreach( $cats as $cat ){
-//				$saved_cat_id = get_transient( '_pmd_place_category_original_id_' . $cat );
-//				if( $saved_cat_id ){
-//					$modified_cats[] = $saved_cat_id;
-//				}
-//			}
-//
-//			if( $modified_cats ){
-//				wp_set_post_terms( $id, $modified_cats, 'gd_placecategory' );
-//			}
-
-			//In case there was a listing with this id, delete it
-//			$sql = $wpdb->prepare( "DELETE FROM `{$places_table}` WHERE `{$places_table}`.`post_id` = %d", $id );
-//			$wpdb->query( $sql );
+			//Primary category
+			$primary_cat = get_transient( '_pmd_place_category_original_id_' . $listing->primary_category_id);
 
 			//Insert the listing into the places_detail table
 			$address = '';
@@ -545,11 +532,11 @@ class GDCONVERTER_PMD {
 
 
 				// GD fields
-				'default_category'  => !empty( $listing->primary_category_id )? $listing->primary_category_id : 0,
+				'default_category'  => !empty( $primary_cat )? $primary_cat : 0,
 				'featured_image' 	=> '',
 				'submit_ip' 		=> !empty( $listing->ip )? $listing->ip : '',
 				'overall_rating' 	=> !empty( $listing->rating )? $listing->rating : 0,
-				'rating_count' 		=> !empty( $listing->rating )? $listing->votes : 0,
+				'rating_count' 		=> !empty( $listing->votes )? $listing->votes : 0,
 				'street' 			=> $address,
 				'street2' 			=> $address2,
 				'city' 				=> !empty( $listing->location_text_1 )? $listing->location_text_1 : $city,
@@ -564,8 +551,8 @@ class GDCONVERTER_PMD {
 				// PMD standard fields
 				'pmd_id' 			=> !empty( $listing->id )? $listing->id : '',
 				'phone' 			=> !empty( $listing->phone )? $listing->phone : '',
-				'fax' 			=> !empty( $listing->phone )? $listing->fax : '',
-				'business_hours' 	=> !empty( $listing->hours )? $this->convert_business_hours( $listing->hours  ) : '',
+				'fax' 				=> !empty( $listing->phone )? $listing->fax : '',
+				'business_hours' 	=> !empty( $listing->hours )? $this->convert_business_hours( maybe_unserialize( $listing->hours ) ) : '',
 				'website' 			=> !empty( $listing->www )? $listing->www : '',
 				'email' 			=> !empty( $listing->mail )? $listing->mail : '',
 				'claimed' 			=> !empty( $listing->claimed )? $listing->claimed : '',
@@ -609,86 +596,6 @@ class GDCONVERTER_PMD {
 				$failed ++;
 				continue;
 			}
-
-
-
-//			$values = array(
-//				'post_id' 			=> $id,
-//				'post_title' 		=> !empty( $listing->title )? $listing->title : 'NO TITLE',
-//				'post_status' 		=> $status,
-//				'post_tags' 		=> '',
-//				'post_category' 	=> $cats,
-//				'default_category'  => !empty( $listing->primary_category_id )? $listing->primary_category_id : 0,
-//				'featured_image' 	=> '',
-//				'submit_ip' 		=> !empty( $listing->ip )? $listing->ip : '',
-//				'overall_rating' 	=> !empty( $listing->rating )? $listing->rating : 0,
-//				'rating_count' 		=> !empty( $listing->rating )? $listing->votes : 0,
-//				'street' 			=> $address,
-//				'city' 				=> !empty( $listing->location_text_1 )? $listing->location_text_1 : $city,
-//				'region' 			=> !empty( $listing->location_text_2 )? $listing->location_text_2 : $region,
-//				'country' 			=> $country,
-//				'zip' 				=> !empty( $listing->listing_zip )? $listing->listing_zip : '',
-//				'latitude' 			=> !empty( $listing->latitude )? $listing->latitude : $latitude,
-//				'longitude' 		=> !empty( $listing->longitude )? $listing->longitude : $longitude,
-//				'mapview' 			=> '',
-//				'mapzoom' 			=> '',
-//				'phone' 			=> !empty( $listing->phone )? $listing->phone : '',
-//				'email' 			=> !empty( $listing->mail )? $listing->mail : '',
-//				'website' 			=> !empty( $listing->www )? $listing->www : '',
-//				'twitter' 			=> !empty( $listing->twitter_id )? 'http://twitter.com/' . $listing->twitter_id : '',
-//				'facebook' 			=> !empty( $listing->facebook_page_id )? 'http://facebook.com/' . $listing->facebook_page_id : '',
-//				'video' 			=> '',
-//				'special_offers' 	=> '',
-//				'business_hours' 	=> !empty( $listing->hours )? $listing->hours : '',
-//				'featured' 			=> !empty( $listing->featured )? $listing->featured : '',
-//			);
-//
-//			$types = array(
-//				'post_id' 			=> '%d',
-//				'post_title' 		=> '%s',
-//				'post_status' 		=> '%s',
-//				'post_tags' 		=> '%s',
-//				'post_category' 	=> '%s',
-//				'default_category'  => '%d',
-//				'featured_image' 	=> '%s',
-//				'submit_ip' 		=> '%s',
-//				'overall_rating' 	=> '%f',
-//				'rating_count' 		=> '%d',
-//				'street' 			=> '%s',
-//				'city' 				=> '%s',
-//				'region' 			=> '%s',
-//				'country' 			=> '%s',
-//				'zip' 				=> '%s',
-//				'latitude' 			=> '%s',
-//				'longitude' 		=> '%s',
-//				'mapview' 			=> '%s',
-//				'mapzoom' 			=> '%s',
-//				'phone' 			=> '%s',
-//				'email' 			=> '%s',
-//				'website' 			=> '%s',
-//				'twitter' 			=> '%s',
-//				'facebook' 			=> '%s',
-//				'video' 			=> '%s',
-//				'special_offers' 	=> '%s',
-//				'business_hours' 	=> '%s',
-//				'featured' 			=> '%d',
-//			);
-//
-//
-//			$columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$places_table}`");
-//
-//			foreach ($values as $key => $value) {
-//				if(! in_array( $key, $columns ) ){
-//					unset($values[$key]);
-//					unset($types[$key]);
-//				}
-//			}
-//
-//			$wpdb->insert(
-//				$places_table,
-//				$values,
-//				array_values($types)
-//			);
 
 			$imported ++;
 		}
@@ -1567,8 +1474,8 @@ class GDCONVERTER_PMD {
 		global $wpdb;
 		global $geodirectory;
 
-		$form	= '<h3>' . esc_html__('Importing events', 'geodirectory-converter') . '</h3>';
-		$progress 			= get_transient('_geodir_converter_pmd_progress');
+		$form		= '<h3>' . esc_html__('Importing events', 'geodirectory-converter') . '</h3>';
+		$progress 	= get_transient('_geodir_converter_pmd_progress');
 		if(! $progress ){
 			$progress = '';
 		}
@@ -1605,31 +1512,22 @@ class GDCONVERTER_PMD {
 		}
 
 		//Fetch the events and abort in case we have imported all of them
-		$events_fields = array(	
-			'id','user_id','description','title','description_short',
-			'status','date','date_update','date_start','date_end',
-			'recurring_type', 'recurring_interval', 'recurring_days',
-			'latitude', 'longitude', 'phone', 'email', 'website'
-		);
 		$listings_fields = array(
 			'facebook_page_id', 'twitter_id', 'ip', 'location_text_1', 'location_text_2',
-			'location_text_3', 'listing_zip', 'listing_address2', 
+			'location_text_3', 'listing_zip', 'listing_address1', 'listing_address2', 
+			'www', 'mail'
 		);
 
-		$sql = 'SELECT ';
-		foreach( $events_fields as $field){
-			$sql .= " `$table`.`$field` as `$field`, ";
-		}
+		$sql = "SELECT $table.*, ";
 
 		foreach( $listings_fields as $field){
 			$sql .= " `$listings_table`.`$field` as `$field`, ";
 		}
 
-		$sql = rtrim($sql, ', ');
-
+		$sql 		  = rtrim($sql, ', ');
 		$sql 		 .= "  FROM `$table` LEFT JOIN `$listings_table` ON `$table`.`listing_id` = `$listings_table`.`id`  LIMIT $offset,$limit ";
 		$pmd_events   = $this->db->get_results( $sql );
-		
+
 		if( empty($pmd_events)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
 			$message= '<em>' . esc_html__('Finished importing events...', 'geodirectory-converter') . '</em><br>';
@@ -1653,56 +1551,84 @@ class GDCONVERTER_PMD {
 		foreach ( $pmd_events as $key => $event ){
 			$offset++;
 
-			if( empty( $event->user_id ) ){
+			//Abort early if id not set
+			if( empty( $event->id ) ){
 				$failed++;
 				continue;
 			}
 			
-
+			//Sanitize listing status...
 			$status  = ( !empty( $event->status ) && 'active' == $event->status )? 'publish': $event->status;
 			$status  = ( !empty( $event->status ) && 'suspended' == $event->status )? 'trash': $status;
-		
-			$id = wp_insert_post( array(
-				'post_author'           => $event->user_id,
-				'post_content'          => ( $event->description ) ? $event->description : '',
-				'post_content_filtered' => ( $event->description ) ? $event->description : '',
-				'post_title'            => ( $event->title ) ? $event->title : '',
-				'post_excerpt'          => ( $event->description_short ) ? $event->description_short : '',
+			
+			//Fetch the categories
+			$sql  = $this->db->prepare("SELECT category_id from {$table}_categories_lookup WHERE event_id = %d", $event->id );
+			$cats =  $this->db->get_col($sql);
+
+			//Then replace the ids with new ids
+			$new_cats = array();
+			if(!empty($cats)){
+				foreach($cats as $cat){
+					$new_cats[] = get_transient( '_pmd_event_category_original_id_' . $cat);
+				}
+			}
+
+			//Set the default locations
+			$default_location   = $geodirectory->location->get_default_location();
+			$country    		= !empty( $default_location->country ) ? $default_location->country : '';
+			$region     		= !empty( $default_location->region ) ? $default_location->region : '';
+			$city       		= !empty( $default_location->city ) ? $default_location->city : '';
+			$latitude   		= !empty( $default_location->latitude ) ? $default_location->latitude : '';
+			$longitude  		= !empty( $default_location->longitude ) ? $default_location->longitude : '';
+
+
+			//Prepare Event data
+			$post_array = array(
+
+				// Standard WP Fields
+				'post_author'           => !empty( $event->user_id )? $event->user_id : 1,
+				'post_content'          => !empty( $event->description )? $event->description : '',
+				'post_content_filtered' => !empty( $event->description )? $event->description : '',
+				'post_title'            => !empty( $event->title )? $event->title : '&mdash;',
+				'post_excerpt'          => !empty( $event->description_short )? $event->description_short : '',
 				'post_status'           => $status,
 				'post_type'             => 'gd_event',
 				'comment_status'        => 'open',
 				'ping_status'           => 'closed',
-				'post_date_gmt'         => ( $event->date ) ? $event->date : '',
-				'post_date'             => ( $event->date ) ? $event->date : '',
-				'post_modified_gmt'     => ( $event->date ) ? $event->date_update : '',
-				'post_modified'         => ( $event->date ) ? $event->date_update : '',
-			), true);
+				'post_name'				=> !empty( $event->friendly_url )? $event->friendly_url : 'event-' . $event->id,
+				'post_date_gmt'         => !empty( $event->date )? $event->date : date('Y-m-d'),
+				'post_date'             => !empty( $event->date )? $event->date : date('Y-m-d'),
+				'post_modified_gmt'     => !empty( $event->date_update )? $event->date_update : date('Y-m-d'),
+				'post_modified'         => !empty( $event->date_update )? $event->date_update : date('Y-m-d'),
+				"tax_input"             => array(
+					"gd_eventcategory"  => $new_cats,
+					"gd_event_tags"     => !empty( $event->keywords ) ? array_map('trim', explode(',', $event->keywords)) : array(),
+				),
 
-			if( is_wp_error( $id ) ){
-				$failed++;
-				continue;
-			}
 
-			//Prepare the categories
-			$sql  = $this->db->prepare("SELECT * from {$table}_categories_lookup WHERE event_id = %d", $event->id );
-			$cats =  $this->db->get_results($sql);
+				// GD fields
+				'featured_image' 	=> '',
+				'submit_ip' 		=> !empty( $event->ip )? $event->ip : '',
+				'street' 			=> !empty( $listing->listing_address1 )? $listing->listing_address1 . ' ' .$event->venue : $event->venue,
+				'street2' 			=> !empty( $event->location)? $event->location : '',
+				'city' 				=> !empty( $event->location_text_2 )? $event->location_text_2 : $city,
+				'region' 			=> !empty( $event->location_text_3 )? $event->location_text_3 : $region,
+				'country' 			=> $country,
+				'zip' 				=> !empty( $event->listing_zip )? $event->listing_zip : '',
+				'latitude' 			=> !empty( $event->latitude )? $event->latitude : $latitude,
+				'longitude' 		=> !empty( $event->longitude )? $event->longitude : $longitude,
+				'mapview' 			=> '',
+				'mapzoom' 			=> '',
+				'phone' 			=> $event->phone,
+				'email' 			=> $event->email,
+				'website' 			=> $event->website,
+				'twitter' 			=> !empty($event->twitter_id) ? 'http://twitter.com/' . $event->twitter_id : '',
+				'facebook' 			=> !empty($event->facebook_page_id) ? 'http://facebook.com/' . $event->facebook_page_id : '',
+				'recurring' 		=> $event->recurring,
+			);
 
-			//Assign them to the events
-			if( is_array($cats) ){
-
-				$modified_cats = array();
-				foreach( $cats as $cat ){
-					$saved_cat_id = get_transient( '_pmd_event_category_original_id_' . $cat->event_id );
-					if( $saved_cat_id ){
-						$modified_cats[] = $saved_cat_id;
-					}
-				}
-				wp_set_post_terms( $id, $modified_cats, 'gd_eventcategory' );
-
-			}
-
-			//Insert the event into the events table
-			$event_dates = maybe_serialize( array(
+			//Sanitize event dates
+			$post_array[ 'event_dates' ] = array(
 				'recurring' 		=> $event->recurring,
 				'start_date' 		=> date( "Y-m-d", strtotime( $event->date_start  ) ),
 				'end_date' 			=> date( "Y-m-d", strtotime( $event->date_end  ) ),
@@ -1720,76 +1646,14 @@ class GDCONVERTER_PMD {
 				'end_times' 		=> '',
 				'repeat_days' 		=> $event->recurring_days,	
 				'repeat_weeks' 		=> '',
-			));
-
-			//Set the default locations
-			$default_location   = $geodirectory->location->get_default_location();
-			$country    		= !empty( $default_location->country ) ? $default_location->country : '';
-			$region     		= !empty( $default_location->region ) ? $default_location->region : '';
-			$city       		= !empty( $default_location->city ) ? $default_location->city : '';
-			$latitude   		= !empty( $default_location->latitude ) ? $default_location->latitude : '';
-			$longitude  		= !empty( $default_location->longitude ) ? $default_location->longitude : '';
-
-			$values = array(
-				'post_id' 			=> $id,
-				'post_title' 		=> $event->title,
-				'post_status' 		=> $status,
-				'submit_ip' 		=> $event->ip,
-				'street' 			=> $event->listing_address2,
-				'city' 				=> !empty( $event->location_text_1 )? $event->location_text_1 : $city,
-				'region' 			=> !empty( $event->location_text_2 )? $event->location_text_2 : $region,
-				'country' 			=> $country,
-				'zip' 				=> $event->listing_zip,
-				'latitude' 			=> !empty( $event->latitude )? $event->latitude : $latitude,
-				'longitude' 		=> !empty( $event->longitude )? $event->longitude : $longitude,
-				'phone' 			=> $event->phone,
-				'email' 			=> $event->email,
-				'website' 			=> $event->website,
-				'twitter' 			=> 'http://twitter.com/' . $event->twitter_id,
-				'facebook' 			=> 'http://facebook.com/' . $event->facebook_page_id,
-				'featured' 			=> 0,
-				'recurring' 		=> $event->recurring,
-				'event_dates' 		=> $event_dates,
-				'rsvp_count' 		=> 0,
 			);
 
-			$types = array(
-				'post_id' 			=> '%d',
-				'post_title' 		=> '%s',
-				'post_status' 		=> '%s',
-				'submit_ip' 		=> '%s',
-				'street' 			=> '%s',
-				'city' 				=> '%s',
-				'region' 			=> '%s',
-				'country' 			=> '%s',
-				'zip' 				=> '%s',
-				'latitude' 			=> '%s',
-				'longitude' 		=> '%s',
-				'phone' 			=> '%s',
-				'email' 			=> '%s',
-				'website' 			=> '%s',
-				'twitter' 			=> '%s',
-				'facebook' 			=> '%s',
-				'featured' 			=> '%s',
-				'recurring' 		=> '%s',
-				'event_dates' 		=> '%s',
-				'rsvp_count' 		=> '%s',
-			);
+			$id = wp_insert_post($post_array, true);
 
-			$columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$events_table}`");
-
-			foreach ($values as $key => $value) {
-				if(! in_array( $key, $columns ) ){
-					unset($values[$key]);
-					unset($types[$key]);
-				}
+			if( is_wp_error( $id ) ){
+				$failed++;
+				continue;
 			}
-
-			$wpdb->insert(
-				$events_table,
-				$values,
-				$types
-			);
 
 			$imported++;
 		}
