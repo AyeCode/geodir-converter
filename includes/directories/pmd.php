@@ -342,7 +342,7 @@ class GDCONVERTER_PMD {
 
 		//Then start the import process
 		if(empty($_REQUEST['import_blog_data'])){
-			$this->import_events();
+			$this->import_fields();
 		} else {
 			$this->import_blog_categories();
 		}
@@ -1698,8 +1698,8 @@ class GDCONVERTER_PMD {
 			$this->update_progress( $form );
 		}
 
-		$table 				= $this->prefix . 'events_categories';
-		$total 				= $this->db->get_var("SELECT COUNT(id) as count from $table");
+		$table 	= $this->prefix . 'events_categories';
+		$total 	= $this->db->get_var("SELECT COUNT(id) as count from $table");
 		
 		//Abort early if there are no events
 		if( 0 == $total ){
