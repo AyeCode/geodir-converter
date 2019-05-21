@@ -521,10 +521,10 @@ class GDCONVERTER_PMD {
 				'comment_status'        => 'open',
 				'ping_status'           => 'closed',
 				'post_name'				=> ( $listing->friendly_url )? $listing->friendly_url : 'listing-' . $listing->id,
-				'post_date_gmt'         => ( $listing->date )? $listing->date : date('Y-m-d'),
-				'post_date'             => ( $listing->date )? $listing->date : date('Y-m-d'),
-				'post_modified_gmt'     => ( $listing->date_update )? $listing->date_update : date('Y-m-d'),
-				'post_modified'         => ( $listing->date_update )? $listing->date_update : date('Y-m-d'),
+				'post_date_gmt'         => ( $listing->date )? $listing->date : current_time( 'mysql', 1 ),
+				'post_date'             => ( $listing->date )? $listing->date : current_time( 'mysql' ),
+				'post_modified_gmt'     => ( $listing->date_update )? $listing->date_update : current_time( 'mysql', 1 ),
+				'post_modified'         => ( $listing->date_update )? $listing->date_update : current_time( 'mysql' ),
 				"tax_input"             => array(
 					"gd_placecategory" => $new_cats,
 					"gd_place_tags" => !empty( $listing->keywords ) ? array_map('trim', explode(',', $listing->keywords)) : array(),
@@ -1509,6 +1509,9 @@ class GDCONVERTER_PMD {
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
 			$limit  = 5;
+		} else {
+			//No events have been imported yet
+			$this->import_standard_fields( 'gd_event' );
 		}
 
 		//Fetch the events and abort in case we have imported all of them
@@ -1596,10 +1599,10 @@ class GDCONVERTER_PMD {
 				'comment_status'        => 'open',
 				'ping_status'           => 'closed',
 				'post_name'				=> !empty( $event->friendly_url )? $event->friendly_url : 'event-' . $event->id,
-				'post_date_gmt'         => !empty( $event->date )? $event->date : date('Y-m-d'),
-				'post_date'             => !empty( $event->date )? $event->date : date('Y-m-d'),
-				'post_modified_gmt'     => !empty( $event->date_update )? $event->date_update : date('Y-m-d'),
-				'post_modified'         => !empty( $event->date_update )? $event->date_update : date('Y-m-d'),
+				'post_date_gmt'         => !empty( $event->date )? $event->date : current_time( 'mysql', 1 ),
+				'post_date'             => !empty( $event->date )? $event->date : current_time( 'mysql' ),
+				'post_modified_gmt'     => !empty( $event->date_update )? $event->date_update : current_time( 'mysql', 1 ),
+				'post_modified'         => !empty( $event->date_update )? $event->date_update : current_time( 'mysql' ),
 				"tax_input"             => array(
 					"gd_eventcategory"  => $new_cats,
 					"gd_event_tags"     => !empty( $event->keywords ) ? array_map('trim', explode(',', $event->keywords)) : array(),
@@ -1609,8 +1612,8 @@ class GDCONVERTER_PMD {
 				// GD fields
 				'featured_image' 	=> '',
 				'submit_ip' 		=> !empty( $event->ip )? $event->ip : '',
-				'street' 			=> !empty( $listing->listing_address1 )? $listing->listing_address1 . ' ' .$event->venue : $event->venue,
-				'street2' 			=> !empty( $event->location)? $event->location : '',
+				'street' 			=> !empty( $event->listing_address1 )? $event->listing_address1 : '',
+				'street2' 			=> !empty( $event->listing_address2)? $event->listing_address2 : '',
 				'city' 				=> !empty( $event->location_text_2 )? $event->location_text_2 : $city,
 				'region' 			=> !empty( $event->location_text_3 )? $event->location_text_3 : $region,
 				'country' 			=> $country,
@@ -1619,15 +1622,37 @@ class GDCONVERTER_PMD {
 				'longitude' 		=> !empty( $event->longitude )? $event->longitude : $longitude,
 				'mapview' 			=> '',
 				'mapzoom' 			=> '',
-				'phone' 			=> $event->phone,
-				'email' 			=> $event->email,
-				'website' 			=> $event->website,
-				'twitter' 			=> !empty($event->twitter_id) ? 'http://twitter.com/' . $event->twitter_id : '',
-				'facebook' 			=> !empty($event->facebook_page_id) ? 'http://facebook.com/' . $event->facebook_page_id : '',
 				'recurring' 		=> $event->recurring,
+
+				// PMD standard fields
+				'pmd_id' 			=> !empty( $event->id )? $event->id : '',
+				'phone' 			=> !empty( $event->phone )? $event->phone : '',
+				'website' 			=> !empty( $event->website )? $event->website : '',
+				'email' 			=> !empty( $event->email )? $event->email : '',
+				'venue' 			=> !empty( $event->venue )? $event->venue : '',
+				'location' 			=> !empty( $event->location )? $event->location : '',
+				'admission' 		=> !empty( $event->admission )? $event->admission : '',
+				'contact_name' 		=> !empty( $event->contact_name )? $event->contact_name : '',
 			);
 
 			//Sanitize event dates
+			switch( $event->recurring_type ){
+				case 'daily':
+        			$repeat_type = 'day';
+        			break;
+    			case 'weekly':
+					$repeat_type = 'week';
+        			break;
+    			case 'monthly':
+					$repeat_type = 'month';
+					break;
+				case 'yearly':
+					$repeat_type = 'year';
+        			break;
+    			default:
+					$repeat_type = 'custom';
+			}
+
 			$post_array[ 'event_dates' ] = array(
 				'recurring' 		=> $event->recurring,
 				'start_date' 		=> date( "Y-m-d", strtotime( $event->date_start  ) ),
@@ -1636,7 +1661,7 @@ class GDCONVERTER_PMD {
 				'start_time' 		=> date( 'g:i a', strtotime( $event->date_start  ) ),
 				'end_time' 			=> date( 'g:i a', strtotime( $event->date_end  ) ),
 				'duration_x' 		=> '',
-				'repeat_type' 		=> $event->recurring_type,
+				'repeat_type' 		=> $repeat_type,
 				'repeat_x' 			=> $event->recurring_interval,
 				'repeat_end_type' 	=> '',
 				'max_repeat' 		=> '',
@@ -2490,6 +2515,80 @@ class GDCONVERTER_PMD {
 		                  'show_on_pkg' => $package,
 		                  'clabels' => __('Featured', 'geodirectory'));
 
+		if( 'gd_event' == $post_type ) {
+
+			//Ignore nonn-event related custom fieldss
+			$ignore  = 'twitter pinterest featured instagram foursquare youtube fax business_hours claimed facebook google linkedin';
+			$ignore  = explode( ' ', $ignore );
+			foreach( $fields as $key => $args ){
+				if( in_array( $args['htmlvar_name'], $ignore )){
+					unset( $fields[$key] );
+				}
+			}
+
+			//Add event related custom fields
+			$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'text',
+		                  'admin_title' => __('Venue', 'geodirectory'),
+		                  'frontend_desc' => __('The venue that will host this event.', 'geodirectory'),
+		                  'frontend_title' => __('Venue', 'geodirectory'),
+		                  'htmlvar_name' => 'venue',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+						  'clabels' => __('Venue', 'geodirectory'));
+						  
+			$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'text',
+		                  'admin_title' => __('Location', 'geodirectory'),
+		                  'frontend_desc' => __('The actual location of this event.', 'geodirectory'),
+		                  'frontend_title' => __('Location', 'geodirectory'),
+		                  'htmlvar_name' => 'location',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+						  'clabels' => __('Location', 'geodirectory'));
+						  
+			$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'text',
+		                  'admin_title' => __('Admission', 'geodirectory'),
+		                  'frontend_desc' => __('Event admission requirements.', 'geodirectory'),
+		                  'frontend_title' => __('Admission', 'geodirectory'),
+		                  'htmlvar_name' => 'admission',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+						  'clabels' => __('Admission', 'geodirectory'));
+						  
+			$fields[] = array('post_type' => $post_type,
+		                  'data_type' => 'TEXT',
+		                  'field_type' => 'text',
+		                  'admin_title' => __('Contact Name', 'geodirectory'),
+		                  'frontend_desc' => __('The contact person.', 'geodirectory'),
+		                  'frontend_title' => __('Contact Name', 'geodirectory'),
+		                  'htmlvar_name' => 'contact_name',
+		                  'default_value' => '',
+		                  'is_active' => '1',
+		                  'option_values' => '',
+		                  'is_default' => '0',
+		                  'show_in' => '[detail]',
+		                  'show_on_pkg' => $package,
+		                  'clabels' => __('Contact Name', 'geodirectory'));
+
+			
+		}
 
 		// insert custom fields
 		if( !empty($fields) ){
