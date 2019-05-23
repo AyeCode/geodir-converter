@@ -54,7 +54,7 @@ class GDCONVERTER_Loarder {
 	 */
 	private function includes() {
         require_once( $this->includes_dir . 'admin/admin.php' );
-        require_once( $this->includes_dir . 'directories/pmd.php' );
+        require_once( $this->includes_dir . 'directories/pmd/pmd.php' );
     }
     
     /**

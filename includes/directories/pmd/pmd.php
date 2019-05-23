@@ -30,6 +30,14 @@ class GDCONVERTER_PMD {
 	private $prefix = null;
 
 	/**
+	 * Stores PMD test mode status
+	 *
+	 */
+	private $test_mode = false;
+
+
+
+	/**
 	 * The main class constructor
 	 * 
 	 * Initializes the PMD converter and registers custom actions and filter hooks
@@ -38,6 +46,14 @@ class GDCONVERTER_PMD {
 	 *
 	 */
 	public function __construct() {
+
+
+		define( 'GEODIR_CONVERTER_TEST_MODE', true ); // uncomment this line to enable test mode
+
+		// Set doing import constant.
+		if ( defined( 'GEODIR_CONVERTER_TEST_MODE' ) ) {
+			$this->test_mode = true;
+		}
 
 		//register our converter
 		add_action( 'geodir_converter_importers',	array( $this, 'register_importer' ));
@@ -388,13 +404,69 @@ class GDCONVERTER_PMD {
 
 		// construct
 		if(!empty($new_parts)){
-			$new .="[";
+			$new .='["';
 			$new .= implode('","', $new_parts);
-			$new .="]";
+			$new .='"]';
 			$new .= ',["UTC":"'. $offset .'"]';
 		}
 
 		return $new;
+	}
+
+
+	/**
+	 * Get the GD post images string from the PMD listing id.
+	 *
+	 * @param string $pmd_id
+	 *
+	 * @return string
+	 */
+	private function get_post_images($pmd_id = ''){
+		global $wpdb;
+
+		// Set doing import constant so that image paths are added
+		if ( ! defined( 'GEODIR_DOING_IMPORT' ) ) {
+			define( 'GEODIR_DOING_IMPORT', true );
+		}
+
+		$image_string = '';
+		$image_array = array();
+		$allowed_extensions = array('jpg','jpeg','gif','png','svg');
+		$images_table 	= $this->prefix . 'images';
+		$images 	= $this->db->get_results($wpdb->prepare("SELECT * FROM $images_table WHERE listing_id = %d",$pmd_id));
+
+		if($images){
+			foreach ( $images as $image ){
+				if( empty( $image->id ) ){
+					continue;
+				}
+
+				if(!in_array(strtolower($image->extension),$allowed_extensions)){
+					continue;
+				}
+
+				// create a random key prefixed with the ordering so that we try to keep the image original ordering via the array keys.
+				$key = (int) $image->ordering .wp_rand(10,10);
+
+				$image_array[$key] = array(
+					"url"   => "/pmd/$image->id.$image->extension", // this will end up in the current upload directory folder
+					"title" => esc_attr($image->title),
+					"caption" => esc_attr($image->description)
+				);
+			}
+		}
+
+		if(!empty($image_array)){
+			foreach ($image_array as $img){
+				if(!$image_string){
+					$image_string .= $img['url']."||".$img['title']."|".$img['caption'];
+				}else{
+					$image_string .= "::".$img['url']."||".$img['title']."|".$img['caption'];
+				}
+			}
+		}
+
+		return $image_string;
 	}
 
 	/**
@@ -437,7 +509,7 @@ class GDCONVERTER_PMD {
 		//Fetch the listings and abort in case we have imported all of them
 		$listings_results 	= $this->db->get_results("SELECT * from $table LIMIT $offset,$limit");
 
-		if( empty($listings_results)){
+		if( empty($listings_results) || ( $this->test_mode && $offset > 10 ) ){
 			$form   .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('listings'));
 			$message = '<em>' . esc_html__('Finished importing listings...', 'geodirectory-converter') . '</em><br>';
 			$form   .= $message;
@@ -506,6 +578,12 @@ class GDCONVERTER_PMD {
 			$city       		= !empty( $default_location->city ) ? $default_location->city : '';
 			$latitude   		= !empty( $default_location->latitude ) ? $default_location->latitude : '';
 			$longitude  		= !empty( $default_location->longitude ) ? $default_location->longitude : '';
+
+
+			// set listings with no GPS to draft
+			if($status=='publish' && empty($latitude) ){
+				$status='draft';
+			}
 			
 			//... then insert it into the table
 
@@ -552,7 +630,7 @@ class GDCONVERTER_PMD {
 				'pmd_id' 			=> !empty( $listing->id )? $listing->id : '',
 				'phone' 			=> !empty( $listing->phone )? $listing->phone : '',
 				'fax' 				=> !empty( $listing->phone )? $listing->fax : '',
-				'business_hours' 	=> !empty( $listing->hours )? $this->convert_business_hours( maybe_unserialize( $listing->hours ) ) : '',
+				'business_hours' 	=> !empty( $listing->hours ) && $listing->hours != "N;" ? $this->convert_business_hours( maybe_unserialize( $listing->hours ) ) : '',
 				'website' 			=> !empty( $listing->www )? $listing->www : '',
 				'email' 			=> !empty( $listing->mail )? $listing->mail : '',
 				'claimed' 			=> !empty( $listing->claimed )? $listing->claimed : '',
@@ -583,14 +661,17 @@ class GDCONVERTER_PMD {
 				}
 			}
 
+			// add images
+			$image_string = $this->get_post_images($listing->id);
+			if($image_string){
+				$post_array['post_images'] = $image_string;
+			}
+
+			// insert post
 			$id = wp_insert_post($post_array, true);
 
 			//Save the original ID
 			set_transient('_pmd_place_original_id_' . $listing->id, $id, DAY_IN_SECONDS);
-
-//			echo '###'.$id;
-//			print_r($post_array);
-//			exit;
 
 			if( is_wp_error( $id ) ){
 				$failed ++;
@@ -634,7 +715,7 @@ class GDCONVERTER_PMD {
 			$progress = '';
 		}
 		$form   = $progress . $form;
-		
+
 		//Abort early if there are no users
 		if( 0 == $total ){
 
@@ -645,7 +726,7 @@ class GDCONVERTER_PMD {
 			$this->update_progress( $form );
 
 		}
-		
+
 		//Where should we start from
 		$offset = 0;
 		$limit  = 1;
@@ -656,7 +737,7 @@ class GDCONVERTER_PMD {
 
 		//Fetch the users and abort in case we have imported all of them
 		$pmd_users 	= $this->db->get_results("SELECT * from $table LIMIT $offset,$limit");
-		if( empty($pmd_users) ){
+		if( empty($pmd_users) || ( $this->test_mode && $offset > 10 )  ){
 
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('users'));
 			$message= '<em>' . esc_html__('Finished importing users...', 'geodirectory-converter') . '</em><br>';
@@ -724,7 +805,7 @@ class GDCONVERTER_PMD {
 			$_user = new WP_User( $user->id );
 			$sql   = $wpdb->prepare( "SELECT `group_id` FROM `$roles` WHERE `user_id` = %d", $_user->ID );
 			$level = absint( $this->db->get_var($sql) );
-			
+
 			//Set the user role
 			switch($level){
 			case 1:
@@ -740,7 +821,7 @@ class GDCONVERTER_PMD {
 				$role = 'subscriber';
 			}
 			$_user->set_role( $role );
-			
+
 			//Update user meta
 			update_user_meta( $_user->ID, 'first_name', $user->user_first_name );
 			update_user_meta( $_user->ID, 'last_name', $user->user_last_name );
@@ -754,7 +835,7 @@ class GDCONVERTER_PMD {
 			update_user_meta( $_user->ID, 'user_country', $user->user_country );
 			update_user_meta( $_user->ID, 'user_zip', $user->user_zip );
 			update_user_meta( $_user->ID, 'user_phone', $user->user_phone );
-		
+
 			$imported++;
 		}
 
@@ -870,7 +951,7 @@ class GDCONVERTER_PMD {
 
 		//Fetch the listings and abort in case we have imported all of them
 		$pmd_cats 	= $this->db->get_results("SELECT * from $table LIMIT $offset,$limit");
-		if( empty($pmd_cats)){
+		if( empty($pmd_cats) || ( $this->test_mode && $offset > 10 ) ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('categories'));
 			$message= '<em>' . esc_html__('Finished importing categories...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
@@ -914,6 +995,7 @@ class GDCONVERTER_PMD {
 			if(!empty ( $cat->description ) ) {
 				$args['description'] = $cat->description;
 			}
+
 			
 			//Insert it into the db
 			$inserted = wp_insert_term( $cat->title, 'gd_placecategory', $args );
@@ -929,6 +1011,8 @@ class GDCONVERTER_PMD {
 				if(! empty($cat->description) ){
 					update_term_meta( $inserted['term_id'], 'ct_cat_top_desc', $cat->description );
 				}
+
+				// @todo we need to add script to import images, current site we are working with does not seem to have cat images
 
 				//And move on to the next term
 				$imported++;
@@ -1034,9 +1118,9 @@ class GDCONVERTER_PMD {
 			$excerpt = ( !empty( $invoice->description ) )? $invoice->description: '';
 			
 			$id = wp_insert_post( array(
-				'post_author'           => ( $invoice->user_id )? $invoice->user_id : 1,
-				'post_content'          => ( $invoice->description )? $invoice->description : '',
-				'post_content_filtered' => ( $invoice->description )? $invoice->description : '',
+				'post_author'           => isset( $invoice->user_id )? $invoice->user_id : 1,
+				'post_content'          => isset( $invoice->description )? $invoice->description : '',
+				'post_content_filtered' => isset( $invoice->description )? $invoice->description : '',
 				'post_title'            => 'WPINV-00'.$invoice->id ,
 				'post_name' 			=> 'inv-'.$invoice->id,
 				'post_excerpt'          => '',
@@ -1044,10 +1128,10 @@ class GDCONVERTER_PMD {
 				'post_type'             => 'wpi_invoice',
 				'comment_status'        => 'closed',
 				'ping_status'           => 'closed',
-				'post_date_gmt'         => ( $invoice->date )? $invoice->date : '',
-				'post_date'             => ( $invoice->date )? $invoice->date : '',
-				'post_modified_gmt'     => ( $invoice->date_update )? $invoice->date_update : '',
-				'post_modified'         => ( $invoice->date_update )? $invoice->date_update : '',
+				'post_date_gmt'         => isset( $invoice->date )? $invoice->date : '',
+				'post_date'             => isset( $invoice->date )? $invoice->date : '',
+				'post_modified_gmt'     => isset( $invoice->date_update )? $invoice->date_update : '',
+				'post_modified'         => isset( $invoice->date_update )? $invoice->date_update : '',
 			), true);
 
 			if( is_wp_error( $id ) ){
@@ -1396,7 +1480,7 @@ class GDCONVERTER_PMD {
 			"SELECT `$table`.`id` as `review_id`, `status`, `listing_id`, `user_id`, `date`, `review`, `user_first_name`, `user_last_name`, `user_email` 
 			FROM `$table` LEFT JOIN `$users_table` ON `$table`.`user_id` = `$users_table`.`id`  LIMIT $offset,$limit");
 
-		if( empty($pmd_reviews)){
+		if( empty($pmd_reviews) || ( $this->test_mode && $offset > 10 ) ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('reviews'));
 			$message= '<em>' . esc_html__('Finished importing reviews...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
@@ -1531,7 +1615,7 @@ class GDCONVERTER_PMD {
 		$sql 		 .= "  FROM `$table` LEFT JOIN `$listings_table` ON `$table`.`listing_id` = `$listings_table`.`id`  LIMIT $offset,$limit ";
 		$pmd_events   = $this->db->get_results( $sql );
 
-		if( empty($pmd_events)){
+		if( empty($pmd_events) || ( $this->test_mode && $offset > 10 ) ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('events'));
 			$message= '<em>' . esc_html__('Finished importing events...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
@@ -1673,6 +1757,12 @@ class GDCONVERTER_PMD {
 				'repeat_weeks' 		=> '',
 			);
 
+			// add images
+			$image_string = $this->get_post_images($event->id);
+			if($image_string){
+				$post_array['post_images'] = $image_string;
+			}
+
 			$id = wp_insert_post($post_array, true);
 
 			if( is_wp_error( $id ) ){
@@ -1745,7 +1835,7 @@ class GDCONVERTER_PMD {
 
 		$cats   = $this->db->get_results( "SELECT id, title FROM `$table` LIMIT $offset,$limit" );
 		
-		if( empty($cats)){
+		if( empty($cats) || ( $this->test_mode && $offset > 10) ){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('event_categories'));
 			$message= '<em>' . esc_html__('Finished importing event categories...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
@@ -2623,6 +2713,9 @@ class GDCONVERTER_PMD {
 		// import standard fields
 		if( $offset==$total || $offset > $total ){
 			$this->import_standard_fields();
+			if ( defined( 'GEODIR_EVENT_VERSION' ) ) {
+				$this->import_standard_fields('gd_event');
+			}
 		}
 
 		$form   = $progress . $form;
