@@ -30,6 +30,12 @@ class GDCONVERTER_PMD {
 	private $prefix = null;
 
 	/**
+	 * Stores PMD site URL string
+	 *
+	 */
+	private $url = null;
+
+	/**
 	 * Stores PMD test mode status
 	 *
 	 */
@@ -48,7 +54,7 @@ class GDCONVERTER_PMD {
 	public function __construct() {
 
 
-		define( 'GEODIR_CONVERTER_TEST_MODE', true ); // uncomment this line to enable test mode
+//		define( 'GEODIR_CONVERTER_TEST_MODE', true ); // uncomment this line to enable test mode
 
 		// Set doing import constant.
 		if ( defined( 'GEODIR_CONVERTER_TEST_MODE' ) ) {
@@ -69,6 +75,69 @@ class GDCONVERTER_PMD {
 		//Handle logins for imported users
 		add_filter( 'wp_authenticate_user',	array( $this, 'handle_login' ), 10, 2 );
 
+		// handel 404 rescue
+		add_action('wp',array($this,'_404_rescue'), 11);
+
+
+	}
+
+	/**
+	 * Check the 404 page to see if its a GD CPT and if we can find the correct page.
+	 *
+	 * This can help with GDv1 -> GDv2 sites auto tell search engines the urls have moved.
+	 */
+	public function _404_rescue(){
+		if(is_404() && geodir_get_option("enable_404_rescue",1)){
+			global $wp_query,$wp,$wpdb,$plugin_prefix;
+
+			$post_type = isset($wp_query->query_vars['post_type']) ? $wp_query->query_vars['post_type'] : '';
+			$url_segments = explode("/",$wp->request);
+
+			$maybe_slug = end($url_segments);
+
+
+			// check for single pages
+			if($maybe_slug && stripos(strrev($maybe_slug), "lmth.") === 0){
+				$parts = explode("-",$maybe_slug);
+				if(!empty($parts)){
+					$num_html = end($parts);
+					$num_html_parts = explode(".",$num_html);
+					if(!empty($num_html_parts[0])){
+						$old_listing_id = absint($num_html_parts[0]);
+
+						// check places
+						$places_table = $plugin_prefix . 'gd_place_detail';
+						$new_listing_id  = $wpdb->get_var($wpdb->prepare("SELECT post_id FROM $places_table WHERE pmd_id = %d",$old_listing_id));
+
+						if(!$new_listing_id ){
+							// check events
+							$events_table = $plugin_prefix . 'gd_event_detail';
+							$new_listing_id  = $wpdb->get_var($wpdb->prepare("SELECT post_id FROM $events_table WHERE pmd_id = %d",$old_listing_id));
+						}
+
+						if($new_listing_id ){
+							$listing_url = get_permalink($new_listing_id);
+							if($listing_url){
+								wp_redirect($listing_url,'301');exit;
+							}
+						}
+
+					}
+
+				}
+			}
+
+			// check for categories
+			if(!empty($url_segments) && reset($url_segments)=='category' && $maybe_slug!='category'){
+				$term = get_term_by( 'slug', $maybe_slug, "gd_placecategory");
+				if(!empty($term)){
+					$term_link = get_term_link($term, "gd_placecategory");
+					if($term_link){
+						wp_redirect($term_link,'301');exit;
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -117,6 +186,9 @@ class GDCONVERTER_PMD {
 		
 		//If we are here, we connected successfully. Next, set the table prefix
 		$this->prefix = $db_config['prefix'] ;
+
+		// set url
+		$this->url = $db_config['url'] ;
 
 		//What data are we currently importing?
 		$type = trim($_REQUEST['type']);
@@ -193,16 +265,18 @@ class GDCONVERTER_PMD {
 		//Display DB connection details
 		$form     = '
 			<h3>%s</h3>
+			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" value="" placeholder="https://mysite.com/" name="site-url"></label>
 			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" value="localhost" name="database-host"></label>
 			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" value="pmd" name="database-name"></label>
 			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" value="root" name="database-user"></label>
-			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" name="database-password"></label>
+			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="password" name="database-password"></label>
 			<label class="geodir-label-grid"><div class="geodir-label-grid-label">%s</div><input type="text" value="pmd_" name="table-prefix"></label>		
 			<input type="submit" class="button button-primary" value="%s">
 		';
 		$fields  .= sprintf(
 			$form,
 			esc_html__('Next, we need to connect to your PhpMyDirectory installation', 'geodirectory-converter'),
+			esc_html__('PMD root URL (eg: https://mysite.com/)', 'geodirectory-converter'),
 			esc_html__('Database Host Name', 'geodirectory-converter'),
 			esc_html__('Database Name', 'geodirectory-converter'),
 			esc_html__('Database Username', 'geodirectory-converter'),
@@ -227,11 +301,16 @@ class GDCONVERTER_PMD {
 		}
 	
 		//Prepare db connection details
+		$url 		= '';
 		$host 		= '';
 		$db_name    = '';
 		$name 		= '';
 		$pass 		= '';
 		$pre  		= 'pmd_';
+
+		if( ! empty( $_REQUEST['site-url'] ) ){
+			$url = sanitize_text_field($_REQUEST['site-url']);
+		}
 
 		if( ! empty( $_REQUEST['database-host'] ) ){
 			$host = sanitize_text_field($_REQUEST['database-host']);
@@ -259,6 +338,7 @@ class GDCONVERTER_PMD {
 		//If we are here, db connection details are correct
 		//Let's cache them for a day
 		$cache = array(
+			'url' 		=> $url,
 			'host' 		=> $host,
 			'db_name' 	=> $db_name,
 			'pass'		=> $pass,
@@ -270,24 +350,26 @@ class GDCONVERTER_PMD {
 		//Display the next step to the user
 		$title 			= esc_html__( 'Successfully connected to PhpMyDirectory', 'geodirectory-converter');
 		$sub_title 		= esc_html__( 'Click the button below to import all your PhpMyDirectory data into this website.', 'geodirectory-converter');
-		$notes_title	= esc_html__( 'Notes', 'geodirectory-converter');
+		$notes_title	= esc_html__( 'Important Notes', 'geodirectory-converter');
 		$button			= esc_attr__( 'Start Importing Data', 'geodirectory-converter');
 
 		$fields .= "
-				<h3 class='geodir-converter-header-success'>$title</h3>
-				<p>$sub_title</p>
-				<div class='geodir-conveter-centered'>
-					<input type='submit' class='button button-primary' value='$button'>
-				</div>
-				<h4>$notes_title</h4>
-				<ul class='geodir-conveter-notes'>
+				<h3 class='geodir-converter-header-success'>$title</h3>";
+		$fields .= "<h4>$notes_title</h4>
+				<ul class='geodir-conveter-notes' style='color:red;list-style-type: disc;'>
 		";
-		
+
 		foreach ($this->get_notes() as $note) {
 			$fields .= "<li>$note</li>";
 		}
-		
+
 		$fields .= '</ul>';
+
+		$fields .="<p>$sub_title</p>
+				<div class='geodir-conveter-centered'>
+					<input type='submit' class='button button-primary' value='$button'>
+				</div>";
+
 
 		return $fields;
 	}
@@ -299,9 +381,7 @@ class GDCONVERTER_PMD {
 	 */
 	public function get_notes() {
 
-		$notes	= array(
-			esc_html__( 'You will be able to import your blog posts later.', 'geodirectory-converter'),
-		);
+		$notes	= array();
 		
 		$notes[]= esc_html__( "Don't forget to set up your default location before running this tool.", 'geodirectory-converter');
 
@@ -313,6 +393,8 @@ class GDCONVERTER_PMD {
 				"<a href='$url'>",
 				'</a>'
 			);
+		}else{
+			$notes[] = esc_html__( 'Setup your Invoicing details BEFORE runing the conversion so tax rates etc are set right.', 'geodirectory-converter');
 		}
 
 		//Inform the user that events won't be imported unless they activate the events addon
@@ -324,6 +406,8 @@ class GDCONVERTER_PMD {
 				'</a>'
 			);
 		}
+
+		$notes[] = esc_html__( 'You will be able to import your blog posts and pages at the end if you wish.', 'geodirectory-converter');
 
 		return $notes;
 
@@ -356,9 +440,12 @@ class GDCONVERTER_PMD {
 		//Set the PMD db prefix
 		$this->prefix = $db_config['prefix'] ;
 
+		//Set the PMD site url
+		$this->url = $db_config['url'] ;
+
 		//Then start the import process
 		if(empty($_REQUEST['import_blog_data'])){
-			$this->import_fields();
+			$this->import_users();
 		} else {
 			$this->import_blog_categories();
 		}
@@ -392,12 +479,14 @@ class GDCONVERTER_PMD {
 		if(!empty($hours)){
 			foreach($hours as $times){
 				$time_parts = explode(" ",$times);
-				$key = $time_parts[0];
-				$map_key = $new_map[$key];
-				if(!isset($new_parts[$map_key] )){
-					$new_parts[$map_key] = $map_key." ".$time_parts[1]."-".$time_parts[2];
-				}else{
-					$new_parts[$map_key] .=",".$time_parts[1]."-".$time_parts[2];
+				$key = isset($time_parts[0]) ? $time_parts[0] : '';
+				if($key){
+					$map_key = $new_map[$key];
+					if(!isset($new_parts[$map_key] )){
+						$new_parts[$map_key] = $map_key." ".$time_parts[1]."-".$time_parts[2];
+					}else{
+						$new_parts[$map_key] .=",".$time_parts[1]."-".$time_parts[2];
+					}
 				}
 			}
 		}
@@ -446,12 +535,16 @@ class GDCONVERTER_PMD {
 				}
 
 				// create a random key prefixed with the ordering so that we try to keep the image original ordering via the array keys.
-				$key = (int) $image->ordering .wp_rand(10,10);
+				$key = (int) $image->ordering .wp_rand(100000,900000);
+
+				// only text
+				$image->title =  preg_replace("/[^A-Za-z0-9 ]/", '', $image->title);
+				$image->description =  preg_replace("/[^A-Za-z0-9 ]/", '',  $image->description);
 
 				$image_array[$key] = array(
-					"url"   => "/pmd/$image->id.$image->extension", // this will end up in the current upload directory folder
-					"title" => esc_attr($image->title),
-					"caption" => esc_attr($image->description)
+					"url"   => trailingslashit( $this->url )."files/images/$image->id.$image->extension", // this will end up in the current upload directory folder
+					"title" => wp_slash(esc_attr($image->title)),
+					"caption" => wp_slash(esc_attr($image->description))
 				);
 			}
 		}
@@ -619,7 +712,7 @@ class GDCONVERTER_PMD {
 				'street2' 			=> $address2,
 				'city' 				=> !empty( $listing->location_text_1 )? $listing->location_text_1 : $city,
 				'region' 			=> !empty( $listing->location_text_2 )? $listing->location_text_2 : $region,
-				'country' 			=> $country,
+				'country' 			=> $country, // @todo we need to add a not about setting the default location first.
 				'zip' 				=> !empty( $listing->listing_zip )? $listing->listing_zip : '',
 				'latitude' 			=> !empty( $listing->latitude )? $listing->latitude : $latitude,
 				'longitude' 		=> !empty( $listing->longitude )? $listing->longitude : $longitude,
@@ -645,6 +738,15 @@ class GDCONVERTER_PMD {
 				'featured' 			=> !empty( $listing->featured )? $listing->featured : '',
 			);
 
+			// add package id
+			if(defined( 'GEODIR_PRICING_VERSION' )){
+				$package_id = self::get_package_id($listing->id);
+				if($package_id){
+					$post_array['package_id'] = $package_id;
+				}
+
+			}
+
 			// add custom fields
 			$fields_table 	= $this->prefix . 'fields';
 			$total_fields 	= $this->db->get_var("SELECT COUNT(id) AS count FROM $table");
@@ -665,6 +767,16 @@ class GDCONVERTER_PMD {
 			$image_string = $this->get_post_images($listing->id);
 			if($image_string){
 				$post_array['post_images'] = $image_string;
+			}
+
+			// add logo if present
+			if(!empty($listing->logo_extension)){
+				$post_array['logo'] = trailingslashit( $this->url )."files/logo/".$listing->id.".".$listing->logo_extension."|||";
+			}
+
+			// add hero image if present
+			if(!empty($listing->logo_background)){
+				$post_array['hero'] = trailingslashit( $this->url )."files/logo/background/".$listing->id.".".$listing->logo_background."|||";
 			}
 
 			// insert post
@@ -695,6 +807,27 @@ class GDCONVERTER_PMD {
 		$form  			.= $this->get_hidden_field_html( 'type', 'listings');
 		$form  			.= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
+	}
+
+	/**
+	 * Get the latest package ID for the listing.
+	 *
+	 * @param $listing_id
+	 *
+	 * @return mixed
+	 */
+	private function get_package_id($listing_id){
+		global $wpdb;
+		$table		= $this->prefix . 'orders';
+		$package_id = '';
+		$pmd_package_id = $this->db->get_var($wpdb->prepare("SELECT pricing_id FROM $table WHERE type_id = %d ORDER BY date DESC",$listing_id));
+
+		if($pmd_package_id){
+			$key = '_pmd_package_original_id_' . $pmd_package_id;
+			$package_id = get_transient( $key );
+		}
+
+		return $package_id;
 	}
 
 	/**
@@ -1376,7 +1509,7 @@ class GDCONVERTER_PMD {
 
 		//Fetch the products and abort in case we have imported all of them
 		$pricing_table  = $table . '_pricing';
-		$pmd_products 	= $this->db->get_results("SELECT `$table`.`id` as product_id, `name`, `$table`.`active`, `description`, `period`, `period_count`, `setup_price`, `price`, `renewable` FROM `$table` LEFT JOIN `$pricing_table` ON `$table`.`id` = `$pricing_table`.`product_id` LIMIT $offset,$limit");
+		$pmd_products 	= $this->db->get_results("SELECT `$pricing_table`.`id` as package_id, `$pricing_table`.`overdue_pricing_id`, `$pricing_table`.`ordering`, `$table`.`id` as product_id, `name`, `$table`.`active`, `description`, `period`, `period_count`, `setup_price`, `price`, `renewable` FROM `$table` LEFT JOIN `$pricing_table` ON `$table`.`id` = `$pricing_table`.`product_id` LIMIT $offset,$limit");
 			
 		if( empty($pmd_products)){
 			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('products'));
@@ -1404,25 +1537,62 @@ class GDCONVERTER_PMD {
 				$failed++;
 				continue;
 			}
-			
-			$args = array(
-				'title'                => $product->name,
-				'price'                => $product->price,
-				'status'               => ( $product->active ) ? 'publish' : 'pending',
-				'excerpt'              => ( $product->description ) ? $product->description : '',
-				'is_recurring'         => $product->renewable,
-				'recurring_period'     => ( $product->period ) ? strtoupper( substr( $product->period, 0, 1) ) : 'M',
-				'recurring_interval'   => $product->period_count,
+
+
+			$data = array(
+				'post_type' => 'gd_place',
+				'name' => $product->name,
+				'title' => $product->name,
+				'description' => $product->description,
+				'fa_icon' => '',
+				'amount' => $product->price,
+				'time_interval' => $product->period_count ? absint($product->period_count) : 0,
+				'time_unit' => ( $product->period ) ? strtoupper( substr( $product->period, 0, 1) ) : 'M',
+				'recurring' => $product->renewable,
+				'recurring_limit' =>  0,
+				'trial' => '',
+				'trial_amount' => '',
+				'trial_interval' => '',
+				'trial_unit' => '',
+				'is_default' => 0,
+				'display_order' => $product->ordering,
+				'downgrade_pkg' => $product->overdue_pricing_id ? absint($product->overdue_pricing_id) : 0, //@todo this will be old ID, we will need to update these after all inserted
+				'post_status' => 'pending',
+				'status' => $product->active ? 1 : 0,
 			);
-			$item = wpinv_create_item( $args );
-			if( $item instanceof WPInv_Item ){
-				update_post_meta($item->ID, '_pmd_original_id', $product->product_id);
+
+			$data = GeoDir_Pricing_Package::prepare_data_for_save( $data );
+
+			$package_id = GeoDir_Pricing_Package::insert_package( $data );
+
+			if( $package_id ){
+				$key = '_pmd_package_original_id_' . $product->package_id;
+				set_transient( $key , $package_id, DAY_IN_SECONDS );
 				$imported++;
 			} else {
 				$failed++;
 			}
 			
+//			$args = array(
+//				'title'                => $product->name,
+//				'price'                => $product->price,
+//				'status'               => ( $product->active ) ? 'publish' : 'pending',
+//				'excerpt'              => ( $product->description ) ? $product->description : '',
+//				'is_recurring'         => $product->renewable,
+//				'recurring_period'     => ( $product->period ) ? strtoupper( substr( $product->period, 0, 1) ) : 'M',
+//				'recurring_interval'   => $product->period_count,
+//			);
+//			$item = wpinv_create_item( $args );
+//			if( $item instanceof WPInv_Item ){
+//				update_post_meta($item->ID, '_pmd_original_id', $product->product_id);
+//				$imported++;
+//			} else {
+//				$failed++;
+//			}
+			
 		}
+
+
 		
 		//Update the user on their progress
 		$total_text  	 = esc_html__( 'Total Products', 'geodirectory-converter' );
@@ -1440,6 +1610,8 @@ class GDCONVERTER_PMD {
 		$this->update_progress( $form, $total, $offset );
 	}
 
+
+
 	/**
 	 * Imports reviews
 	 *
@@ -1450,6 +1622,7 @@ class GDCONVERTER_PMD {
 
 		$table 			= $this->prefix . 'reviews';
 		$users_table	= $this->prefix . 'users';
+		$ratings_table	= $this->prefix . 'ratings';
 		$total 			= $this->db->get_var("SELECT COUNT(id) as count from $table");
 		$form   		= '<h3>' . esc_html__('Importing reviews', 'geodirectory-converter') . '</h3>';
 		$progress 		= get_transient('_geodir_converter_pmd_progress');
@@ -1477,7 +1650,7 @@ class GDCONVERTER_PMD {
 
 		//Fetch the reviews and abort in case we have imported all of them
 		$pmd_reviews   = $this->db->get_results(
-			"SELECT `$table`.`id` as `review_id`, `status`, `listing_id`, `user_id`, `date`, `review`, `user_first_name`, `user_last_name`, `user_email` 
+			"SELECT `$table`.`id` as `review_id`, `status`, `listing_id`, `user_id`, `date`, `review`, `user_first_name`, `user_last_name`, `user_email`, `rating_id` 
 			FROM `$table` LEFT JOIN `$users_table` ON `$table`.`user_id` = `$users_table`.`id`  LIMIT $offset,$limit");
 
 		if( empty($pmd_reviews) || ( $this->test_mode && $offset > 10 ) ){
@@ -1514,6 +1687,17 @@ class GDCONVERTER_PMD {
 
 			$place_id = get_transient('_pmd_place_original_id_' . $review->listing_id);
 
+			// set the rating value if set
+			unset($_REQUEST['geodir_overallrating']);
+			$review_id = !empty($review->rating_id) ? absint($review->rating_id) : '';
+			$rating ='';
+			if($review_id){
+				$rating = $this->db->get_var("SELECT rating FROM $ratings_table WHERE id = $review_id");
+				if($rating){
+					$_REQUEST['geodir_overallrating'] = absint($rating);
+				}
+			}
+
 			$id = wp_insert_comment( array(
 				'comment_post_ID' 		=> $place_id,
 				'user_id' 				=> $review->user_id,
@@ -1529,6 +1713,12 @@ class GDCONVERTER_PMD {
 			if(! $id ){
 				$failed++;
 			} else {
+
+				// insert the review score if set
+				if($rating){
+					GeoDir_Comments::save_rating( $id );
+				}
+
 				$imported++;
 			}
 		}
@@ -2170,6 +2360,11 @@ class GDCONVERTER_PMD {
 				continue;
 			}
 
+			// maybe attach featured image
+			if($id && !empty($post->image_extension)){
+				self::import_featured_image($id,$post->id,$post->image_extension);
+			}
+
 			set_transient('_pmd_post_original_id_' . $post->id, $id, DAY_IN_SECONDS );
 
 			//Prepare the categories
@@ -2273,23 +2468,25 @@ class GDCONVERTER_PMD {
 			$status = ( !empty( $page->active ) && '1' == $page->active )? 'publish': 'draft';
 
 			$id = wp_insert_post( array(
-				'post_author'           => ( $page->user_id )? $page->user_id : 1,
-				'post_content'          => ( $page->content )? $page->content : '',
-				'post_title'            => ( $page->title )? $page->title : '',
-				'post_name' 			=> ( $page->friendly_url )? $page->friendly_url : '',
-				'post_excerpt'          => ( $page->content_short )? $page->content_short : '',
+				'post_author'           => isset( $page->user_id )? $page->user_id : 1,
+				'post_content'          => isset( $page->content )? $page->content : '',
+				'post_title'            => isset( $page->title )? $page->title : '',
+				'post_name' 			=> isset( $page->friendly_url )? $page->friendly_url : '',
+				'post_excerpt'          => isset( $page->content_short )? $page->content_short : '',
 				'post_status'           => $status,
 				'post_type'             => 'page',
-				'post_date_gmt'         => ( $page->date )? $page->date : '',
-				'post_date'             => ( $page->date )? $page->date : '',
-				'post_modified_gmt'     => ( $page->date_updated )? $page->date_updated : '',
-				'post_modified'         => ( $page->date_updated )? $page->date_updated : '',
+				'post_date_gmt'         => isset( $page->date )? $page->date : '',
+				'post_date'             => isset( $page->date )? $page->date : '',
+				'post_modified_gmt'     => isset( $page->date_updated )? $page->date_updated : '',
+				'post_modified'         => isset( $page->date_updated )? $page->date_updated : '',
 			), true);
 
 			if( is_wp_error( $id ) ){
 				$failed++;
 				continue;
 			}
+
+
 
 			$imported++;
 		}
@@ -2308,6 +2505,25 @@ class GDCONVERTER_PMD {
 		$form          .= $this->get_hidden_field_html( 'type', 'pages');
 		$form          .= $this->get_hidden_field_html( 'offset', $offset);
 		$this->update_progress( $form, $total, $offset );
+	}
+
+	/**
+	 * Set the post thumbnail from an external image.
+	 *
+	 * @param $post_id
+	 * @param $pmd_id
+	 * @param string $image_extension
+	 * @param string $title
+	 */
+	private function import_featured_image($post_id,$pmd_id,$image_extension='jpg',$title=''){
+		$url = trailingslashit($this->url) ."files/blog/".absint($pmd_id).".".$image_extension;
+		$attachment_id = media_sideload_image($url, $post_id, $title, 'id'); // uses the post date for the upload time /2009/12/image.jpg
+
+		// return error object if its an error
+		if ($attachment_id && !is_wp_error( $attachment_id ) ) {
+			set_post_thumbnail($post_id, $attachment_id);
+		}
+
 	}
 
 	/**
@@ -2361,6 +2577,18 @@ class GDCONVERTER_PMD {
 		$fields = array();
 		$package = ($package_id=='') ? '' : array($package_id);
 
+
+		// show on all packages if none set
+		if(!$package_id && function_exists('geodir_pricing_get_packages')){
+			$packages = geodir_pricing_get_packages( array( 'post_type' => $post_type ) );
+			if(!empty($packages)){
+				$package = array();
+				foreach($packages as $pkg){
+					$package[] = $pkg->id;
+				}
+			}
+		}
+
 		$fields[] = array('post_type' => $post_type,
 		                  'data_type' => 'INT',
 		                  'field_type' => 'number',
@@ -2375,7 +2603,58 @@ class GDCONVERTER_PMD {
 		                  'show_in' =>  '',
 		                  'show_on_pkg' => $package,
 					      'for_admin_use' => true,
-		                  'clabels' => __('PMD ID', 'geodirectory'));
+		                  'clabels' => __('PMD ID', 'geodirectory')
+		);
+
+		$fields[] = array(
+			'post_type' => $post_type,
+			'data_type' => 'TEXT',
+			'field_type' => 'file',
+			'admin_title' => __('Company Logo', 'geodirectory'),
+			'frontend_desc' => __('You can upload your company logo.', 'geodirectory'),
+			'frontend_title' => __('Company Logo', 'geodirectory'),
+			'htmlvar_name' => 'logo',
+			'default_value' => '',
+			'is_active' => '1',
+			'option_values' => '',
+			'is_default' => '0',
+			'show_in' =>  '',
+			'show_on_pkg' => $package,
+			'clabels' => __('Company Logo', 'geodirectory'),
+			'field_icon'         => 'far fa-image',
+			'cat_sort'           => false,
+			'cat_filter'         => false,
+			'extra'       => array(
+				'gd_file_types'     => array( 'jpg','jpe','jpeg','gif','png','bmp','ico'),
+				'file_limit'        => 1,
+			),
+			'single_use'         => true,
+		);
+
+		$fields[] = array(
+			'post_type' => $post_type,
+			'data_type' => 'TEXT',
+			'field_type' => 'file',
+			'admin_title' => __('Hero Image', 'geodirectory'),
+			'frontend_desc' => __('You can upload your hero logo.', 'geodirectory'),
+			'frontend_title' => __('Hero Image', 'geodirectory'),
+			'htmlvar_name' => 'hero',
+			'default_value' => '',
+			'is_active' => '1',
+			'option_values' => '',
+			'is_default' => '0',
+			'show_in' =>  '',
+			'show_on_pkg' => $package,
+			'clabels' => __('Hero Image', 'geodirectory'),
+			'field_icon'         => 'far fa-image',
+			'cat_sort'           => false,
+			'cat_filter'         => false,
+			'extra'       => array(
+				'gd_file_types'     => array( 'jpg','jpe','jpeg','gif','png','bmp','ico'),
+				'file_limit'        => 1,
+			),
+			'single_use'         => true,
+		);
 
 		$fields[] = array('post_type' => $post_type,
 		                  'data_type' => 'VARCHAR',
@@ -2803,18 +3082,17 @@ class GDCONVERTER_PMD {
 	 *
 	 * @since GeoDirectory Converter 1.0.0
 	 */
-	private function get_next_import_type( $current = 'fields' ) {
-
+	private function get_next_import_type( $current = 'users' ) {
 		$order = array(
-			'fields' 			=> 'users',
-			'users'  			=> 'categories',
-			'categories' 		=> 'listings',
-			'listings' 			=> 'reviews',
-			'reviews' 			=> 'event_categories',
-			'event_categories'  => 'events',
-			'events'			=> 'discounts',
-			'discounts'			=> 'products',
-			'products'			=> 'invoices',
+			'users'             => 'products',
+			'products' 			=> 'discounts',
+			'discounts'         => 'categories',
+			'categories'        => 'event_categories',
+			'event_categories'  => 'fields',
+			'fields'            => 'listings',
+			'listings'          => 'events',
+			'events'            => 'reviews',
+			'reviews'           => 'invoices',
 			'invoices'			=> 'done',
 			'done'				=> 'blog_categories',
 			'blog_categories'   => 'posts',
