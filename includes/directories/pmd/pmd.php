@@ -193,6 +193,9 @@ class GDCONVERTER_PMD {
 		//What data are we currently importing?
 		$type = trim($_REQUEST['type']);
 
+		//Suspend cache additions
+		wp_suspend_cache_addition(true);
+
 		call_user_func( array( $this, "import_" . $type) );
 		
 	}
@@ -865,7 +868,7 @@ class GDCONVERTER_PMD {
 		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
-			$limit = 4;
+			$limit = 5;
 		}
 
 		//Fetch the users and abort in case we have imported all of them
@@ -925,12 +928,12 @@ class GDCONVERTER_PMD {
 				$wpdb->users,
 				array(
 					'id' 				=> $user->id,
-					'user_login' 		=> $user->login,
+					'user_login' 		=> sanitize_user( $user->login ),
 					'user_pass' 		=> ( $user->pass )? $user->pass : '',
-					'user_nicename' 	=> $user->login,
-					'user_email' 		=> ( $user->user_email ) ? $user->user_email : '',
+					'user_nicename' 	=> sanitize_title( $user->login ),
+					'user_email' 		=> ( $user->user_email ) ? sanitize_email( $user->user_email ) : '',
 					'user_registered' 	=> ( $user->created )? $user->created : date('Y-m-d'),
-					'display_name' 		=> $display_name,
+					'display_name' 		=> sanitize_title( $display_name ),
 				),
 				array('%d','%s','%s','%s','%s','%s','%s' )
 			);
