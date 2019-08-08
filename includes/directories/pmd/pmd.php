@@ -623,6 +623,9 @@ class GDCONVERTER_PMD {
 			$failed = absint($_REQUEST['failed']);
 		}
 
+		//Re-enable cache additions
+		wp_suspend_cache_addition(false);
+
 		//Insert the listings into the db
 		foreach ( $listings_results as $key => $listing ){
 			$offset ++;
@@ -1082,7 +1085,7 @@ class GDCONVERTER_PMD {
 		$limit  = 1;
 		if(! empty($_REQUEST['offset']) ){
 			$offset = absint($_REQUEST['offset']);
-			$limit  = 5;
+			$limit  = 4;
 		}
 
 		//Fetch the listings and abort in case we have imported all of them
@@ -1480,10 +1483,10 @@ class GDCONVERTER_PMD {
 		}
 		$form   = $progress . $form;
 
-		//Abort early if the invoicing plugin is not installed
-		if ( !defined( 'WPINV_VERSION' ) ) {
+		//Abort early if the payment manager plugin is not installed
+		if ( !class_exists( 'GeoDir_Pricing_Package' ) ) {
 			$form  		.= $this->get_hidden_field_html( 'type', $this->get_next_import_type('products'));
-			$message	 = '<em>' . esc_html__('The Invoicing plugin is not active. Skipping products...', 'geodirectory-converter') . '</em><br>';
+			$message	 = '<em>' . esc_html__('The Payment Manager Addon is not active. Skipping products...', 'geodirectory-converter') . '</em><br>';
 			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
 			$form 		.= $message;
 			$this->update_progress( $form );
@@ -1576,22 +1579,6 @@ class GDCONVERTER_PMD {
 				$failed++;
 			}
 			
-//			$args = array(
-//				'title'                => $product->name,
-//				'price'                => $product->price,
-//				'status'               => ( $product->active ) ? 'publish' : 'pending',
-//				'excerpt'              => ( $product->description ) ? $product->description : '',
-//				'is_recurring'         => $product->renewable,
-//				'recurring_period'     => ( $product->period ) ? strtoupper( substr( $product->period, 0, 1) ) : 'M',
-//				'recurring_interval'   => $product->period_count,
-//			);
-//			$item = wpinv_create_item( $args );
-//			if( $item instanceof WPInv_Item ){
-//				update_post_meta($item->ID, '_pmd_original_id', $product->product_id);
-//				$imported++;
-//			} else {
-//				$failed++;
-//			}
 			
 		}
 
