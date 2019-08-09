@@ -33,6 +33,9 @@ class GDCONVERTER_Loarder {
         $this->includes_dir = plugin_dir_path( GEODIR_CONVERTER_PLUGIN_FILE ) . 'includes/';
         $this->includes_url = plugin_dir_url( GEODIR_CONVERTER_PLUGIN_FILE ) . 'includes/';
 
+		//Load textdomain
+		$this->load_text_domain();
+
         //Include plugin files
         $this->includes();
 
@@ -47,6 +50,16 @@ class GDCONVERTER_Loarder {
     }
     
     /**
+	 * Loads text domain
+	 *
+	 * @since GeoDirectory Converter 1.0.0
+	 *
+	 */
+	private function load_text_domain() {
+        load_plugin_textdomain( 'geodirectory-converter', false, basename( dirname( GEODIR_CONVERTER_PLUGIN_FILE ) ) . '/languages' ); 
+	}
+	
+	/**
 	 * Includes plugin files and dependancies
 	 *
 	 * @since GeoDirectory Converter 1.0.0

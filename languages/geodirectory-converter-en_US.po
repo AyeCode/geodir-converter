@@ -1,0 +1,586 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: GeoDirectory Converter\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2019-08-09 06:51+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: \n"
+"Language: \n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Loco https://localise.biz/\n"
+"X-Loco-Version: 2.3.0; wp-5.2.2"
+
+#: geodir-converter.php:80
+#, php-format
+msgid ""
+"%s requires the %sGeodirectory%s plugin to be installed and active. %sClick "
+"here to activate it.%s"
+msgstr ""
+
+#: geodir-converter.php:101
+#, php-format
+msgid ""
+"%s requires the %sGeodirectory%s plugin to be installed and active. %sClick "
+"here to install it.%s"
+msgstr ""
+
+#. Description of the plugin
+msgid "A plugin to convert other directories to GeoDirectory"
+msgstr ""
+
+#: includes/loader.php:171 includes/directories/pmd/pmd.php:172
+msgid "An unknown error occured! Please refresh the page and try again."
+msgstr ""
+
+#. Author of the plugin
+msgid "AyeCode Ltd"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2531
+msgid "Click on the button below to import blog content."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:355
+msgid ""
+"Click the button below to import all your PhpMyDirectory data into this "
+"website."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:288
+msgid "Connect"
+msgstr ""
+
+#: includes/loader.php:108 includes/loader.php:109
+msgid "Convert"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:283
+msgid "Database Host Name"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:284
+msgid "Database Name"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:286
+msgid "Database Password"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:285
+msgid "Database Username"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:257
+#, php-format
+msgid "Detected %s users"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:389
+msgid "Don't forget to set up your default location before running this tool."
+msgstr ""
+
+#: includes/loader.php:177
+msgid "Error: Please select a converter."
+msgstr ""
+
+#: includes/loader.php:185
+msgid "Error: The converter you selected is not registered on this site."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:806 includes/directories/pmd/pmd.php:985
+#: includes/directories/pmd/pmd.php:1168 includes/directories/pmd/pmd.php:1333
+#: includes/directories/pmd/pmd.php:1459 includes/directories/pmd/pmd.php:1591
+#: includes/directories/pmd/pmd.php:1720 includes/directories/pmd/pmd.php:2059
+#: includes/directories/pmd/pmd.php:2149 includes/directories/pmd/pmd.php:2258
+#: includes/directories/pmd/pmd.php:2383 includes/directories/pmd/pmd.php:2488
+#: includes/directories/pmd/pmd.php:3058
+msgid "Failed"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1960
+msgid "Failed Events"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2109
+msgid "Finished importing blog categories..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2309
+msgid "Finished importing blog posts..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1095
+msgid "Finished importing categories..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2203
+msgid "Finished importing comments..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:3007
+msgid "Finished importing custom fields..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1394
+msgid "Finished importing discount codes..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2020
+msgid "Finished importing event categories..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1800
+msgid "Finished importing events..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1229
+msgid "Finished importing invoices..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:610
+msgid "Finished importing listings..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2434
+msgid "Finished importing pages..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1522
+msgid "Finished importing products..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1648
+msgid "Finished importing reviews..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:882
+msgid "Finished importing users..."
+msgstr ""
+
+#. Name of the plugin
+#: includes/admin/template.php:15
+msgid "GeoDirectory Converter"
+msgstr ""
+
+#. URI of the plugin
+msgid "https://ayecode.com"
+msgstr ""
+
+#. Author URI of the plugin
+msgid "https://wpgeodirectory.com/"
+msgstr ""
+
+#: includes/admin/template.php:20
+msgid ""
+"If you have listings in another system, GeoDirectory can import those into "
+"this site. To get started, choose a system to import from below:"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2529
+msgid "Import Blog Content"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:152
+msgid ""
+"Import listings, events, users and invoices from your PhpMyDirectory "
+"installation."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:356
+msgid "Important Notes"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2147
+msgid "Imported Blog Categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2381
+msgid "Imported Blog Posts"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1166
+msgid "Imported Categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1457
+msgid "Imported Codes"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2256
+msgid "Imported Comments"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2057
+msgid "Imported Event Categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1958
+msgid "Imported Events"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:3056
+msgid "Imported Fields"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1331
+msgid "Imported Invoices"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:804
+msgid "Imported Listings"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2486
+msgid "Imported Pages"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1589
+msgid "Imported Products"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1718
+msgid "Imported Reviews"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:983
+msgid "Imported Users"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2079
+msgid "Importing blog categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2279
+msgid "Importing blog posts"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1066
+msgid "Importing categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2172
+msgid "Importing comments"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2970
+msgid "Importing custom fields"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1353
+msgid "Importing discount codes"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1980
+msgid "Importing event categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1741
+msgid "Importing events"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1188
+msgid "Importing invoices"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:581
+msgid "Importing listings"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2404
+msgid "Importing pages"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1479
+msgid "Importing products"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1617
+msgid "Importing reviews"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:851
+msgid "Importing users"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:281
+msgid "Next, we need to connect to your PhpMyDirectory installation"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:151
+msgid "PhpMyDirectory"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:282
+msgid "PMD root URL (eg: https://mysite.com/)"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2148
+msgid "Processed Blog Categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2382
+msgid "Processed Blog Posts"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1167
+msgid "Processed Categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1458
+msgid "Processed Codes"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2257
+msgid "Processed Comments"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2058
+msgid "Processed Event Categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1959
+msgid "Processed Events"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:3057
+msgid "Processed Fields"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1332
+msgid "Processed Invoices"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:805
+msgid "Processed Listings"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2487
+msgid "Processed Pages"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1590
+msgid "Processed Products"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1719
+msgid "Processed Reviews"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:984
+msgid "Processed Users"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:400
+msgid ""
+"Setup your Invoicing details BEFORE runing the conversion so tax rates etc "
+"are set right."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:357
+msgid "Start Importing Data"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:354
+msgid "Successfully connected to PhpMyDirectory"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2530
+msgid "Successfully imported all data"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2561
+msgid "Successfully imported blog content. Happy Browsing."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:287
+msgid "Table Prefix"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:407
+#, php-format
+msgid ""
+"The Events Addon is not active. Events will not be imported unless you %s "
+"install and activate the Events Addon %s first."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1990
+msgid "The events addon is not active. Skipping event categories..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1751
+msgid "The events addon is not active. Skipping events..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:395
+#, php-format
+msgid ""
+"The Invoicing plugin is not active. Invoices will not be imported unless you "
+"%s install and activate the Invoicing plugin %s first."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1363
+msgid "The Invoicing plugin is not active. Skipping discount codes..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1198
+msgid "The Invoicing plugin is not active. Skipping invoices..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1489
+msgid "The Payment Manager Addon is not active. Skipping products..."
+msgstr ""
+
+#: includes/loader.php:215
+msgid "The selected converter is incorrectly configured"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2091
+msgid ""
+"There are no blog categories in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2291
+msgid ""
+"There are no blog posts in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1076
+msgid ""
+"There are no categories in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2182
+msgid "There are no comments in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2995
+msgid ""
+"There are no custom fields in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1376
+msgid ""
+"There are no discount codes in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2002
+msgid ""
+"There are no event categories in your PhpMyDirectory installation. Skipping.."
+"."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1764
+msgid "There are no events in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1211
+msgid "There are no invoices in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:591
+msgid "There are no listings in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2416
+msgid "There are no pages in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1502
+msgid "There are no products in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1627
+msgid "There are no reviews in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:862
+msgid "There are no users in your PhpMyDirectory installation. Skipping..."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2146
+msgid "Total Blog Categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2380
+msgid "Total Blog Posts"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1165
+msgid "Total Categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1456
+msgid "Total Codes"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2255
+msgid "Total Comments"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2056
+msgid "Total Event Categories"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1957
+msgid "Total Events"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:3055
+msgid "Total Fields"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1330
+msgid "Total Invoices"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:803
+msgid "Total Listings"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:2485
+msgid "Total Pages"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1588
+msgid "Total Products"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1717
+msgid "Total Reviews"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:982
+msgid "Total Users"
+msgstr ""
+
+#: includes/loader.php:165 includes/directories/pmd/pmd.php:166
+msgid "You are not allowed to run imports on this site."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:263
+msgid ""
+"You must use a fresh install of WordPress to use this converter since "
+"existing data will be overidden."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:413
+msgid ""
+"You will be able to import your blog posts and pages at the end if you wish."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:436
+msgid ""
+"Your PhpMyDirectory database settings are missing. Please refresh the page "
+"and try again."
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:180
+msgid ""
+"Your PMD database settings are missing. Please refresh the page and try "
+"again."
+msgstr ""

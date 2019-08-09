@@ -148,8 +148,8 @@ class GDCONVERTER_PMD {
 	 */
 	public function register_importer( $importers ) {
 		$importers['pmd'] = array(
-			'title' 		=> esc_html__( 'PhpMyDirectory', 'geodir-converter' ),
-			'description' 	=> esc_html__( 'Import listings, events, users and invoices from your PhpMyDirectory installation.', 'geodir-converter' ),
+			'title' 		=> esc_html__( 'PhpMyDirectory', 'geodirectory-converter' ),
+			'description' 	=> esc_html__( 'Import listings, events, users and invoices from your PhpMyDirectory installation.', 'geodirectory-converter' ),
 		);
 		return $importers;
 	}
