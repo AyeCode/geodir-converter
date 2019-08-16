@@ -3,7 +3,7 @@
  * This is the main GeoDirectory Converter plugin file, here we declare and call the important stuff
  *
  * @package           Geodir_Converter
- * @copyright         2016 AyeCode Ltd
+ * @copyright         2019 AyeCode Ltd
  * @license           GPLv3
  * @since             1.0.0
  *
@@ -11,16 +11,17 @@
  * Plugin Name: GeoDirectory Converter
  * Plugin URI: https://ayecode.com
  * Description: A plugin to convert other directories to GeoDirectory
- * Version: 1.0.0
+ * Version: 1.0.0-beta
  * Author: AyeCode Ltd
  * Author URI: https://wpgeodirectory.com/
  * Requires at least: 4.7
- * Tested up to: 5.1
+ * Tested up to: 5.2
  * License: GPLv3
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain: geodirectory-converter
  * Domain Path: /languages
  * Update URL: https://wpgeodirectory.com
+ * Update ID: 768885
  */
 
 if ( ! defined( 'WPINC' ) ) {
@@ -28,7 +29,7 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 if ( ! defined( 'GEODIR_CONVERTER_VERSION' ) ) {
-	define( 'GEODIR_CONVERTER_VERSION', '1.0.0' );
+	define( 'GEODIR_CONVERTER_VERSION', '1.0.0-beta' );
 }
 
 if ( ! defined( 'GEODIR_CONVERTER_PLUGIN_FILE' ) ) {
