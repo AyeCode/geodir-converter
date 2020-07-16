@@ -9,6 +9,9 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 == Changelog ==
 
+= 1.0.2 =
+* Listify + WPJM integration
+
 = 1.0.1 =
 * Plugin asks for license key which is not required - FIXED
 
