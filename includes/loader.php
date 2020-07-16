@@ -47,6 +47,9 @@ class GDCONVERTER_Loarder {
 
         //Init PMD
 		new GDCONVERTER_PMD();
+
+		// Inist the listify converter.
+		new GDCONVERTER_Listify();
     }
     
     /**
@@ -67,7 +70,8 @@ class GDCONVERTER_Loarder {
 	 */
 	private function includes() {
         require_once( $this->includes_dir . 'admin/admin.php' );
-        require_once( $this->includes_dir . 'directories/pmd/pmd.php' );
+		require_once( $this->includes_dir . 'directories/pmd/pmd.php' );
+		require_once( $this->includes_dir . 'directories/listify/listify.php' );
     }
     
     /**

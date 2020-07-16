@@ -54,7 +54,7 @@ class GDCONVERTER_PMD {
 	public function __construct() {
 
 
-//		define( 'GEODIR_CONVERTER_TEST_MODE', true ); // uncomment this line to enable test mode
+		//define( 'GEODIR_CONVERTER_TEST_MODE', true ); // uncomment this line to enable test mode
 
 		// Set doing import constant.
 		if ( defined( 'GEODIR_CONVERTER_TEST_MODE' ) ) {
@@ -162,15 +162,15 @@ class GDCONVERTER_PMD {
 	public function handle_progress() {
 
 		//Abort if the current user does not have enough rights to run this import
-	    if ( !current_user_can( 'manage_options' )  ) {
+	    if ( ! current_user_can( 'manage_options' )  ) {
 		    $error = esc_html__( 'You are not allowed to run imports on this site.', 'geodirectory-converter' );
-		    self::send_response( 'error', $error );
+		    GDCONVERTER_Loarder::send_response( 'error', $error );
         }
 
         //Basic security check
 	    if ( empty( $_REQUEST['gdconverter_nonce_field'] ) || ! wp_verify_nonce( $_REQUEST['gdconverter_nonce_field'], 'gdconverter_nonce_action' ) ) {
 		    $error = esc_html__( 'An unknown error occured! Please refresh the page and try again.', 'geodirectory-converter' );
-		    self::send_response( 'error', $error );
+		    GDCONVERTER_Loarder::send_response( 'error', $error );
         }
 
 		//Do we have any database connection details?
@@ -251,7 +251,7 @@ class GDCONVERTER_PMD {
 
 		//Ensure there are no users since this tool deletes all of them
 		$users = count_users();
-		if( $users['total_users'] > 1){
+		if( ! $this->test_mode && $users['total_users'] > 1){
 
 			$message = sprintf(
 				esc_html__('Detected %s users', 'geodirectory-converter'),
