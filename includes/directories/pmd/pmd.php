@@ -54,7 +54,7 @@ class GDCONVERTER_PMD {
 	public function __construct() {
 
 
-//		define( 'GEODIR_CONVERTER_TEST_MODE', true ); // uncomment this line to enable test mode
+		//define( 'GEODIR_CONVERTER_TEST_MODE', true ); // uncomment this line to enable test mode
 
 		// Set doing import constant.
 		if ( defined( 'GEODIR_CONVERTER_TEST_MODE' ) ) {
@@ -162,15 +162,15 @@ class GDCONVERTER_PMD {
 	public function handle_progress() {
 
 		//Abort if the current user does not have enough rights to run this import
-	    if ( !current_user_can( 'manage_options' )  ) {
+	    if ( ! current_user_can( 'manage_options' )  ) {
 		    $error = esc_html__( 'You are not allowed to run imports on this site.', 'geodirectory-converter' );
-		    self::send_response( 'error', $error );
+		    GDCONVERTER_Loarder::send_response( 'error', $error );
         }
 
         //Basic security check
 	    if ( empty( $_REQUEST['gdconverter_nonce_field'] ) || ! wp_verify_nonce( $_REQUEST['gdconverter_nonce_field'], 'gdconverter_nonce_action' ) ) {
 		    $error = esc_html__( 'An unknown error occured! Please refresh the page and try again.', 'geodirectory-converter' );
-		    self::send_response( 'error', $error );
+		    GDCONVERTER_Loarder::send_response( 'error', $error );
         }
 
 		//Do we have any database connection details?
@@ -251,7 +251,7 @@ class GDCONVERTER_PMD {
 
 		//Ensure there are no users since this tool deletes all of them
 		$users = count_users();
-		if( $users['total_users'] > 1){
+		if( ! $this->test_mode && $users['total_users'] > 1){
 
 			$message = sprintf(
 				esc_html__('Detected %s users', 'geodirectory-converter'),
@@ -786,7 +786,7 @@ class GDCONVERTER_PMD {
 			}
 
 			// insert post
-			$id = wp_insert_post($post_array, true);
+			$id = @wp_insert_post($post_array, true);
 
 			//Save the original ID
 			set_transient('_pmd_place_original_id_' . $listing->id, $id, DAY_IN_SECONDS);
@@ -1504,7 +1504,7 @@ class GDCONVERTER_PMD {
 			$form .= $message;
 			$this->update_progress( $form );
 		}
-		
+
 		//Where should we start from
 		$offset = 0;
 		$limit  = 1;
@@ -1515,6 +1515,18 @@ class GDCONVERTER_PMD {
 
 		//Fetch the products and abort in case we have imported all of them
 		$pricing_table  = $table . '_pricing';
+
+		// Older pricing table is different from this.
+		$fields = $this->db->get_col("SHOW COLUMNS FROM `$pricing_table`");
+
+		if ( ! in_array( 'overdue_pricing_id', $fields ) ) {
+			$form  .= $this->get_hidden_field_html( 'type', $this->get_next_import_type('products'));
+			$message= '<em>' . esc_html__('Skipping products as you are using an incompatible version of PMD', 'geodirectory-converter') . '</em><br>';
+			set_transient('_geodir_converter_pmd_progress', $progress . $message, DAY_IN_SECONDS);
+			$form .= $message;
+			$this->update_progress( $form );
+		}
+
 		$pmd_products 	= $this->db->get_results("SELECT `$pricing_table`.`id` as package_id, `$pricing_table`.`overdue_pricing_id`, `$pricing_table`.`ordering`, `$table`.`id` as product_id, `name`, `$table`.`active`, `description`, `period`, `period_count`, `setup_price`, `price`, `renewable` FROM `$table` LEFT JOIN `$pricing_table` ON `$table`.`id` = `$pricing_table`.`product_id` LIMIT $offset,$limit");
 			
 		if( empty($pmd_products)){
