@@ -251,7 +251,7 @@ class GDCONVERTER_PMD {
 
 		//Ensure there are no users since this tool deletes all of them
 		$users = count_users();
-		if( ! $this->test_mode && $users['total_users'] > 1){
+		if ( ! $this->test_mode && $users['total_users'] > 1 ) {
 
 			$message = sprintf(
 				esc_html__('Detected %s users', 'geodirectory-converter'),
@@ -571,8 +571,7 @@ class GDCONVERTER_PMD {
 	 * @since GeoDirectory Converter 1.0.0
 	 */
 	private function import_listings() {
-		global $wpdb;
-		global $geodirectory;
+		global $wpdb, $geodirectory;
 
 		$table 				= $this->prefix . 'listings';
 		$posts_table 		= $wpdb->posts;
@@ -580,7 +579,7 @@ class GDCONVERTER_PMD {
 		$total 				= $this->db->get_var("SELECT COUNT(id) as count from $table");
 		$form   			= '<h3>' . esc_html__('Importing listings', 'geodirectory-converter') . '</h3>';
 		$progress 			= get_transient('_geodir_converter_pmd_progress');
-		if(! $progress ){
+		if ( ! $progress ) {
 			$progress = '';
 		}
 		$form = $progress . $form;
@@ -627,37 +626,35 @@ class GDCONVERTER_PMD {
 		wp_suspend_cache_addition(false);
 
 		//Insert the listings into the db
-		foreach ( $listings_results as $key => $listing ){
+		foreach ( $listings_results as $key => $listing ) {
 			$offset ++;
 
-			//Skip if the id is not set
-			if( empty( $listing->id ) ){
+			// Skip if the id is not set
+			if ( empty( $listing->id ) ) {
 				$failed ++;
 				continue;
 			}
 
-			//Sanitize listing status...
+			// Sanitize listing status...
 			$status  = ( !empty( $listing->status ) && 'active' == $listing->status )? 'publish': $listing->status;
 			$status  = ( !empty( $listing->status ) && 'suspended' == $listing->status )? 'trash': $status;
 
-
-
-			//Prepare the categories
+			// Prepare the categories
 			$sql  = $this->db->prepare("SELECT cat_id from {$table}_categories WHERE list_id = %d", $listing->id );
 			$cats =  $this->db->get_col($sql);
-			if(! is_array($cats) ){
+			if ( ! is_array( $cats ) ) {
 				$cats = array( $listing->primary_category_id );
 			}
 
-			// get new cat ids
+			// Get new cat ids
 			$new_cats = array();
-			if(!empty($cats)){
+			if ( ! empty( $cats ) ) {
 				foreach($cats as $cat){
 					$new_cats[] = get_transient( '_pmd_place_category_original_id_' . $cat);
 				}
 			}
 
-			//Primary category
+			// Primary category
 			$primary_cat = get_transient( '_pmd_place_category_original_id_' . $listing->primary_category_id);
 
 			//Insert the listing into the places_detail table
@@ -671,13 +668,12 @@ class GDCONVERTER_PMD {
 			}
 
 			//Set the default locations
-			$default_location   = $geodirectory->location->get_default_location();
-			$country    		= !empty( $default_location->country ) ? $default_location->country : '';
-			$region     		= !empty( $default_location->region ) ? $default_location->region : '';
-			$city       		= !empty( $default_location->city ) ? $default_location->city : '';
-			$latitude   		= !empty( $default_location->latitude ) ? $default_location->latitude : '';
-			$longitude  		= !empty( $default_location->longitude ) ? $default_location->longitude : '';
-
+			$default_location   = $this->get_location( ( ! empty ( $listing->location_id ) ? (int) $listing->location_id : 0 ) );
+			$country    		= ! empty( $default_location['country'] ) ? $default_location['country'] : '';
+			$region     		= ! empty( $default_location['region'] ) ? $default_location['region'] : '';
+			$city       		= ! empty( $default_location['city'] ) ? $default_location['city'] : '';
+			$latitude   		= ! empty( $default_location['latitude'] ) ? $default_location['latitude'] : '';
+			$longitude  		= ! empty( $default_location['longitude'] ) ? $default_location['longitude'] : '';
 
 			// set listings with no GPS to draft
 			if($status=='publish' && empty($latitude) ){
@@ -716,8 +712,8 @@ class GDCONVERTER_PMD {
 				'rating_count' 		=> !empty( $listing->votes )? $listing->votes : 0,
 				'street' 			=> $address,
 				'street2' 			=> $address2,
-				'city' 				=> !empty( $listing->location_text_1 )? $listing->location_text_1 : $city,
-				'region' 			=> !empty( $listing->location_text_2 )? $listing->location_text_2 : $region,
+				'city' 				=> $city,
+				'region' 			=> $region,
 				'country' 			=> $country, // @todo we need to add a not about setting the default location first.
 				'zip' 				=> !empty( $listing->listing_zip )? $listing->listing_zip : '',
 				'latitude' 			=> !empty( $listing->latitude )? $listing->latitude : $latitude,
@@ -764,7 +760,7 @@ class GDCONVERTER_PMD {
 							continue;
 						}
 						$field_key = "custom_".$field->id;
-						$post_array['pmd_'.$field->name] = !empty( $listing->{$field_key} )? $listing->{$field_key}: '';
+						$post_array[ self::get_custom_field_name( $field->name, $field->id ) ] = ! empty( $listing->{$field_key} ) ? $listing->{$field_key} : '';
 					}
 				}
 			}
@@ -1125,7 +1121,7 @@ class GDCONVERTER_PMD {
 			}
 
 			//Maybe set parent
-			if(!empty ( $cat->parent_id && $cat->parent_id > 1 ) ) {
+			if( ! empty ( $cat->parent_id ) && $cat->parent_id > 1 ) {
 				$parent = get_transient( '_pmd_place_category_original_id_' . $cat->parent_id );
 				$args['parent'] = $parent;
 			}
@@ -1135,7 +1131,6 @@ class GDCONVERTER_PMD {
 				$args['description'] = $cat->description;
 			}
 
-			
 			//Insert it into the db
 			$inserted = wp_insert_term( $cat->title, 'gd_placecategory', $args );
 
@@ -1853,13 +1848,12 @@ class GDCONVERTER_PMD {
 			}
 
 			//Set the default locations
-			$default_location   = $geodirectory->location->get_default_location();
-			$country    		= !empty( $default_location->country ) ? $default_location->country : '';
-			$region     		= !empty( $default_location->region ) ? $default_location->region : '';
-			$city       		= !empty( $default_location->city ) ? $default_location->city : '';
-			$latitude   		= !empty( $default_location->latitude ) ? $default_location->latitude : '';
-			$longitude  		= !empty( $default_location->longitude ) ? $default_location->longitude : '';
-
+			$default_location   = $this->get_location( ( ! empty ( $event->location_id ) ? (int) $event->location_id : 0 ) );
+			$country    		= ! empty( $default_location['country'] ) ? $default_location['country'] : '';
+			$region     		= ! empty( $default_location['region'] ) ? $default_location['region'] : '';
+			$city       		= ! empty( $default_location['city'] ) ? $default_location['city'] : '';
+			$latitude   		= ! empty( $default_location['latitude'] ) ? $default_location['latitude'] : '';
+			$longitude  		= ! empty( $default_location['longitude'] ) ? $default_location['longitude'] : '';
 
 			//Prepare Event data
 			$post_array = array(
@@ -1890,8 +1884,8 @@ class GDCONVERTER_PMD {
 				'submit_ip' 		=> !empty( $event->ip )? $event->ip : '',
 				'street' 			=> !empty( $event->listing_address1 )? $event->listing_address1 : '',
 				'street2' 			=> !empty( $event->listing_address2)? $event->listing_address2 : '',
-				'city' 				=> !empty( $event->location_text_2 )? $event->location_text_2 : $city,
-				'region' 			=> !empty( $event->location_text_3 )? $event->location_text_3 : $region,
+				'city' 				=> $city,
+				'region' 			=> $region,
 				'country' 			=> $country,
 				'zip' 				=> !empty( $event->listing_zip )? $event->listing_zip : '',
 				'latitude' 			=> !empty( $event->latitude )? $event->latitude : $latitude,
@@ -3036,23 +3030,22 @@ class GDCONVERTER_PMD {
 
 			$offset++;
 
-			if( empty( $field->id ) ){
+			if ( empty( $field->id ) ) {
 				$failed++;
 				continue;
 			}
-							
+
 			$id = geodir_custom_field_save( array(
 				'post_type' 		=> 'gd_place',
-		        'data_type' 		=> 'VARCHAR',
-		        'field_type' 		=> $field->type,
-		        'admin_title' 		=> $field->name,
-		        'frontend_desc' 	=> $field->description,
-		        'frontend_title' 	=> $field->name,
-		        'htmlvar_name' 		=> 'pmd_' . $field->name,
-		        'option_values' 	=> $field->options,
-		        'is_required'		=> $field->required,
-				'is_active' => '1',
-
+				'data_type' 		=> 'VARCHAR',
+				'field_type' 		=> $field->type,
+				'admin_title' 		=> $field->name,
+				'frontend_desc' 	=> $field->description,
+				'frontend_title' 	=> $field->name,
+				'htmlvar_name' 		=> self::get_custom_field_name( $field->name, $field->id ),
+				'option_values' 	=> ( ! empty( $field->options ) ? str_replace( ' ', ',', $field->options ) : '' ),
+				'is_required'		=> $field->required,
+				'is_active' 		=> '1',
 			));
 
 			if( is_string( $id ) ){
@@ -3120,5 +3113,81 @@ class GDCONVERTER_PMD {
 		$name  = esc_attr($name);
 		$value = esc_attr($value);
 		return "<input type='hidden' name='$name' value='$value'>";
+	}
+
+	public function get_location( $location_id ) {
+		global $wpdb, $geodirectory, $geodir_pmd_urls, $geodir_pmd_location_ids, $geodir_pmd_locations;
+
+		$table = $this->prefix . 'locations';
+
+		if ( empty( $geodir_pmd_locations ) ) {
+			$geodir_pmd_locations = array();
+		}
+
+		if ( ! empty( $geodir_pmd_locations[ $location_id ] ) ) {
+			return $geodir_pmd_locations[ $location_id ];
+		}
+
+		if ( empty( $geodir_pmd_location_ids ) ) {
+			$results = $this->db->get_results( "SELECT * FROM {$table} ORDER BY id ASC" );
+
+			$geodir_pmd_location_ids = array();
+			$geodir_pmd_urls = array();
+
+			foreach ( $results as $row ) {
+				$geodir_pmd_location_ids[ $row->id ] = $row;
+				$geodir_pmd_urls[ $row->friendly_url ] = $row->title;
+			}
+		}
+
+		$default_location = $geodirectory->location->get_default_location();
+		$country = ! empty( $default_location->country ) ? $default_location->country : '';
+		$region = ! empty( $default_location->region ) ? $default_location->region : '';
+		$city = ! empty( $default_location->city ) ? $default_location->city : '';
+		$latitude = ! empty( $default_location->latitude ) ? $default_location->latitude : '';
+		$longitude = ! empty( $default_location->longitude ) ? $default_location->longitude : '';
+
+		$location = array(
+			'country' => $country,
+			'region' => $region,
+			'city' => $city,
+			'latitude' => $latitude,
+			'longitude' => $longitude,
+		);
+
+		if ( ! empty( $geodir_pmd_location_ids[ (int) $location_id ] ) ) {
+			$row = $geodir_pmd_location_ids[ (int) $location_id ];
+
+			if ( (int) $row->level > 1 ) {
+				$friendly_urls = explode( '/', trim( $row->friendly_url_path, '/\\' ) );
+				
+				foreach ( $friendly_urls as $key => $slug ) {
+					if ( isset( $geodir_pmd_urls[ $slug ] ) ) {
+						$friendly_urls[ $key ] = $geodir_pmd_urls[ $slug ];
+					}
+				}
+
+				$location['region'] = ! empty( $friendly_urls[1] ) ? $friendly_urls[1] : $row->title;
+				$location['city'] = (int) $row->level > 2 && ! empty( $friendly_urls[2] ) ? $friendly_urls[2] : $location['region'];
+			}
+		}
+
+		$geodir_pmd_locations[ $location_id ] = $location;
+
+		return $location;
+	}
+
+	public static function get_custom_field_name( $title, $id = '' ) {
+		$name = str_replace( array( '-', ' ', '"', "'" ), array( '_', '_', '', '' ), remove_accents( $title ) );
+		$name = sanitize_key( $name );
+
+		$prefix = 'pmd_';
+		if ( $id != '' ) {
+			$prefix .= $id . '_';
+		}
+
+		$name = $prefix . $name;
+
+		return substr( $name, 0, 32 );
 	}
 }

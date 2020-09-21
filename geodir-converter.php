@@ -1,27 +1,27 @@
 <?php
 /**
- * This is the main GeoDirectory Converter plugin file, here we declare and call the important stuff
+ * GeoDirectory Directory Converter
  *
- * @package           Geodir_Converter
+ * @package           GeoDir_Converter
+ * @author            AyeCode Ltd
  * @copyright         2019 AyeCode Ltd
  * @license           GPLv3
- * @since             1.0.0
  *
- * @geodir_converter
- * Plugin Name: GeoDirectory Converter
- * Plugin URI: https://ayecode.com
- * Description: A plugin to convert other directories to GeoDirectory
- * Version: 1.0.1
- * Author: AyeCode Ltd
- * Author URI: https://wpgeodirectory.com/
- * Requires at least: 4.7
- * Tested up to: 5.4
- * License: GPLv3
- * License URI: http://www.gnu.org/licenses/gpl-3.0.html
- * Text Domain: geodirectory-converter
- * Domain Path: /languages
- * Update URL: https://github.com/AyeCode/geodir-converter/
- * Update ID: 768885
+ * @wordpress-plugin
+ * Plugin Name:       GeoDirectory Directory Converter
+ * Plugin URI:        https://wpgeodirectory.com/downloads/directory-converter/
+ * Description:       Convert directories like phpMyDirectory, Listify to GeoDirectory.
+ * Version:           1.0.1
+ * Requires at least: 4.9
+ * Requires PHP:      5.6
+ * Author:            AyeCode Ltd
+ * Author URI:        https://ayecode.io
+ * License:           GPLv3
+ * License URI:       http://www.gnu.org/licenses/gpl-3.0.html
+ * Text Domain:       geodirectory-converter
+ * Domain Path:       /languages
+ * Update URL:        https://github.com/AyeCode/geodir-converter/
+ * Update ID:         768885
  */
 
 if ( ! defined( 'WPINC' ) ) {
