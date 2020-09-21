@@ -47,6 +47,9 @@ class GDCONVERTER_Loarder {
 
         //Init PMD
 		new GDCONVERTER_PMD();
+
+		// Inist the listify converter.
+		new GDCONVERTER_Listify();
     }
     
     /**
@@ -67,7 +70,8 @@ class GDCONVERTER_Loarder {
 	 */
 	private function includes() {
         require_once( $this->includes_dir . 'admin/admin.php' );
-        require_once( $this->includes_dir . 'directories/pmd/pmd.php' );
+		require_once( $this->includes_dir . 'directories/pmd/pmd.php' );
+		require_once( $this->includes_dir . 'directories/listify/listify.php' );
     }
     
     /**
@@ -197,7 +201,11 @@ class GDCONVERTER_Loarder {
         if( !array_key_exists( $importer, $importers ) ){
             $error = esc_html__( 'Error: The converter you selected is not registered on this site.', 'geodirectory-converter' );
 		    self::send_response( 'error', $error );
-        }
+		}
+		
+		if ( ! defined( 'GEODIR_DOING_IMPORT' ) ) {
+			define( 'GEODIR_DOING_IMPORT', TRUE );
+		}
 		
 		//What step are we on
 		$current_step = 1;
