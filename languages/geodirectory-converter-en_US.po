@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: GeoDirectory Converter 1.0.0\n"
+"Project-Id-Version: GeoDirectory Converter 2.0.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-16 12:36+0100\n"
-"PO-Revision-Date: 2019-08-16 12:36+0100\n"
+"POT-Creation-Date: 2020-10-07 17:41+0530\n"
+"PO-Revision-Date: 2020-10-07 17:41+0530\n"
 "Last-Translator: \n"
 "Language-Team: AyeCode Ltd <contact@ayecode.io>\n"
 "Language: en_US\n"
@@ -17,17 +17,17 @@ msgstr ""
 "X-Poedit-Basepath: ..\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Poedit-SourceCharset: UTF-8\n"
-"X-Generator: Poedit 1.8.7.1\n"
+"X-Generator: Poedit 2.2.4\n"
 "X-Poedit-SearchPath-0: .\n"
 
-#: geodir-converter.php:80
+#: geodir-converter.php:81
 #, php-format
 msgid ""
 "%s requires the %sGeodirectory%s plugin to be installed and active. %sClick "
 "here to activate it.%s"
 msgstr ""
 
-#: geodir-converter.php:101
+#: geodir-converter.php:102
 #, php-format
 msgid ""
 "%s requires the %sGeodirectory%s plugin to be installed and active. %sClick "
@@ -45,6 +45,226 @@ msgid ""
 "this site. To get started, choose a system to import from below:"
 msgstr ""
 
+#: includes/directories/listify/listify.php:58
+msgid "Listify"
+msgstr ""
+
+#: includes/directories/listify/listify.php:59
+msgid "Import listings from your Listify installation."
+msgstr ""
+
+#: includes/directories/listify/listify.php:73
+#: includes/directories/pmd/pmd.php:166 includes/loader.php:182
+msgid "You are not allowed to run imports on this site."
+msgstr ""
+
+#: includes/directories/listify/listify.php:79
+#: includes/directories/pmd/pmd.php:172 includes/loader.php:188
+msgid "An unknown error occured! Please refresh the page and try again."
+msgstr ""
+
+#: includes/directories/listify/listify.php:140
+msgid "Run the import"
+msgstr ""
+
+#: includes/directories/listify/listify.php:141
+msgid ""
+"Click the button below to import all your Listify data into GeoDirectory."
+msgstr ""
+
+#: includes/directories/listify/listify.php:142
+#: includes/directories/pmd/pmd.php:357
+msgid "Start Importing Data"
+msgstr ""
+
+#: includes/directories/listify/listify.php:143
+#: includes/directories/pmd/pmd.php:356
+msgid "Important Notes"
+msgstr ""
+
+#: includes/directories/listify/listify.php:172
+#: includes/directories/pmd/pmd.php:389
+msgid "Don't forget to set up your default location before running this tool."
+msgstr ""
+
+#: includes/directories/listify/listify.php:347
+#: includes/directories/pmd/pmd.php:580
+msgid "Importing listings"
+msgstr ""
+
+#: includes/directories/listify/listify.php:357
+msgid "You have no listings. Skipping..."
+msgstr ""
+
+#: includes/directories/listify/listify.php:379
+#: includes/directories/pmd/pmd.php:609
+msgid "Finished importing listings..."
+msgstr ""
+
+#: includes/directories/listify/listify.php:418
+#: includes/directories/pmd/pmd.php:799
+msgid "Total Listings"
+msgstr ""
+
+#: includes/directories/listify/listify.php:419
+#: includes/directories/pmd/pmd.php:800
+msgid "Imported Listings"
+msgstr ""
+
+#: includes/directories/listify/listify.php:420
+#: includes/directories/pmd/pmd.php:801
+msgid "Processed Listings"
+msgstr ""
+
+#: includes/directories/listify/listify.php:421
+#: includes/directories/listify/listify.php:603
+#: includes/directories/pmd/pmd.php:802 includes/directories/pmd/pmd.php:981
+#: includes/directories/pmd/pmd.php:1163 includes/directories/pmd/pmd.php:1328
+#: includes/directories/pmd/pmd.php:1454 includes/directories/pmd/pmd.php:1598
+#: includes/directories/pmd/pmd.php:1727 includes/directories/pmd/pmd.php:2065
+#: includes/directories/pmd/pmd.php:2155 includes/directories/pmd/pmd.php:2264
+#: includes/directories/pmd/pmd.php:2389 includes/directories/pmd/pmd.php:2494
+#: includes/directories/pmd/pmd.php:3063
+msgid "Failed"
+msgstr ""
+
+#: includes/directories/listify/listify.php:544
+#: includes/directories/pmd/pmd.php:1062
+msgid "Importing categories"
+msgstr ""
+
+#: includes/directories/listify/listify.php:554
+msgid "There are no categories to import. Skipping..."
+msgstr ""
+
+#: includes/directories/listify/listify.php:602
+#: includes/directories/pmd/pmd.php:1161
+msgid "Imported Categories"
+msgstr ""
+
+#: includes/directories/listify/listify.php:620
+msgid "Successfully imported your content. Happy Browsing."
+msgstr ""
+
+#: includes/directories/listify/listify.php:634
+msgid "Application email"
+msgstr ""
+
+#: includes/directories/listify/listify.php:635
+msgid "you@example.com"
+msgstr ""
+
+#: includes/directories/listify/listify.php:639
+msgid "Application URL"
+msgstr ""
+
+#: includes/directories/listify/listify.php:640
+msgid "https://"
+msgstr ""
+
+#: includes/directories/listify/listify.php:644
+msgid "Application email/URL"
+msgstr ""
+
+#: includes/directories/listify/listify.php:645
+msgid "Enter an email address or website URL"
+msgstr ""
+
+#: includes/directories/listify/listify.php:662
+msgid "Job Title"
+msgstr ""
+
+#: includes/directories/listify/listify.php:670
+#: includes/directories/pmd/pmd.php:2913 includes/directories/pmd/pmd.php:2915
+#: includes/directories/pmd/pmd.php:2923
+msgid "Location"
+msgstr ""
+
+#: includes/directories/listify/listify.php:671
+msgid "Leave this blank if the location is not important"
+msgstr ""
+
+#: includes/directories/listify/listify.php:674
+msgid "e.g. \"London\""
+msgstr ""
+
+#: includes/directories/listify/listify.php:679
+msgid "Job type"
+msgstr ""
+
+#: includes/directories/listify/listify.php:682
+msgid "Choose job type&hellip;"
+msgstr ""
+
+#: includes/directories/listify/listify.php:699
+msgid "Company name"
+msgstr ""
+
+#: includes/directories/listify/listify.php:702
+msgid "Enter the name of the company"
+msgstr ""
+
+#: includes/directories/listify/listify.php:707
+#: includes/directories/pmd/pmd.php:2706 includes/directories/pmd/pmd.php:2708
+#: includes/directories/pmd/pmd.php:2716
+msgid "Website"
+msgstr ""
+
+#: includes/directories/listify/listify.php:711
+msgid "http://"
+msgstr ""
+
+#: includes/directories/listify/listify.php:716
+msgid "Tagline"
+msgstr ""
+
+#: includes/directories/listify/listify.php:719
+msgid "Briefly describe your company"
+msgstr ""
+
+#: includes/directories/listify/listify.php:725
+msgid "Video"
+msgstr ""
+
+#: includes/directories/listify/listify.php:729
+msgid "A link to a video about your company"
+msgstr ""
+
+#: includes/directories/listify/listify.php:734
+msgid "Twitter username"
+msgstr ""
+
+#: includes/directories/listify/listify.php:737
+msgid "@yourcompany"
+msgstr ""
+
+#: includes/directories/listify/listify.php:742
+msgid "Logo"
+msgstr ""
+
+#: includes/directories/listify/listify.php:779
+#: includes/directories/listify/listify.php:790
+msgid "WPJM ID"
+msgstr ""
+
+#: includes/directories/listify/listify.php:780
+msgid "Original Job ID"
+msgstr ""
+
+#: includes/directories/listify/listify.php:781
+msgid "Job ID"
+msgstr ""
+
+#: includes/directories/listify/listify.php:866
+#: includes/directories/pmd/pmd.php:2976
+msgid "Importing custom fields"
+msgstr ""
+
+#: includes/directories/listify/listify.php:878
+#: includes/directories/pmd/pmd.php:3013
+msgid "Finished importing custom fields..."
+msgstr ""
+
 #: includes/directories/pmd/pmd.php:151
 msgid "PhpMyDirectory"
 msgstr ""
@@ -53,14 +273,6 @@ msgstr ""
 msgid ""
 "Import listings, events, users and invoices from your PhpMyDirectory "
 "installation."
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:166 includes/loader.php:178
-msgid "You are not allowed to run imports on this site."
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:172 includes/loader.php:184
-msgid "An unknown error occured! Please refresh the page and try again."
 msgstr ""
 
 #: includes/directories/pmd/pmd.php:180
@@ -122,18 +334,6 @@ msgid ""
 "website."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:356
-msgid "Important Notes"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:357
-msgid "Start Importing Data"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:389
-msgid "Don't forget to set up your default location before running this tool."
-msgstr ""
-
 #: includes/directories/pmd/pmd.php:395
 #, php-format
 msgid ""
@@ -165,627 +365,575 @@ msgid ""
 "and try again."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:581
-msgid "Importing listings"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:591
+#: includes/directories/pmd/pmd.php:590
 msgid "There are no listings in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:610
-msgid "Finished importing listings..."
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:803
-msgid "Total Listings"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:804
-msgid "Imported Listings"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:805
-msgid "Processed Listings"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:806 includes/directories/pmd/pmd.php:985
-#: includes/directories/pmd/pmd.php:1168 includes/directories/pmd/pmd.php:1333
-#: includes/directories/pmd/pmd.php:1459 includes/directories/pmd/pmd.php:1591
-#: includes/directories/pmd/pmd.php:1720 includes/directories/pmd/pmd.php:2059
-#: includes/directories/pmd/pmd.php:2149 includes/directories/pmd/pmd.php:2258
-#: includes/directories/pmd/pmd.php:2383 includes/directories/pmd/pmd.php:2488
-#: includes/directories/pmd/pmd.php:3058
-msgid "Failed"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:851
+#: includes/directories/pmd/pmd.php:847
 msgid "Importing users"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:862
+#: includes/directories/pmd/pmd.php:858
 msgid "There are no users in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:882
+#: includes/directories/pmd/pmd.php:878
 msgid "Finished importing users..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:982
+#: includes/directories/pmd/pmd.php:978
 msgid "Total Users"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:983
+#: includes/directories/pmd/pmd.php:979
 msgid "Imported Users"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:984
+#: includes/directories/pmd/pmd.php:980
 msgid "Processed Users"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1066
-msgid "Importing categories"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:1076
+#: includes/directories/pmd/pmd.php:1072
 msgid ""
 "There are no categories in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1095
+#: includes/directories/pmd/pmd.php:1091
 msgid "Finished importing categories..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1165
+#: includes/directories/pmd/pmd.php:1160
 msgid "Total Categories"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1166
-msgid "Imported Categories"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:1167
+#: includes/directories/pmd/pmd.php:1162
 msgid "Processed Categories"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1188
+#: includes/directories/pmd/pmd.php:1183
 msgid "Importing invoices"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1198
+#: includes/directories/pmd/pmd.php:1193
 msgid "The Invoicing plugin is not active. Skipping invoices..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1211
+#: includes/directories/pmd/pmd.php:1206
 msgid "There are no invoices in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1229
+#: includes/directories/pmd/pmd.php:1224
 msgid "Finished importing invoices..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1330
+#: includes/directories/pmd/pmd.php:1325
 msgid "Total Invoices"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1331
+#: includes/directories/pmd/pmd.php:1326
 msgid "Imported Invoices"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1332
+#: includes/directories/pmd/pmd.php:1327
 msgid "Processed Invoices"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1353
+#: includes/directories/pmd/pmd.php:1348
 msgid "Importing discount codes"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1363
+#: includes/directories/pmd/pmd.php:1358
 msgid "The Invoicing plugin is not active. Skipping discount codes..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1376
+#: includes/directories/pmd/pmd.php:1371
 msgid ""
 "There are no discount codes in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1394
+#: includes/directories/pmd/pmd.php:1389
 msgid "Finished importing discount codes..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1429
+#: includes/directories/pmd/pmd.php:1424
 msgid "Percentage"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1430
+#: includes/directories/pmd/pmd.php:1425
 msgid "Flat Amount"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1456
+#: includes/directories/pmd/pmd.php:1451
 msgid "Total Codes"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1457
+#: includes/directories/pmd/pmd.php:1452
 msgid "Imported Codes"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1458
+#: includes/directories/pmd/pmd.php:1453
 msgid "Processed Codes"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1479
+#: includes/directories/pmd/pmd.php:1474
 msgid "Importing products"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1489
+#: includes/directories/pmd/pmd.php:1484
 msgid "The Payment Manager Addon is not active. Skipping products..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1502
+#: includes/directories/pmd/pmd.php:1497
 msgid "There are no products in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1522
+#: includes/directories/pmd/pmd.php:1519
+msgid "Skipping products as you are using an incompatible version of PMD"
+msgstr ""
+
+#: includes/directories/pmd/pmd.php:1529
 msgid "Finished importing products..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1588
+#: includes/directories/pmd/pmd.php:1595
 msgid "Total Products"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1589
+#: includes/directories/pmd/pmd.php:1596
 msgid "Imported Products"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1590
+#: includes/directories/pmd/pmd.php:1597
 msgid "Processed Products"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1617
+#: includes/directories/pmd/pmd.php:1624
 msgid "Importing reviews"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1627
+#: includes/directories/pmd/pmd.php:1634
 msgid "There are no reviews in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1648
+#: includes/directories/pmd/pmd.php:1655
 msgid "Finished importing reviews..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1717
+#: includes/directories/pmd/pmd.php:1724
 msgid "Total Reviews"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1718
+#: includes/directories/pmd/pmd.php:1725
 msgid "Imported Reviews"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1719
+#: includes/directories/pmd/pmd.php:1726
 msgid "Processed Reviews"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1741
+#: includes/directories/pmd/pmd.php:1748
 msgid "Importing events"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1751
+#: includes/directories/pmd/pmd.php:1758
 msgid "The events addon is not active. Skipping events..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1764
+#: includes/directories/pmd/pmd.php:1771
 msgid "There are no events in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1800
+#: includes/directories/pmd/pmd.php:1807
 msgid "Finished importing events..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1957
+#: includes/directories/pmd/pmd.php:1963
 msgid "Total Events"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1958
+#: includes/directories/pmd/pmd.php:1964
 msgid "Imported Events"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1959
+#: includes/directories/pmd/pmd.php:1965
 msgid "Processed Events"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1960
+#: includes/directories/pmd/pmd.php:1966
 msgid "Failed Events"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1980
+#: includes/directories/pmd/pmd.php:1986
 msgid "Importing event categories"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:1990
+#: includes/directories/pmd/pmd.php:1996
 msgid "The events addon is not active. Skipping event categories..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2002
+#: includes/directories/pmd/pmd.php:2008
 msgid ""
 "There are no event categories in your PhpMyDirectory installation. "
 "Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2020
+#: includes/directories/pmd/pmd.php:2026
 msgid "Finished importing event categories..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2056
+#: includes/directories/pmd/pmd.php:2062
 msgid "Total Event Categories"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2057
+#: includes/directories/pmd/pmd.php:2063
 msgid "Imported Event Categories"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2058
+#: includes/directories/pmd/pmd.php:2064
 msgid "Processed Event Categories"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2079
+#: includes/directories/pmd/pmd.php:2085
 msgid "Importing blog categories"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2091
+#: includes/directories/pmd/pmd.php:2097
 msgid ""
 "There are no blog categories in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2109
+#: includes/directories/pmd/pmd.php:2115
 msgid "Finished importing blog categories..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2146
+#: includes/directories/pmd/pmd.php:2152
 msgid "Total Blog Categories"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2147
+#: includes/directories/pmd/pmd.php:2153
 msgid "Imported Blog Categories"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2148
+#: includes/directories/pmd/pmd.php:2154
 msgid "Processed Blog Categories"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2172
+#: includes/directories/pmd/pmd.php:2178
 msgid "Importing comments"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2182
+#: includes/directories/pmd/pmd.php:2188
 msgid "There are no comments in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2203
+#: includes/directories/pmd/pmd.php:2209
 msgid "Finished importing comments..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2255
+#: includes/directories/pmd/pmd.php:2261
 msgid "Total Comments"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2256
+#: includes/directories/pmd/pmd.php:2262
 msgid "Imported Comments"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2257
+#: includes/directories/pmd/pmd.php:2263
 msgid "Processed Comments"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2279
+#: includes/directories/pmd/pmd.php:2285
 msgid "Importing blog posts"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2291
+#: includes/directories/pmd/pmd.php:2297
 msgid ""
 "There are no blog posts in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2309
+#: includes/directories/pmd/pmd.php:2315
 msgid "Finished importing blog posts..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2380
+#: includes/directories/pmd/pmd.php:2386
 msgid "Total Blog Posts"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2381
+#: includes/directories/pmd/pmd.php:2387
 msgid "Imported Blog Posts"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2382
+#: includes/directories/pmd/pmd.php:2388
 msgid "Processed Blog Posts"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2404
+#: includes/directories/pmd/pmd.php:2410
 msgid "Importing pages"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2416
+#: includes/directories/pmd/pmd.php:2422
 msgid "There are no pages in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2434
+#: includes/directories/pmd/pmd.php:2440
 msgid "Finished importing pages..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2485
+#: includes/directories/pmd/pmd.php:2491
 msgid "Total Pages"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2486
+#: includes/directories/pmd/pmd.php:2492
 msgid "Imported Pages"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2487
+#: includes/directories/pmd/pmd.php:2493
 msgid "Processed Pages"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2529
+#: includes/directories/pmd/pmd.php:2535
 msgid "Import Blog Content"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2530
+#: includes/directories/pmd/pmd.php:2536
 msgid "Successfully imported all data"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2531
+#: includes/directories/pmd/pmd.php:2537
 msgid "Click on the button below to import blog content."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2561
+#: includes/directories/pmd/pmd.php:2567
 msgid "Successfully imported blog content. Happy Browsing."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2585 includes/directories/pmd/pmd.php:2587
-#: includes/directories/pmd/pmd.php:2596
+#: includes/directories/pmd/pmd.php:2591 includes/directories/pmd/pmd.php:2593
+#: includes/directories/pmd/pmd.php:2602
 msgid "PMD ID"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2586
+#: includes/directories/pmd/pmd.php:2592
 msgid "Original PMD ID"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2603 includes/directories/pmd/pmd.php:2605
-#: includes/directories/pmd/pmd.php:2613
+#: includes/directories/pmd/pmd.php:2609 includes/directories/pmd/pmd.php:2611
+#: includes/directories/pmd/pmd.php:2619
 msgid "Company Logo"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2604
+#: includes/directories/pmd/pmd.php:2610
 msgid "You can upload your company logo."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2628 includes/directories/pmd/pmd.php:2630
-#: includes/directories/pmd/pmd.php:2638
+#: includes/directories/pmd/pmd.php:2634 includes/directories/pmd/pmd.php:2636
+#: includes/directories/pmd/pmd.php:2644
 msgid "Hero Image"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2629
+#: includes/directories/pmd/pmd.php:2635
 msgid "You can upload your hero logo."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2652 includes/directories/pmd/pmd.php:2654
-#: includes/directories/pmd/pmd.php:2662
+#: includes/directories/pmd/pmd.php:2658 includes/directories/pmd/pmd.php:2660
+#: includes/directories/pmd/pmd.php:2668
 msgid "Phone"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2653
+#: includes/directories/pmd/pmd.php:2659
 msgid "You can enter phone number."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2668 includes/directories/pmd/pmd.php:2670
-#: includes/directories/pmd/pmd.php:2678
+#: includes/directories/pmd/pmd.php:2674 includes/directories/pmd/pmd.php:2676
+#: includes/directories/pmd/pmd.php:2684
 msgid "Fax"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2669
+#: includes/directories/pmd/pmd.php:2675
 msgid "You can enter fax number here."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2684 includes/directories/pmd/pmd.php:2686
-#: includes/directories/pmd/pmd.php:2695
+#: includes/directories/pmd/pmd.php:2690 includes/directories/pmd/pmd.php:2692
+#: includes/directories/pmd/pmd.php:2701
 msgid "Business Hours"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2685
+#: includes/directories/pmd/pmd.php:2691
 msgid "Select your business opening/operating hours."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2700 includes/directories/pmd/pmd.php:2702
-#: includes/directories/pmd/pmd.php:2710
-msgid "Website"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:2701
+#: includes/directories/pmd/pmd.php:2707
 msgid "You can enter your business or listing website."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2715 includes/directories/pmd/pmd.php:2717
-#: includes/directories/pmd/pmd.php:2725
+#: includes/directories/pmd/pmd.php:2721 includes/directories/pmd/pmd.php:2723
+#: includes/directories/pmd/pmd.php:2731
 msgid "Email"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2716
+#: includes/directories/pmd/pmd.php:2722
 msgid "You can enter your business or listing email."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2730
+#: includes/directories/pmd/pmd.php:2736
 msgid "Is Claimed?"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2731
+#: includes/directories/pmd/pmd.php:2737
 msgid "Mark listing as a claimed."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2732
+#: includes/directories/pmd/pmd.php:2738
 msgid "Business Owner/Associate?"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2740
+#: includes/directories/pmd/pmd.php:2746
 msgid "Claimed"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2745 includes/directories/pmd/pmd.php:2747
-#: includes/directories/pmd/pmd.php:2755
+#: includes/directories/pmd/pmd.php:2751 includes/directories/pmd/pmd.php:2753
+#: includes/directories/pmd/pmd.php:2761
 msgid "Facebook"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2746
+#: includes/directories/pmd/pmd.php:2752
 msgid "You can enter your business or listing facebook url."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2760 includes/directories/pmd/pmd.php:2762
-#: includes/directories/pmd/pmd.php:2770
+#: includes/directories/pmd/pmd.php:2766 includes/directories/pmd/pmd.php:2768
+#: includes/directories/pmd/pmd.php:2776
 msgid "Google"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2761
+#: includes/directories/pmd/pmd.php:2767
 msgid "You can enter your business or listing google url."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2775 includes/directories/pmd/pmd.php:2777
-#: includes/directories/pmd/pmd.php:2785
+#: includes/directories/pmd/pmd.php:2781 includes/directories/pmd/pmd.php:2783
+#: includes/directories/pmd/pmd.php:2791
 msgid "Linkedin"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2776
+#: includes/directories/pmd/pmd.php:2782
 msgid "You can enter your business or listing Linkedin url."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2790 includes/directories/pmd/pmd.php:2792
-#: includes/directories/pmd/pmd.php:2800
+#: includes/directories/pmd/pmd.php:2796 includes/directories/pmd/pmd.php:2798
+#: includes/directories/pmd/pmd.php:2806
 msgid "Twitter"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2791
+#: includes/directories/pmd/pmd.php:2797
 msgid "You can enter your business or listing Twitter url."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2805 includes/directories/pmd/pmd.php:2807
-#: includes/directories/pmd/pmd.php:2815
+#: includes/directories/pmd/pmd.php:2811 includes/directories/pmd/pmd.php:2813
+#: includes/directories/pmd/pmd.php:2821
 msgid "Pinterest"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2806
+#: includes/directories/pmd/pmd.php:2812
 msgid "You can enter your business or listing Pinterest url."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2820 includes/directories/pmd/pmd.php:2822
-#: includes/directories/pmd/pmd.php:2830
+#: includes/directories/pmd/pmd.php:2826 includes/directories/pmd/pmd.php:2828
+#: includes/directories/pmd/pmd.php:2836
 msgid "YouTube"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2821
+#: includes/directories/pmd/pmd.php:2827
 msgid "You can enter your business or listing YouTube url."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2835 includes/directories/pmd/pmd.php:2837
-#: includes/directories/pmd/pmd.php:2845
+#: includes/directories/pmd/pmd.php:2841 includes/directories/pmd/pmd.php:2843
+#: includes/directories/pmd/pmd.php:2851
 msgid "Foursquare"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2836
+#: includes/directories/pmd/pmd.php:2842
 msgid "You can enter your business or listing Foursquare url."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2850 includes/directories/pmd/pmd.php:2852
-#: includes/directories/pmd/pmd.php:2860
+#: includes/directories/pmd/pmd.php:2856 includes/directories/pmd/pmd.php:2858
+#: includes/directories/pmd/pmd.php:2866
 msgid "Instagram"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2851
+#: includes/directories/pmd/pmd.php:2857
 msgid "You can enter your business or listing Instagram url."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2865 includes/directories/pmd/pmd.php:2875
+#: includes/directories/pmd/pmd.php:2871 includes/directories/pmd/pmd.php:2881
 msgid "Featured"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2866
+#: includes/directories/pmd/pmd.php:2872
 msgid "Mark listing as a featured."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2867
+#: includes/directories/pmd/pmd.php:2873
 msgid "Is Featured?"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2892 includes/directories/pmd/pmd.php:2894
-#: includes/directories/pmd/pmd.php:2902
+#: includes/directories/pmd/pmd.php:2898 includes/directories/pmd/pmd.php:2900
+#: includes/directories/pmd/pmd.php:2908
 msgid "Venue"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2893
+#: includes/directories/pmd/pmd.php:2899
 msgid "The venue that will host this event."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2907 includes/directories/pmd/pmd.php:2909
-#: includes/directories/pmd/pmd.php:2917
-msgid "Location"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:2908
+#: includes/directories/pmd/pmd.php:2914
 msgid "The actual location of this event."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2922 includes/directories/pmd/pmd.php:2924
-#: includes/directories/pmd/pmd.php:2932
+#: includes/directories/pmd/pmd.php:2928 includes/directories/pmd/pmd.php:2930
+#: includes/directories/pmd/pmd.php:2938
 msgid "Admission"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2923
+#: includes/directories/pmd/pmd.php:2929
 msgid "Event admission requirements."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2937 includes/directories/pmd/pmd.php:2939
-#: includes/directories/pmd/pmd.php:2947
+#: includes/directories/pmd/pmd.php:2943 includes/directories/pmd/pmd.php:2945
+#: includes/directories/pmd/pmd.php:2953
 msgid "Contact Name"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2938
+#: includes/directories/pmd/pmd.php:2944
 msgid "The contact person."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:2970
-msgid "Importing custom fields"
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:2995
+#: includes/directories/pmd/pmd.php:3001
 msgid ""
 "There are no custom fields in your PhpMyDirectory installation. Skipping..."
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:3007
-msgid "Finished importing custom fields..."
-msgstr ""
-
-#: includes/directories/pmd/pmd.php:3055
+#: includes/directories/pmd/pmd.php:3060
 msgid "Total Fields"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:3056
+#: includes/directories/pmd/pmd.php:3061
 msgid "Imported Fields"
 msgstr ""
 
-#: includes/directories/pmd/pmd.php:3057
+#: includes/directories/pmd/pmd.php:3062
 msgid "Processed Fields"
 msgstr ""
 
-#: includes/loader.php:121 includes/loader.php:122
+#: includes/loader.php:125 includes/loader.php:126
 msgid "Convert"
 msgstr ""
 
-#: includes/loader.php:190
+#: includes/loader.php:194
 msgid "Error: Please select a converter."
 msgstr ""
 
-#: includes/loader.php:198
+#: includes/loader.php:202
 msgid "Error: The converter you selected is not registered on this site."
 msgstr ""
 
-#: includes/loader.php:228
+#: includes/loader.php:236
 msgid "The selected converter is incorrectly configured"
 msgstr ""

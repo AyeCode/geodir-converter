@@ -5,7 +5,7 @@ Tags: convert, converter, directory, directory converter, geodirectory, listify,
 Requires at least: 4.9
 Tested up to: 5.5
 Requires PHP: 5.6
-Stable tag: 1.0.1
+Stable tag: 2.0.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
  
@@ -25,7 +25,7 @@ Currently supported directories:
 
 == Changelog ==
 
-= 1.0.2 =
+= 2.0.0 =
 * Listify + WPJM integration
 * PMD version 1 throws errors when importing packages - FIXED
 * Issue in converting PMD custom fields with special characters - FIXED
