@@ -3,7 +3,7 @@ Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://wpgeodirectory.com
 Tags: convert, converter, directory, directory converter, geodirectory, listify, phpmydirectory
 Requires at least: 4.9
-Tested up to: 5.5
+Tested up to: 5.7
 Requires PHP: 5.6
 Stable tag: 2.0.0
 License: GPLv3
@@ -24,6 +24,9 @@ Currently supported directories:
 - Listify
 
 == Changelog ==
+
+= 2.0.1 =
+* Sometimes import gallery images not working for Listify - FIXED
 
 = 2.0.0 =
 * Listify + WPJM integration

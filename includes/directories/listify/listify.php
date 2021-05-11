@@ -208,7 +208,7 @@ class GDCONVERTER_Listify {
 
 		// Abort if not set.
 		if ( empty( $hours ) ) {
-			return 'N;';
+			return '';
 		}
 
 		// Map days to strings.
@@ -279,6 +279,13 @@ class GDCONVERTER_Listify {
 		global $post;
 
 		$shortcode = $post->_gallery;
+		if ( empty( $shortcode ) ) {
+			return '';
+		}
+
+		if ( is_array( $shortcode ) ) {
+			$shortcode = '[gallery ids=' . implode( ',', $shortcode ) . ']';
+		}
 
 		// Set doing import constant so that image paths are added
 		if ( ! defined( 'GEODIR_DOING_IMPORT' ) ) {
@@ -290,30 +297,36 @@ class GDCONVERTER_Listify {
 			return '';
 		}
 
-		// Get gallery images;
-		$gallery = do_shortcode_tag( $shortcode );
-		$srcs    = array();
-
-		preg_match_all( '#src=([\'"])(.+?)\1#is', $gallery, $src, PREG_SET_ORDER );
-		if ( ! empty( $src ) ) {
-			foreach ( $src as $s ) {
-				$srcs[] = $s[2];
-			}
+						
+		$attrs = shortcode_parse_atts( $shortcode );
+		$ids = ! empty( $attrs['ids'] )  ? trim( $attrs['ids'], "] " ) : '';
+		if ( empty( $ids ) && ! empty( $attrs['id'] ) ) {
+			$ids = trim( $attrs['id'], "] " );
+						  
+						   
+					
+	
 		}
+		$ids = explode( ",", $ids );
 
 		$image_string       = '';
 		$image_array        = array();
 
-		foreach ( $srcs as $index => $src ){
+									  
 
-			// create a random key prefixed with the ordering so that we try to keep the image original ordering via the array keys.
-			$key = (int) $index .wp_rand( 100000,900000 );
+		if ( ! empty( $ids ) ) {
+			foreach ( $ids as $index => $id ) {
+				if ( absint( $id ) > 0 && ( $src = wp_get_attachment_url( absint( $id ) ) ) ) {
+					// create a random key prefixed with the ordering so that we try to keep the image original ordering via the array keys.
+					$key = (int) $index .wp_rand( 100000,900000 );
 
-			$image_array[$key] = array(
-				"url"     => $src,
-				"title"   => '',
-				"caption" => ''
-			);
+					$image_array[ $key ] = array(
+						"url"     => $src,
+						"title"   => get_the_title( absint( $id ) ),
+						"caption" => ''
+					);
+				}
+			}
 		}
 
 		if ( ! empty( $image_array ) ) {
@@ -335,6 +348,8 @@ class GDCONVERTER_Listify {
 	 * @since GeoDirectory Converter 1.0.0
 	 */
 	private function import_listings() {
+		@ini_set( 'max_execution_time', 1800 );
+		@ini_set( 'memory_limit', '512M' );
 
 		// Calculate total listings.
 		$_total = wp_count_posts( 'job_listing' );
@@ -451,7 +466,7 @@ class GDCONVERTER_Listify {
 			// Standard WP Fields.
 			'post_author'           => ( $post->post_author ) ? $post->post_author : get_current_user_id(),
 			'post_content'          => ( $post->post_content ) ? $post->post_content : '',
-			'post_content_filtered' => wpjm_get_the_job_description(),
+			'post_content_filtered' => $this->wpjm_get_the_job_description( $post ),
 			'post_title'            => wpjm_get_the_job_title(),
 			'post_excerpt'          => ( $post->post_excerpt ) ? $post->post_excerpt : '',
 			'post_status'           => $post->post_status,
@@ -911,5 +926,25 @@ class GDCONVERTER_Listify {
 		$name  = esc_attr($name);
 		$value = esc_attr($value);
 		return "<input type='hidden' name='$name' value='$value'>";
+	}
+
+	private function wpjm_get_the_job_description( $post = null ) {
+		$post = get_post( $post );
+		if ( ! $post || 'job_listing' !== $post->post_type ) {
+			return null;
+		}
+
+		$post->post_content = str_replace( '<!--more-->', '', $post->post_content );
+
+		$description = apply_filters( 'the_job_description', wp_kses_post( $post->post_content ) );
+
+		/**
+		 * Filter for the job description.
+		 *
+		 * @since 1.28.0
+		 * @param string      $job_description Job description to be filtered.
+		 * @param int|WP_Post $post
+		 */
+		return apply_filters( 'wpjm_the_job_description', $description, $post );
 	}
 }
