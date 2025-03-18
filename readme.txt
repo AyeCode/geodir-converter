@@ -9,7 +9,7 @@ Stable tag: 2.0.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
  
-Convert directories like phpMyDirectory, Listify to GeoDirectory.
+Convert directories like phpMyDirectory, Listify and Business Directory to GeoDirectory.
 
 == Description ==
 
@@ -24,6 +24,10 @@ Currently supported directories:
 - Listify
 
 == Changelog ==
+
+= 2.0.2 - TBD =
+* Revamped the user interface for better usability - ENHANCEMENT
+* Added support for importing listings from Business Directory - ADDED
 
 = 2.0.1 =
 * Sometimes import gallery images not working for Listify - FIXED
