@@ -155,7 +155,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 		$post_types = geodir_get_posttypes();
 		$errors     = array();
 
-		$settings['test_mode']    = ( isset( $settings['test_mode'] ) && true === (bool) $settings['test_mode'] ) ? 'yes' : 'no';
+		$settings['test_mode']    = ( isset( $settings['test_mode'] ) && ! empty( $settings['test_mode'] ) && $settings['test_mode'] != 'no' ) ? 'yes' : 'no';
 		$settings['gd_post_type'] = isset( $settings['gd_post_type'] ) && ! empty( $settings['gd_post_type'] ) ? sanitize_text_field( $settings['gd_post_type'] ) : 'gd_place';
 
 		if ( ! in_array( $settings['gd_post_type'], $post_types, true ) ) {
