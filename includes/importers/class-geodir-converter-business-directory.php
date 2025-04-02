@@ -166,7 +166,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 			'wpbdp_plans',
 		);
 
-		$settings['test_mode']    = ( isset( $settings['test_mode'] ) && true === (bool) $settings['test_mode'] ) ? 'yes' : 'no';
+		$settings['test_mode']    = ( isset( $settings['test_mode'] ) && ! empty( $settings['test_mode'] ) && $settings['test_mode'] != 'no' ) ? 'yes' : 'no';
 		$settings['gd_post_type'] = ( isset( $settings['gd_post_type'] ) && ! empty( $settings['gd_post_type'] ) ) ? sanitize_text_field( $settings['gd_post_type'] ) : 'gd_place';
 
 		if ( ! in_array( $settings['gd_post_type'], $post_types, true ) ) {
@@ -677,6 +677,20 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 			'bdp_id'                => $post->ID,
 		);
 
+		if ( empty( $post->geolocation_city ) && ( empty( $post->geolocation_lat ) || empty( $post->geolocation_long ) ) && ! empty( $fields['street'] ) && empty( $fields['city'] ) && ( empty( $fields['latitude'] ) || empty( $fields['longitude'] ) ) ) {
+			$zip = ! empty( $fields['zip'] ) ? $fields['zip'] : '-';
+			$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address( array( 'street' => $fields['street'], 'city' => $zip, 'region' => '-', 'zip' => '-' ) ); // GPS requires at least 4 non empty location fields.
+			if ( ! ( is_array( $gps_data ) && ! empty( $gps_data['latitude'] ) && ! empty( $gps_data['longitude'] ) ) ) {
+				$street = explode( ",", $fields['street'] );
+				$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address( array( 'street' => trim( $street[0] ), 'city' => $zip, 'region' => '-', 'zip' => '-' ) );
+			}
+
+			if ( ( is_array( $gps_data ) && ! empty( $gps_data['latitude'] ) && ! empty( $gps_data['longitude'] ) ) ) {
+				$listing['latitude'] = $gps_data['latitude'];
+				$listing['longitude'] = $gps_data['longitude'];
+			}
+		}
+
 		if ( $subscription && class_exists( 'GeoDir_Pricing_Package' ) ) {
 			// paid to not resolved to free package.
 			$package = $this->get_existing_package( $post_type, $subscription->fee_id, false );
@@ -775,7 +789,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 				'placeholder_value' => $field['placeholder'],
 				'frontend_title'    => $field['label'],
 				'default_value'     => $field['default'],
-				'for_admin_use'     => in_array( 'private', $field['display_flags'], true ) ? 1 : 0,
+				'for_admin_use'     => in_array( 'private', $field['display_flags'], true ) || $gd_field_key == 'bdp_id' ? 1 : 0,
 				'is_required'       => in_array( 'required', $field['validators'], true ) ? 1 : 0,
 				'show_in'           => ( 'listing_title' === $key ) ? '[owntab],[detail],[mapbubble]' : '[owntab],[detail]',
 				'show_on_pkg'       => $package_ids,
@@ -850,6 +864,10 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 
 				if ( 'website' === $key && is_array( $value ) ) {
 					$value = isset( $value[0] ) ? $value[0] : '';
+				}
+
+				if ( $key == 'address' ) {
+					$key = 'street';
 				}
 
 				$fields[ $key ] = $value;

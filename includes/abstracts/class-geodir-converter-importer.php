@@ -276,7 +276,7 @@ abstract class GeoDir_Converter_Importer {
 				'label_type' => 'top',
 				'label'      => esc_html__( 'Test Mode', 'geodirectory' ),
 				'checked'    => $is_test_mode,
-				'value'      => '1',
+				'value'      => 'yes',
 				'switch'     => 'md',
 				'help_text'  => esc_html__( 'Run a test import without importing any data.', 'geodirectory' ),
 			),
@@ -388,6 +388,16 @@ abstract class GeoDir_Converter_Importer {
 			'post_images',
 			'featured_image',
 			'address',
+			'city',
+			'region',
+			'country',
+			'neighbourhood',
+			'zip',
+			'latitude',
+			'longitude',
+			'mapview',
+			'mapzoom',
+			'street'
 		);
 
 		if ( in_array( $field_name, $preserved_keys, true ) ) {
