@@ -2,14 +2,14 @@
 Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://wpgeodirectory.com
 Tags: convert, converter, directory, directory converter, geodirectory, listify, phpmydirectory
-Requires at least: 4.9
-Tested up to: 6.0
+Requires at least: 5.0
+Tested up to: 6.7
 Requires PHP: 5.6
-Stable tag: 2.0.1
+Stable tag: 2.1.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
  
-Convert directories like phpMyDirectory, Listify and Business Directory to GeoDirectory.
+Convert directories like phpMyDirectory, Listify and Business Directory Plugin to GeoDirectory.
 
 == Description ==
 
@@ -20,19 +20,20 @@ Our Directory Converter plugin takes the hard work out of converting from a diff
 Currently this product is in beta which means it should not be used on a live site, only a staging site.
 
 Currently supported directories:
-- phpMyDirectory
+- phpMyDirectory - https://wordpress.org/plugins/phpmydirectory/
 - Listify
+- Business Directory Plugin 6.3 or later - https://wordpress.org/plugins/business-directory-plugin/
 
 == Changelog ==
 
-= 2.0.2 - TBD =
+= 2.1.0 - 2025-04-03 =
 * Revamped the user interface for better usability - ENHANCEMENT
 * Added support for importing listings from Business Directory - ADDED
 
-= 2.0.1 =
+= 2.0.1 - 2022-08-09 =
 * Sometimes import gallery images not working for Listify - FIXED
 
-= 2.0.0 =
+= 2.0.0 - 2020-10-07 =
 * Listify + WPJM integration
 * PMD version 1 throws errors when importing packages - FIXED
 * Issue in converting PMD custom fields with special characters - FIXED
