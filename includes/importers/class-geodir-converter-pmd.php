@@ -259,34 +259,6 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	}
 
 	/**
-	 * Render a notice for a missing plugin.
-	 *
-	 * @param string $plugin_name The name of the plugin.
-	 * @param string $import_type The type of data that won't be imported.
-	 * @param string $plugin_url  The URL to download the plugin.
-	 */
-	private function render_plugin_notice( $plugin_name, $import_type, $plugin_url ) {
-		?>
-		<div class="notice notice-error notice-large me-0 ms-0 mb-3">
-			<p class="mb-0">
-				<?php
-				printf(
-					esc_html__(
-						'The %1$s plugin is not active. %2$s will not be imported unless you %3$sinstall and activate the %1$s plugin%4$s first.',
-						'geodir-converter'
-					),
-					esc_html( $plugin_name ),
-					esc_html( ucfirst( $import_type ) ),
-					'<a href="' . esc_url( $plugin_url ) . '">',
-					'</a>'
-				);
-				?>
-			</p>
-		</div>
-		<?php
-	}
-
-	/**
 	 * Render form fields for the importer settings.
 	 */
 	private function display_form_fields() {
@@ -1417,7 +1389,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 						'type'        => 'checkbox',
 						'required'    => false,
 						'placeholder' => __( 'Is Claimed', 'geodir-converter' ),
-						'icon'        => 'far fa-id-card',
+						'icon'        => 'far fa-check',
 						'priority'    => 10,
 					),
 				)
@@ -3721,12 +3693,24 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 			$package_id = isset( $packages_mapping[ $invoice->order_id ] ) ? $packages_mapping[ $invoice->order_id ] : 0;
 			$wpinv_item = wpinv_get_item_by( 'custom_id', $package_id, 'package' );
 
-			$item = new GetPaid_Form_Item( $wpinv_item->get_id() );
-			$item->set_name( $item->get_name() );
-			$item->set_description( $item->get_description() );
-			$item->set_price( $item->get_price() );
-			$item->set_quantity( $item->get_quantity() );
-			$wpi_invoice->add_item( $item );
+            if ( $wpinv_item ) {
+                $item = new GetPaid_Form_Item( $wpinv_item->get_id() );
+                $item->set_name( $wpinv_item->get_name() );
+                $item->set_description( $wpinv_item->get_description() );
+                $item->set_price( $wpinv_item->get_price() );
+                $item->set_quantity( 1 );
+                $wpi_invoice->add_item( $item );
+            } else {
+                $package = GeoDir_Pricing_Package::get_package( (int) $package_id );
+                if ( $package ) {
+                    $item = new GetPaid_Form_Item( $package['id'] );
+                    $item->set_name( $package['title'] );
+                    $item->set_description( $package['description'] );
+                    $item->set_price( (float) $package['amount'] );
+                    $item->set_quantity( 1 );
+                    $wpi_invoice->add_item( $item );
+                }
+            }
 
 			// Insert or update the post.
 			if ( $is_update ) {

@@ -133,13 +133,21 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 		<form class="geodir-converter-settings-form" method="post">
 			<h6 class="fs-base"><?php esc_html_e( 'Business Directory Importer Settings', 'geodir-converter' ); ?></h6>
 			
-		<?php
-		$this->display_post_type_select();
-		$this->display_test_mode_checkbox();
-		$this->display_progress();
-		$this->display_logs( $this->get_logs() );
-		$this->display_error_alert();
-		?>
+			<?php
+			if ( ! defined( 'GEODIR_PRICING_VERSION' ) ) {
+				$this->render_plugin_notice(
+					esc_html__( 'GeoDirectory Pricing Manager', 'geodir-converter' ),
+					'plans',
+					esc_url( 'https://wpgeodirectory.com/downloads/pricing-manager/' )
+				);
+			}
+
+			$this->display_post_type_select();
+			$this->display_test_mode_checkbox();
+			$this->display_progress();
+			$this->display_logs( $this->get_logs() );
+			$this->display_error_alert();
+			?>
 			
 			<div class="geodir-converter-actions mt-3">
 				<button type="button" class="btn btn-primary btn-sm geodir-converter-import me-2"><?php esc_html_e( 'Start Import', 'geodir-converter' ); ?></button>
@@ -678,15 +686,29 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 		);
 
 		if ( empty( $post->geolocation_city ) && ( empty( $post->geolocation_lat ) || empty( $post->geolocation_long ) ) && ! empty( $fields['street'] ) && empty( $fields['city'] ) && ( empty( $fields['latitude'] ) || empty( $fields['longitude'] ) ) ) {
-			$zip = ! empty( $fields['zip'] ) ? $fields['zip'] : '-';
-			$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address( array( 'street' => $fields['street'], 'city' => $zip, 'region' => '-', 'zip' => '-' ) ); // GPS requires at least 4 non empty location fields.
+			$zip      = ! empty( $fields['zip'] ) ? $fields['zip'] : '-';
+			$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address(
+				array(
+					'street' => $fields['street'],
+					'city'   => $zip,
+					'region' => '-',
+					'zip'    => '-',
+				)
+			); // GPS requires at least 4 non empty location fields.
 			if ( ! ( is_array( $gps_data ) && ! empty( $gps_data['latitude'] ) && ! empty( $gps_data['longitude'] ) ) ) {
-				$street = explode( ",", $fields['street'] );
-				$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address( array( 'street' => trim( $street[0] ), 'city' => $zip, 'region' => '-', 'zip' => '-' ) );
+				$street   = explode( ',', $fields['street'] );
+				$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address(
+					array(
+						'street' => trim( $street[0] ),
+						'city'   => $zip,
+						'region' => '-',
+						'zip'    => '-',
+					)
+				);
 			}
 
 			if ( ( is_array( $gps_data ) && ! empty( $gps_data['latitude'] ) && ! empty( $gps_data['longitude'] ) ) ) {
-				$listing['latitude'] = $gps_data['latitude'];
+				$listing['latitude']  = $gps_data['latitude'];
 				$listing['longitude'] = $gps_data['longitude'];
 			}
 		}

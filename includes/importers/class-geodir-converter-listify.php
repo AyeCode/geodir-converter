@@ -59,7 +59,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	protected $importer_id = 'listify';
 
 	/**
-	 * The import listing status ID.
+	 * The import listing status ID. 
 	 *
 	 * @var array
 	 */

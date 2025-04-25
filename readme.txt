@@ -26,6 +26,9 @@ Currently supported directories:
 
 == Changelog ==
 
+= 2.1.1 - TBD =
+* Added support for importing listings from Vantage Directory Theme - ADDED
+
 = 2.1.0 - 2025-04-03 =
 * Revamped the user interface for better usability - ENHANCEMENT
 * Added support for importing listings from Business Directory - ADDED

@@ -21,10 +21,10 @@ defined( 'ABSPATH' ) || exit;
  */
 abstract class GeoDir_Converter_Importer {
 	/**
- * Number of records processed per batch.
- *
- * @var int
- */
+	 * Number of records processed per batch.
+	 *
+	 * @var int
+	 */
 	const BATCH_SIZE = 1000;
 
 	/**
@@ -196,6 +196,34 @@ abstract class GeoDir_Converter_Importer {
 	 */
 	public function render_settings() {
 		echo '<p>' . esc_html__( 'This importer does not have any custom settings.', 'geodir-converter' ) . '</p>';
+	}
+
+	/**
+	 * Render a notice for a missing plugin.
+	 *
+	 * @param string $plugin_name The name of the plugin.
+	 * @param string $import_type The type of data that won't be imported.
+	 * @param string $plugin_url  The URL to download the plugin.
+	 */
+	protected function render_plugin_notice( $plugin_name, $import_type, $plugin_url ) {
+		aui()->alert(
+			array(
+				'type'    => 'info',
+				'heading' => esc_html__( sprintf( 'The %1$s plugin is not active.', $plugin_name ), 'geodir-converter' ),
+				'content' => sprintf(
+					esc_html__(
+						'%1$s will not be imported unless you %2$sinstall and activate the %3$s plugin%4$s first.',
+						'geodir-converter'
+					),
+					esc_html( ucfirst( $import_type ) ),
+					esc_html( $plugin_name ),
+					'<a href="' . esc_url( $plugin_url ) . '">',
+					'</a>'
+				),
+				'class'   => 'mb-3',
+			),
+			true
+		);
 	}
 
 	/**
