@@ -64,6 +64,9 @@ final class GeoDir_Converter {
 		add_action( 'plugins_loaded', array( $this, 'load_plugin_textdomain' ) );
 		add_action( 'admin_init', array( $this, 'maybe_redirect_to_importer' ) );
 
+        // Skip invoice emails for imported invoices.
+		add_filter( 'getpaid_skip_invoice_email', array( $this, 'skip_invoice_email' ), 10, 3 );
+
 		if ( is_admin() ) {
 			add_filter( 'plugin_action_links', array( $this, 'plugin_action_links' ), 10, 2 );
 		}
@@ -186,5 +189,21 @@ final class GeoDir_Converter {
 	 */
 	public function get_importers() {
 		return apply_filters( 'geodir_converter_importers', array() );
+	}
+
+	/**
+	 * Filter to skip sending completed invoice emails for invoices created by GeoDir Converter.
+	 *
+	 * @param bool   $skip     Whether to skip sending the email.
+	 * @param string $type     The email type.
+	 * @param object $invoice  The invoice object.
+	 * @return bool
+	 */
+	public function skip_invoice_email( $skip, $type, $invoice ) {
+		if ( $invoice->get_created_via() === 'geodir-converter' ) {
+			return true;
+		}
+
+		return $skip;
 	}
 }

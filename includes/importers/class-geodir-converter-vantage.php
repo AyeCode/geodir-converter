@@ -28,11 +28,18 @@ defined( 'ABSPATH' ) || exit;
  */
 class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 	/**
+	 * Action identifier for parsing payments.
+	 *
+	 * @var string
+	 */
+	const ACTION_PARSE_PAYMENTS = 'parse_payments';
+
+	/**
 	 * Action identifier for importing payments.
 	 *
 	 * @var string
 	 */
-	const ACTION_IMPORT_PAYMENTS = 'import_payments';
+	const ACTION_IMPORT_PAYMENT = 'import_payment';
 
 	/**
 	 * Post type identifier for listings.
@@ -108,8 +115,6 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 	 * @since 1.0.0
 	 */
 	protected function init() {
-		// Skip invoice emails for imported invoices.
-		add_filter( 'getpaid_skip_invoice_email', array( $this, 'skip_invoice_email' ), 10, 3 );
 	}
 
 	/**
@@ -228,14 +233,19 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 	 * Get next task.
 	 *
 	 * @param array $task The current task.
+	 * @param bool $reset_offset Whether to reset the offset.
 	 *
 	 * @return array|false The next task or false if all tasks are completed.
 	 */
-	public function next_task( $task ) {
+	public function next_task( $task, $reset_offset = false ) {
 		$task['imported'] = 0;
 		$task['failed']   = 0;
 		$task['skipped']  = 0;
 		$task['updated']  = 0;
+
+		if ( $reset_offset ) {
+			$task['offset'] = 0;
+		}
 
 		$tasks = array(
 			self::ACTION_IMPORT_CATEGORIES,
@@ -243,7 +253,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			self::ACTION_IMPORT_PACKAGES,
 			self::ACTION_IMPORT_FIELDS,
 			self::ACTION_PARSE_LISTINGS,
-			self::ACTION_IMPORT_PAYMENTS,
+			self::ACTION_PARSE_PAYMENTS,
 		);
 
 		$key = array_search( $task['action'], $tasks, true );
@@ -306,7 +316,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 
 		if ( 0 === (int) wp_count_terms( self::TAX_LISTING_CATEGORY ) ) {
 			$this->log( esc_html__( 'Categories: No items to import.', 'geodir-converter' ), 'warning' );
-			return $this->next_task( $task );
+			return $this->next_task( $task, true );
 		}
 
 		$post_type = $this->get_import_post_type();
@@ -323,6 +333,19 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 
 		if ( empty( $categories ) || is_wp_error( $categories ) ) {
 			$this->log( esc_html__( 'Categories: No items to import.', 'geodir-converter' ), 'warning' );
+			return $this->next_task( $task, true );
+		}
+
+		if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Categories: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $categories ),
+					0
+				),
+				'success'
+			);
 			return $this->next_task( $task );
 		}
 
@@ -341,7 +364,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			'success'
 		);
 
-		return $this->next_task( $task );
+		return $this->next_task( $task, true );
 	}
 
 	/**
@@ -369,6 +392,19 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 
 		if ( empty( $tags ) || is_wp_error( $tags ) ) {
 			$this->log( esc_html__( 'Tags: No items to import.', 'geodir-converter' ), 'notice' );
+			return $this->next_task( $task, true );
+		}
+
+		if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Tags: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $tags ),
+					0
+				),
+				'success'
+			);
 			return $this->next_task( $task );
 		}
 
@@ -387,7 +423,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			'success'
 		);
 
-		return $this->next_task( $task );
+		return $this->next_task( $task, true );
 	}
 
 	/**
@@ -411,7 +447,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 
 		if ( empty( $fields ) ) {
 			$this->log( esc_html__( 'No fields found for import.', 'geodir-converter' ), 'warning' );
-			return $this->next_task( $task );
+			return $this->next_task( $task, true );
 		}
 
 		$table       = $plugin_prefix . $post_type . '_detail';
@@ -467,7 +503,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			'success'
 		);
 
-		return $this->next_task( $task );
+		return $this->next_task( $task, true );
 	}
 
 	/**
@@ -482,7 +518,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 		// Abort early if the payment manager plugin is not installed.
 		if ( ! class_exists( 'GeoDir_Pricing_Package' ) ) {
 			$this->log( __( 'Payment manager plugin is not active. Skipping plans...', 'geodir-converter' ) );
-			return $this->next_task( $task );
+			return $this->next_task( $task, true );
 		}
 
 		// Set Pricing Manager cart option if WPINV is active.
@@ -512,7 +548,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 		// Exit early if there are no plans to import.
 		if ( 0 === $total_plans ) {
 			$this->log( __( 'No plans found for import. Skipping process.', 'geodir-converter' ) );
-			return $this->next_task( $task );
+			return $this->next_task( $task, true );
 		}
 
 		wp_suspend_cache_addition( true );
@@ -529,7 +565,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 
 		if ( empty( $plans ) ) {
 			$this->log( __( 'Finished importing plans.', 'geodir-converter' ) );
-			return $this->next_task( $task );
+			return $this->next_task( $task, true );
 		}
 
 		foreach ( $plans as $plan ) {
@@ -617,7 +653,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			$failed ? 'warning' : 'success'
 		);
 
-		return $this->next_task( $task );
+		return $this->next_task( $task, true );
 	}
 
 	/**
@@ -1023,20 +1059,20 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 
 		// Log the import start message only for the first batch.
 		if ( 0 === $offset ) {
-			$this->log( __( 'Starting listings import process...', 'geodir-converter' ) );
+			$this->log( __( 'Starting listings parsing process...', 'geodir-converter' ) );
 		}
 
 		// Exit early if there are no listings to import.
 		if ( 0 === $total_listings ) {
-			$this->log( __( 'No listings found for import. Skipping process.', 'geodir-converter' ) );
-			return $this->next_task( $task );
+			$this->log( __( 'No listings found for parsing. Skipping process.', 'geodir-converter' ) );
+			return $this->next_task( $task, true );
 		}
 
 		wp_suspend_cache_addition( false );
 
 		$listings = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT *
+				"SELECT DISTINCT ID, post_title
                 FROM {$wpdb->posts}
                 WHERE post_type = %s
                 AND post_status IN (" . implode( ',', array_fill( 0, count( $this->post_statuses ), '%s' ) ) . ')
@@ -1050,8 +1086,8 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 		);
 
 		if ( empty( $listings ) ) {
-			$this->log( __( 'Import process completed. No more listings found.', 'geodir-converter' ) );
-			return $this->next_task( $task );
+			$this->log( __( 'Parsing process completed. No more listings found.', 'geodir-converter' ) );
+			return $this->next_task( $task, true );
 		}
 
 		$import_tasks = array();
@@ -1059,7 +1095,6 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			$import_tasks[] = array(
 				'post_id'    => (int) $listing->ID,
 				'post_title' => $listing->post_title,
-				'listing'    => $listing,
 				'action'     => GeoDir_Converter_Importer::ACTION_IMPORT_LISTING,
 			);
 		}
@@ -1074,7 +1109,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			return $task;
 		}
 
-		return $this->next_task( $task );
+		return $this->next_task( $task, true );
 	}
 
 	/**
@@ -1085,8 +1120,9 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 */
 	public function task_import_listing( $task ) {
+		$listing_id    = $task['post_id'];
 		$title         = $task['post_title'];
-		$import_status = $this->import_single_listing( $task['listing'] );
+		$import_status = $this->import_single_listing( $listing_id );
 
 		switch ( $import_status ) {
 			case GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS:
@@ -1120,15 +1156,20 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 	 * @param  int $post_id The post ID to convert.
 	 * @return array|int Converted listing data or import status.
 	 */
-	private function import_single_listing( $post ) {
+	private function import_single_listing( $post_id ) {
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return GeoDir_Converter_Importer::IMPORT_STATUS_FAILED;
+		}
+
 		// Check if the post has already been imported.
 		$post_type        = $this->get_import_post_type();
 		$listings_mapping = (array) $this->options_handler->get_option_no_cache( 'listings_mapping', array() );
-		$gd_post_id       = ! $this->is_test_mode() ? (int) $this->get_gd_listing_id( $post->ID, 'vantage_id', $post_type ) : false;
+		$gd_post_id       = ! $this->is_test_mode() ? (int) $this->get_gd_listing_id( $post_id, 'vantage_id', $post_type ) : false;
 		$is_update        = ! empty( $gd_post_id );
 
 		// Retrieve all post meta data at once.
-		$post_meta = get_post_meta( $post->ID );
+		$post_meta = get_post_meta( $post_id );
 		$post_meta = array_map(
 			function ( $meta ) {
 				return isset( $meta[0] ) ? $meta[0] : '';
@@ -1287,28 +1328,23 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 	}
 
 	/**
-	 * Import payments.
+	 * Parse payments.
 	 *
 	 * @param array $task Import task details.
 	 * @return array Updated task with the next action.
 	 */
-	public function task_import_payments( array $task ) {
+	public function task_parse_payments( array $task ) {
 		global $wpdb;
 
 		// Abort early if the invoices plugin is not installed.
 		if ( ! class_exists( 'WPInv_Plugin' ) ) {
 			$this->log( __( 'Invoices plugin is not active. Skipping invoices...', 'geodir-converter' ) );
-			return $this->next_task( $task );
+			return $this->next_task( $task, true );
 		}
 
-		$offset           = isset( $task['offset'] ) ? (int) $task['offset'] : 0;
-		$imported         = isset( $task['imported'] ) ? (int) $task['imported'] : 0;
-		$failed           = isset( $task['failed'] ) ? (int) $task['failed'] : 0;
-		$skipped          = isset( $task['skipped'] ) ? (int) $task['skipped'] : 0;
-		$total_payments   = isset( $task['total_payments'] ) ? (int) $task['total_payments'] : 0;
-		$batch_size       = (int) $this->get_batch_size();
-		$vantage_options  = (array) get_option( 'va_options', array() );
-		$listings_mapping = (array) $this->options_handler->get_option_no_cache( 'listings_mapping', array() );
+		$offset         = isset( $task['offset'] ) ? (int) $task['offset'] : 0;
+		$total_payments = isset( $task['total_payments'] ) ? (int) $task['total_payments'] : 0;
+		$batch_size     = (int) $this->get_batch_size();
 
 		// Determine total payments count if not set.
 		if ( ! isset( $task['total_payments'] ) ) {
@@ -1318,13 +1354,13 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 
 		// Log the import start message only for the first batch.
 		if ( 0 === $offset ) {
-			$this->log( __( 'Starting payments import process...', 'geodir-converter' ) );
+			$this->log( __( 'Starting payments parsing process...', 'geodir-converter' ) );
 		}
 
 		// Exit early if there are no payments to import.
 		if ( 0 === $total_payments ) {
-			$this->log( __( 'No payments found for import. Skipping process.', 'geodir-converter' ) );
-			return $this->next_task( $task );
+			$this->log( __( 'No payments found for parsing. Skipping process.', 'geodir-converter' ) );
+			return $this->next_task( $task, true );
 		}
 
 		wp_suspend_cache_addition( true );
@@ -1340,177 +1376,186 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 		);
 
 		if ( empty( $payments ) ) {
-			$this->log( __( 'Finished importing payments.', 'geodir-converter' ) );
-			return $this->next_task( $task );
+			$this->log( __( 'Finished parsing payments. No more payments found.', 'geodir-converter' ) );
+			return $this->next_task( $task, true );
 		}
 
-		foreach ( $payments as $payment ) {
-			$payment = get_post( $payment->ID );
-			if ( ! $payment ) {
-				$this->log( sprintf( __( 'Failed to import payment: %s', 'geodir-converter' ), $payment->post_title ), 'error' );
-				++$failed;
-				$this->increase_failed_imports( 1 );
-				continue;
-			}
+		$import_tasks = array_map(
+			function ( $payment ) {
+				return array(
+					'id'     => (int) $payment->ID,
+					'action' => self::ACTION_IMPORT_PAYMENT,
+				);
+			},
+			$payments
+		);
 
-			// Retrieve all post meta data at once.
-			$payment_meta = get_post_meta( $payment->ID );
-			$payment_meta = array_map(
-				function ( $meta ) {
-					return isset( $meta[0] ) ? $meta[0] : '';
-				},
-				$payment_meta
-			);
+		$this->background_process->add_import_tasks( $import_tasks );
 
-			$invoice_id     = ! $this->is_test_mode() ? $this->get_gd_post_id( $payment->ID, 'vantage_invoice_id' ) : false;
-			$is_update      = ! empty( $invoice_id );
-			$invoice_status = isset( $this->payment_statuses[ $payment->post_status ] ) ? $this->payment_statuses[ $payment->post_status ] : 'wpi-pending';
-			$total_price    = isset( $payment_meta['total_price'] ) ? (float) $payment_meta['total_price'] : 0;
-			$charged_tax    = 0;
-			$gateway        = isset( $payment_meta['gateway'] ) ? strtolower( $payment_meta['gateway'] ) : '';
-
-			// Get transaction ID.
-			$transaction_id = '';
-			if ( 'paypal' === $gateway ) {
-				$transaction_id = isset( $payment_meta['paypal_subscription_id'] ) ? $payment_meta['paypal_subscription_id'] : '';
-			}
-
-			// Get tax.
-			$taxes = array();
-			if ( isset( $vantage_options['tax_charge'] ) && (float) $vantage_options['tax_charge'] > 0 ) {
-				$charged_tax = (float) $total_price * ( (float) $vantage_options['tax_charge'] / 100 );
-
-				$taxes[ __( 'Tax', 'geodir-converter' ) ] = array( 'initial_tax' => (float) $charged_tax );
-			}
-
-			$wpi_invoice = new WPInv_Invoice();
-			$wpi_invoice->set_props(
-				array(
-					// Basic info.
-					'post_type'      => 'wpi_invoice',
-					'description'    => $payment->post_content,
-					'status'         => $invoice_status,
-					'created_via'    => 'geodir-converter',
-					'date_created'   => $payment->post_date,
-					'due_date'       => $payment->post_date,
-					'date_completed' => $payment->post_date,
-
-					// Payment info.
-					'gateway'        => $gateway,
-					'total'          => (float) $total_price,
-					'subtotal'       => $total_price > 0 ? (float) $total_price - (float) $charged_tax : 0,
-					'taxes'          => $taxes,
-
-					// Billing details.
-					'user_id'        => $payment->post_author,
-					'user_ip'        => $payment_meta['ip_address'],
-					'currency'       => $payment_meta['currency'],
-					'transaction_id' => $transaction_id,
-				)
-			);
-
-			$order_items = new WP_Query(
-				array(
-					'connected_type'  => 'order-connection',
-					'connected_from'  => $payment->ID,
-					'connected_query' => array( 'post_status' => 'any' ),
-					'post_status'     => 'any',
-					'nopaging'        => true,
-				)
-			);
-
-			// Get the package ID.
-			$gd_post_info = array();
-			foreach ( $order_items->posts as $order_item ) {
-				if ( self::POST_TYPE_LISTING === $order_item->post_type && isset( $listings_mapping[ $order_item->ID ]['gd_post_id'] ) ) {
-					$gd_post_info = $listings_mapping[ $order_item->ID ];
-					break;
-				}
-			}
-
-			if ( isset( $gd_post_info['gd_package_id'] ) && 0 !== (int) $gd_post_info['gd_package_id'] ) {
-				$wpinv_item = wpinv_get_item_by( 'custom_id', (int) $gd_post_info['gd_package_id'], 'package' );
-				if ( $wpinv_item ) {
-					$item = new GetPaid_Form_Item( $wpinv_item->get_id() );
-					$item->set_name( $wpinv_item->get_name() );
-					$item->set_description( $wpinv_item->get_description() );
-					$item->set_price( $wpinv_item->get_price() );
-					$item->set_quantity( 1 );
-					$wpi_invoice->add_item( $item );
-				} else {
-					$package = GeoDir_Pricing_Package::get_package( (int) $gd_post_info['gd_package_id'] );
-					if ( $package ) {
-						$item = new GetPaid_Form_Item( $package['id'] );
-						$item->set_name( $package['title'] );
-						$item->set_description( $package['description'] );
-						$item->set_price( (float) $package['amount'] );
-						$item->set_quantity( 1 );
-						$wpi_invoice->add_item( $item );
-					}
-				}
-			}
-
-			// Insert or update the post.
-			if ( $is_update ) {
-				$wpi_invoice->ID = absint( $invoice_id );
-			}
-
-			// Handle test mode.
-			if ( $this->is_test_mode() ) {
-				if ( $is_update ) {
-					++$skipped;
-					$this->increase_skipped_imports( 1 );
-				} else {
-					++$imported;
-					$this->increase_succeed_imports( 1 );
-				}
-				continue;
-			}
-
-			$wpi_invoice_id = $wpi_invoice->save();
-
-			if ( is_wp_error( $wpi_invoice_id ) ) {
-				$this->log( sprintf( __( 'Failed to import payment %s.', 'geodir-converter' ), $payment->title ) );
-				++$failed;
-				continue;
-			}
-
-			// Update post meta.
-			update_post_meta( $wpi_invoice_id, 'vantage_invoice_id', $payment->ID );
-
-			if ( $is_update ) {
-				++$skipped;
-				$this->increase_skipped_imports( 1 );
-			} else {
-				++$imported;
-				$this->increase_succeed_imports( 1 );
-			}
-		}
-
-		// Update task progress.
-		$task['imported'] = (int) $imported;
-		$task['failed']   = (int) $failed;
-		$task['skipped']  = (int) $skipped;
-
-		$complete = ( $offset + $batch_size >= $total_payments );
-
+		$complete = ( $offset >= $total_payments );
 		if ( ! $complete ) {
 			// Continue import with the next batch.
 			$task['offset'] = $offset + $batch_size;
 			return $task;
 		}
 
-		$this->log(
-			sprintf(
-				__( 'Payments import completed: %1$d imported, %2$d updated, %3$d failed.', 'geodir-converter' ),
-				$imported,
-				$skipped,
-				$failed
-			),
-			$failed ? 'warning' : 'success'
+		return $this->next_task( $task, true );
+	}
+
+	/**
+	 * Import payments from Vantage to GeoDirectory.
+	 *
+	 * @since 2.0.2
+	 * @param array $task The task to import.
+	 * @return array Result of the import operation.
+	 */
+	public function task_import_payment( $task ) {
+		$vantage_options  = (array) get_option( 'va_options', array() );
+		$listings_mapping = (array) $this->options_handler->get_option_no_cache( 'listings_mapping', array() );
+		$payment_id       = absint( $task['id'] );
+
+		$payment = get_post( $payment_id );
+		if ( ! $payment ) {
+			$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'invoice INV-', $payment_id ), 'warning' );
+			$this->increase_failed_imports( 1 );
+			return false;
+		}
+
+		// Retrieve all post meta data at once.
+		$payment_meta = get_post_meta( $payment_id );
+		$payment_meta = array_map(
+			function ( $meta ) {
+				return isset( $meta[0] ) ? $meta[0] : '';
+			},
+			$payment_meta
 		);
 
-		return $this->next_task( $task );
+		$invoice_id     = ! $this->is_test_mode() ? $this->get_gd_post_id( $payment_id, 'vantage_invoice_id' ) : false;
+		$is_update      = ! empty( $invoice_id );
+		$invoice_status = isset( $this->payment_statuses[ $payment->post_status ] ) ? $this->payment_statuses[ $payment->post_status ] : 'wpi-pending';
+		$total_price    = isset( $payment_meta['total_price'] ) ? (float) $payment_meta['total_price'] : 0;
+		$charged_tax    = 0;
+		$gateway        = isset( $payment_meta['gateway'] ) ? strtolower( $payment_meta['gateway'] ) : '';
+
+		// Get transaction ID.
+		$transaction_id = '';
+		if ( 'paypal' === $gateway ) {
+			$transaction_id = isset( $payment_meta['paypal_subscription_id'] ) ? $payment_meta['paypal_subscription_id'] : '';
+		}
+
+		// Get tax.
+		$taxes = array();
+		if ( isset( $vantage_options['tax_charge'] ) && (float) $vantage_options['tax_charge'] > 0 ) {
+			$charged_tax = (float) $total_price * ( (float) $vantage_options['tax_charge'] / 100 );
+
+			$taxes[ __( 'Tax', 'geodir-converter' ) ] = array( 'initial_tax' => (float) $charged_tax );
+		}
+
+		$wpi_invoice = new WPInv_Invoice();
+		$wpi_invoice->set_props(
+			array(
+				// Basic info.
+				'post_type'      => 'wpi_invoice',
+				'description'    => $payment->post_content,
+				'status'         => $invoice_status,
+				'created_via'    => 'geodir-converter',
+				'date_created'   => $payment->post_date,
+				'due_date'       => $payment->post_date,
+				'date_completed' => $payment->post_date,
+
+				// Payment info.
+				'gateway'        => $gateway,
+				'total'          => (float) $total_price,
+				'subtotal'       => $total_price > 0 ? (float) $total_price - (float) $charged_tax : 0,
+				'taxes'          => $taxes,
+
+				// Billing details.
+				'user_id'        => $payment->post_author,
+				'user_ip'        => $payment_meta['ip_address'],
+				'currency'       => $payment_meta['currency'],
+				'transaction_id' => $transaction_id,
+			)
+		);
+
+		$order_items = new WP_Query(
+			array(
+				'connected_type'  => 'order-connection',
+				'connected_from'  => $payment_id,
+				'connected_query' => array( 'post_status' => 'any' ),
+				'post_status'     => 'any',
+				'nopaging'        => true,
+			)
+		);
+
+		// Get the package ID.
+		$gd_post_info = array();
+		foreach ( $order_items->posts as $order_item ) {
+			if ( self::POST_TYPE_LISTING === $order_item->post_type && isset( $listings_mapping[ $order_item->ID ]['gd_post_id'] ) ) {
+				$gd_post_info = $listings_mapping[ $order_item->ID ];
+				break;
+			}
+		}
+
+		if ( isset( $gd_post_info['gd_package_id'] ) && 0 !== (int) $gd_post_info['gd_package_id'] ) {
+			$wpinv_item = wpinv_get_item_by( 'custom_id', (int) $gd_post_info['gd_package_id'], 'package' );
+			if ( $wpinv_item ) {
+				$item = new GetPaid_Form_Item( $wpinv_item->get_id() );
+				$item->set_name( $wpinv_item->get_name() );
+				$item->set_description( $wpinv_item->get_description() );
+				$item->set_price( $wpinv_item->get_price() );
+				$item->set_quantity( 1 );
+				$wpi_invoice->add_item( $item );
+			} else {
+				$package = GeoDir_Pricing_Package::get_package( (int) $gd_post_info['gd_package_id'] );
+				if ( $package ) {
+					$item = new GetPaid_Form_Item( $package['id'] );
+					$item->set_name( $package['title'] );
+					$item->set_description( $package['description'] );
+					$item->set_price( (float) $package['amount'] );
+					$item->set_quantity( 1 );
+					$wpi_invoice->add_item( $item );
+				}
+			}
+		}
+
+		// Insert or update the post.
+		if ( $is_update ) {
+			$wpi_invoice->ID = absint( $invoice_id );
+		}
+
+		// Handle test mode.
+		if ( $this->is_test_mode() ) {
+			if ( $is_update ) {
+				$this->log( sprintf( self::LOG_TEMPLATE_UPDATED, 'invoice INV-', $wpi_invoice->get_id() ), 'warning' );
+				$this->increase_skipped_imports( 1 );
+			} else {
+				$this->log( sprintf( self::LOG_TEMPLATE_SUCCESS, 'invoice INV-', $wpi_invoice->get_id() ), 'success' );
+				$this->increase_succeed_imports( 1 );
+			}
+
+			return false;
+		}
+
+		$wpi_invoice_id = $wpi_invoice->save();
+
+		if ( is_wp_error( $wpi_invoice_id ) ) {
+			$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'invoice INV-', $wpi_invoice->get_id() ), 'warning' );
+			$this->increase_failed_imports( 1 );
+			return false;
+		}
+
+		// Update post meta.
+		update_post_meta( $wpi_invoice_id, 'vantage_invoice_id', $payment->ID );
+
+		if ( $is_update ) {
+			$this->log( sprintf( self::LOG_TEMPLATE_UPDATED, 'invoice INV-', $wpi_invoice->get_id() ), 'warning' );
+			$this->increase_skipped_imports( 1 );
+		} else {
+			$this->log( sprintf( self::LOG_TEMPLATE_SUCCESS, 'invoice INV-', $wpi_invoice->get_id() ), 'success' );
+			$this->increase_succeed_imports( 1 );
+		}
+
+		return false;
 	}
 
 	/**
@@ -1704,21 +1749,5 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 		$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s", self::POST_TYPE_TRANSACTION ) );
 
 		return $count;
-	}
-
-	/**
-	 * Filter to skip sending completed invoice emails for invoices created by GeoDir Converter.
-	 *
-	 * @param bool   $skip     Whether to skip sending the email.
-	 * @param string $type     The email type.
-	 * @param object $invoice  The invoice object.
-	 * @return bool
-	 */
-	public function skip_invoice_email( $skip, $type, $invoice ) {
-		if ( in_array( $type, array( 'completed_invoice', 'refunded_invoice', 'cancelled_invoice' ), true ) && $invoice->get_created_via() === 'geodir-converter' ) {
-			return true;
-		}
-
-		return $skip;
 	}
 }

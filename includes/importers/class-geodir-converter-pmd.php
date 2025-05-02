@@ -156,9 +156,6 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	protected function init() {
 		$this->url = $this->get_import_setting( 'site_url' );
 
-		// Skip invoice emails for imported invoices.
-		add_filter( 'getpaid_skip_invoice_email', array( $this, 'skip_invoice_email' ), 10, 3 );
-
 		// Handle logins for imported users.
 		add_filter( 'wp_authenticate_user', array( $this, 'handle_user_login' ), 10, 2 );
 	}
@@ -1740,6 +1737,19 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 			return $this->next_task( $task );
 		}
 
+        if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Categories: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $categories ),
+					0
+				),
+				'success'
+			);
+			return $this->next_task( $task );
+		}
+
 		// Get existing category mapping.
 		$category_mapping = (array) $this->options_handler->get_option_no_cache( 'blog_category_mapping', array() );
 
@@ -1879,6 +1889,19 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 
 		if ( empty( $categories ) ) {
 			$this->log( __( 'No more event categories to import. Process completed.', 'geodir-converter' ) );
+			return $this->next_task( $task );
+		}
+
+        if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Categories: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $categories ),
+					0
+				),
+				'success'
+			);
 			return $this->next_task( $task );
 		}
 
@@ -3858,22 +3881,6 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		}
 
 		return implode( '\n', $formatted_options );
-	}
-
-	/**
-	 * Filter to skip sending completed invoice emails for invoices created by GeoDir Converter.
-	 *
-	 * @param bool   $skip     Whether to skip sending the email.
-	 * @param string $type     The email type.
-	 * @param object $invoice  The invoice object.
-	 * @return bool
-	 */
-	public function skip_invoice_email( $skip, $type, $invoice ) {
-		if ( in_array( $type, array( 'completed_invoice', 'refunded_invoice', 'cancelled_invoice' ), true ) && $invoice->get_created_via() === 'geodir-converter' ) {
-			return true;
-		}
-
-		return $skip;
 	}
 
 	/**

@@ -295,6 +295,19 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 			return $this->next_task( $task );
 		}
 
+        if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Categories: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $categories ),
+					0
+				),
+				'success'
+			);
+			return $this->next_task( $task );
+		}
+
 		$result = $this->import_taxonomy_terms( $categories, $post_type . 'category', 'ct_cat_top_desc' );
 
 		$this->increase_succeed_imports( (int) $result['imported'] );
@@ -338,6 +351,19 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 
 		if ( empty( $tags ) || is_wp_error( $tags ) ) {
 			$this->log( esc_html__( 'Tags: No items to import.', 'geodir-converter' ), 'notice' );
+			return $this->next_task( $task );
+		}
+
+        if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Tags: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $tags ),
+					0
+				),
+				'success'
+			);
 			return $this->next_task( $task );
 		}
 

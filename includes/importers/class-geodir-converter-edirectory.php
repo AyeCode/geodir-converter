@@ -103,7 +103,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		self::MODULE_TYPE_EVENT,
 		self::MODULE_TYPE_BLOG,
 	);
-    
+
 	/**
 	 * The single instance of the class.
 	 *
@@ -473,6 +473,19 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 			// Merge categories from all modules.
 			$module_categories = array_merge( $module_categories, $categories );
+		}
+
+		if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Categories: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $module_categories ),
+					0
+				),
+				'success'
+			);
+			return $this->next_task( $task );
 		}
 
 		// Sets total categories.
@@ -1051,7 +1064,6 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			return $this->next_task( $task );
 		}
 
-		// Map the listings to tasks.
 		$import_tasks = array();
 		foreach ( $listings as $listing ) {
 			if ( isset( $listing['id'], $listing['title'], $listing['type'] ) ) {
