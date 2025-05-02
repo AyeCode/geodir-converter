@@ -177,7 +177,7 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 			}
 
 			$action        = $task['action'];
-			$import_method = "import_{$action}";
+			$import_method = "task_{$action}";
 
 			if ( method_exists( $this->importer, $import_method ) ) {
 				return $this->importer->$import_method( $task );
@@ -187,7 +187,7 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 				sprintf(
 					/* translators: %s: Invalid action name */
 					esc_html__( 'Invalid action: %s', 'geodir-converter' ),
-					$action
+					$import_method
 				)
 			);
 		} catch ( GeoDir_Converter_Execution_Time_Exception $e ) {
@@ -211,20 +211,36 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 	}
 
 	/**
-	 * Adds import tasks to the background process.
+	 * Adds converter tasks to the background process.
 	 *
 	 * @since 2.0.2
 	 * @param array $workload The workload to process.
 	 */
-	public function add_import_tasks( $workload ) {
+	public function add_converter_tasks( $workload ) {
 		$tasks = array(
 			array_merge(
 				$workload,
 				array(
-					'author' => get_current_user_id(),
 					'action' => $this->importer->get_action(),
 				)
 			),
+		);
+
+		$this->add_tasks( $tasks );
+	}
+
+	/**
+	 * Adds import tasks to the background process.
+	 *
+	 * @param array $workloads [[id, title, type], ...]
+	 */
+	public function add_import_tasks( $workloads ) {
+		$tasks = array_map(
+			function ( $workload ) {
+				$workload['action'] = isset( $workload['action'] ) ? $workload['action'] : GeoDir_Converter_Importer::ACTION_IMPORT_LISTING;
+				return $workload;
+			},
+			$workloads
 		);
 
 		$this->add_tasks( $tasks );

@@ -224,7 +224,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 			self::ACTION_IMPORT_TAGS,
 			self::ACTION_IMPORT_PACKAGES,
 			self::ACTION_IMPORT_FIELDS,
-			self::ACTION_IMPORT_LISTINGS,
+			self::ACTION_IMPORT_LISTING,
 		);
 
 		$key = array_search( $task['action'], $tasks, true );
@@ -272,7 +272,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param array $task Task details.
 	 * @return array Updated task details.
 	 */
-	public function import_categories( array $task ) {
+	public function task_import_categories( array $task ) {
 		global $wpdb;
 
 		$this->log( esc_html__( 'Categories: Import started.', 'geodir-converter' ) );
@@ -319,7 +319,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param array $task Task details.
 	 * @return array Updated task details.
 	 */
-	public function import_tags( array $task ) {
+	public function task_import_tags( array $task ) {
 		global $wpdb;
 
 		$this->log( esc_html__( 'Tags: Import started.', 'geodir-converter' ) );
@@ -365,7 +365,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param array $task Import task details.
 	 * @return array Updated task with the next action.
 	 */
-	public function import_packages( array $task ) {
+	public function task_import_packages( array $task ) {
 		$post_type = $this->get_import_post_type();
 		$plans     = $this->get_plans();
 
@@ -454,7 +454,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param array $task Import task details.
 	 * @return array Updated task with the next action.
 	 */
-	public function import_fields( array $task ) {
+	public function task_import_fields( array $task ) {
 		global $plugin_prefix;
 
 		$this->log( esc_html__( 'Importing listing fields...', 'geodir-converter' ) );
@@ -525,7 +525,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param array $task The import task data.
 	 * @return array|false Result of the import operation or false if complete.
 	 */
-	public function import_listings( array $task ) {
+	public function task_import_listings( array $task ) {
 		global $wpdb;
 
 		$this->log( __( 'Starting listings import...', 'geodir-converter' ) );
@@ -821,7 +821,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 
 		if ( 'image' === $field['field_type'] ) {
 			$gd_field['extra'] = array(
-				'gd_file_types' => array( 'jpg', 'jpe', 'jpeg', 'gif', 'png', 'bmp', 'ico' ),
+				'gd_file_types' => geodir_image_extensions(),
 				'file_limit'    => 1,
 			);
 		}

@@ -15,6 +15,7 @@ use GeoDir_Converter\Importers\GeoDir_Converter_Listify;
 use GeoDir_Converter\Traits\GeoDir_Converter_Trait_Singleton;
 use GeoDir_Converter\Importers\GeoDir_Converter_Business_Directory;
 use GeoDir_Converter\Importers\GeoDir_Converter_Vantage;
+use GeoDir_Converter\Importers\GeoDir_Converter_EDirectory;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -79,6 +80,7 @@ final class GeoDir_Converter {
 		GeoDir_Converter_PMD::instance();
 		GeoDir_Converter_Business_Directory::instance();
 		GeoDir_Converter_Vantage::instance();
+		GeoDir_Converter_EDirectory::instance();
 	}
 
 	/**
