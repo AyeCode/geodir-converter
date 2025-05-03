@@ -110,7 +110,8 @@ class GeoDir_Converter_Admin {
 			'geodir-converter-admin',
 			'.geodir-converter-wrapper { max-width: 700px; }
             .geodir-converter-icon { display: block; width: 50px; height: 50px; object-fit: cover; }
-            .geodir-converter-importer-error h1 { line-height: 1.4; font-size: 1.125rem; }'
+            .geodir-converter-importer-error h1 { line-height: 1.4; font-size: 1.125rem; }
+            .geodir-converter-wrapper .alert .alert-heading { font-size: 16px; margin-bottom: 10px; }'
 		);
 	}
 

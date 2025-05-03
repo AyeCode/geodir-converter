@@ -234,6 +234,14 @@ class GeoDir_Converter_Ajax {
 		$in_progress = $importer->background_process->is_in_progress();
 		$logs        = $importer->get_logs( $logs_shown );
 
+		// Build notice.
+		if ( ! $in_progress ) {
+			$logs[] = array(
+				'message' => __( 'Import completed.', 'geodir-converter' ),
+				'status'  => 'success',
+			);
+		}
+
 		// Calculate new "logs_shown".
 		$logs_shown += count( $logs );
 
