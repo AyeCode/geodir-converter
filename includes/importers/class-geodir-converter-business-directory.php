@@ -224,7 +224,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 			self::ACTION_IMPORT_TAGS,
 			self::ACTION_IMPORT_PACKAGES,
 			self::ACTION_IMPORT_FIELDS,
-			self::ACTION_IMPORT_LISTING,
+			self::ACTION_IMPORT_LISTINGS,
 		);
 
 		$key = array_search( $task['action'], $tasks, true );

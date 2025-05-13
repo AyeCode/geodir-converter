@@ -19,6 +19,7 @@ use GeoDir_Media;
 use WPInv_Invoice;
 use GetPaid_Form_Item;
 use GeoDir_Pricing_Package;
+use GeoDir_Converter\GeoDir_Converter;
 use GeoDir_Converter\Abstracts\GeoDir_Converter_Importer;
 
 defined( 'ABSPATH' ) || exit;
@@ -29,20 +30,26 @@ defined( 'ABSPATH' ) || exit;
  * @since 2.0.2
  */
 class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
+	/**
+	 * Action identifier for importing users.
+	 *
+	 * @var string
+	 */
+	private const ACTION_IMPORT_USERS = 'import_users';
 
 	/**
 	 * Action identifier for importing comments.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_COMMENTS = 'comments';
+	private const ACTION_IMPORT_COMMENTS = 'import_comments';
 
 	/**
 	 * Action identifier for importing pages.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_PAGES = 'pages';
+	private const ACTION_IMPORT_PAGES = 'import_pages';
 
 	/**
 	 * Post type identifier for listings.
@@ -133,6 +140,20 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	private $timeout = 15;
 
 	/**
+	 * Cache time for API responses in seconds.
+	 *
+	 * @var int
+	 */
+	private $cache_time = 3600; // 1 hour
+
+	/**
+	 * Batch size for processing items.
+	 *
+	 * @var int
+	 */
+	private $batch_size = 50;
+
+	/**
 	 * The importer ID.
 	 *
 	 * @var string
@@ -194,7 +215,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	 * @return string
 	 */
 	public function get_action() {
-		return self::ACTION_IMPORT_CATEGORIES;
+		return self::ACTION_IMPORT_USERS;
 	}
 
 	/**
@@ -206,20 +227,17 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			'wp_author_id'        => '',
 			'edirectory_site_url' => '',
 			'edirectory_api_key'  => '',
-			'edirectory_modules'  => array(
-				self::MODULE_TYPE_LISTING,
-			),
+			'edirectory_modules'  => array(),
 		);
 
-		$settings = wp_parse_args( array_map( 'sanitize_text_field', $import_settings ), $default_settings );
-		$modules  = array(
-			self::MODULE_TYPE_LISTING => esc_html__( 'Listings', 'geodir-converter' ),
-			self::MODULE_TYPE_EVENT   => esc_html__( 'Events', 'geodir-converter' ),
-			self::MODULE_TYPE_BLOG    => esc_html__( 'Blogs', 'geodir-converter' ),
-		);
+		$settings = wp_parse_args( $import_settings, $default_settings );
 		?> 
-		<form class="geodir-converter-settings-form" method="post">
-			<h6 class="fs-base"><?php esc_html_e( 'eDirectory Importer Settings', 'geodir-converter' ); ?></h6>
+		<form class="geodir-converter-settings-form geodir-converter-edirectory-settings" method="post">
+			<?php if ( $this->background_process->is_in_progress() && ! empty( (array) $settings['edirectory_modules'] ) ) : ?>
+				<?php foreach ( (array) $settings['edirectory_modules'] as $module ) : ?>
+					<input type="hidden" name="edirectory_modules[]" value="<?php echo esc_attr( $module ); ?>">
+				<?php endforeach; ?>
+			<?php endif; ?>
 			
 			<?php
 			if ( ! defined( 'GEODIR_EVENT_VERSION' ) ) {
@@ -229,93 +247,85 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 					esc_url( 'https://wpgeodirectory.com/downloads/events/' )
 				);
 			}
-
-			aui()->input(
-				array(
-					'id'          => 'edirectory_site_url',
-					'name'        => 'edirectory_site_url',
-					'type'        => 'text',
-					'placeholder' => __( 'e.g. https://site.com', 'geodir-converter' ),
-					'label'       => __( 'eDirectory Site URL', 'geodir-converter' ),
-					'label_class' => 'font-weight-bold fw-bold',
-					'help_text'   => __( 'Enter the URL of your eDirectory site. Include the protocol (http or https).', 'geodir-converter' ),
-					'label_type'  => 'top',
-					'value'       => esc_attr( $settings['edirectory_site_url'] ),
-					'required'    => true,
-				),
-				true
-			);
-
-			aui()->input(
-				array(
-					'id'          => 'edirectory_api_key',
-					'name'        => 'edirectory_api_key',
-					'type'        => 'text',
-					'placeholder' => __( 'API Key', 'geodir-converter' ),
-					'label'       => __( 'eDirectory API Key', 'geodir-converter' ),
-					'label_class' => 'font-weight-bold fw-bold',
-					'help_text'   => __( 'You can find your API key in the eDirectory settings. Please go to Settings > General Settings and copy the API key from there.', 'geodir-converter' ),
-					'label_type'  => 'top',
-					'value'       => esc_attr( $settings['edirectory_api_key'] ),
-					'required'    => true,
-				),
-				true
-			);
-
-			aui()->select(
-				array(
-					'id'          => 'edirectory_modules',
-					'name'        => 'edirectory_modules[]',
-					'multiple'    => true,
-					'select2'     => true,
-					'label'       => esc_html__( 'eDirectory Content to Import', 'geodir-converter' ),
-					'label_class' => 'font-weight-bold fw-bold',
-					'label_type'  => 'top',
-					'value'       => $settings['edirectory_modules'],
-					'options'     => $modules,
-					'help_text'   => wp_kses_post(
-						sprintf(
-							__( 'Select the content to import. You can select multiple content types.', 'geodir-converter' ),
-						)
-					),
-				),
-				true
-			);
-
-			$this->display_post_type_select();
-			$this->display_author_select();
-			$this->display_test_mode_checkbox();
-			$this->display_progress();
-			$this->display_logs( $this->get_logs() );
-			$this->display_error_alert();
 			?>
-						
-			<div class="geodir-converter-actions mt-3">
-				<button type="button" class="btn btn-primary btn-sm geodir-converter-import me-2"><?php esc_html_e( 'Start Import', 'geodir-converter' ); ?></button>
-				<button type="button" class="btn btn-outline-danger btn-sm geodir-converter-abort"><?php esc_html_e( 'Abort', 'geodir-converter' ); ?></button>
+
+			<div class="geodir-converter-connect-wrapper">
+				<h2 class="wp-heading-inline mb-3 fs-base text-uppercase fw-normal text-gray-dark"><?php esc_html_e( 'Upload & Connect', 'geodir-converter' ); ?></h2>
+				<?php
+				aui()->alert(
+					array(
+						'type'    => 'info',
+						'content' => esc_html__( 'Please provide your eDirectory Site URL and API Key to fetch clean data. You must also upload your listings CSV file, as it contains details that are not available in the API.', 'geodir-converter' ),
+					),
+					true
+				);
+
+				aui()->input(
+					array(
+						'id'          => 'edirectory_site_url',
+						'name'        => 'edirectory_site_url',
+						'type'        => 'text',
+						'placeholder' => __( 'e.g. https://site.com', 'geodir-converter' ),
+						'label'       => __( 'eDirectory Site URL', 'geodir-converter' ),
+						'label_class' => 'font-weight-bold fw-bold',
+						'help_text'   => __( 'Enter the URL of your eDirectory site. Include the protocol (http or https).', 'geodir-converter' ),
+						'label_type'  => 'top',
+						'value'       => esc_attr( $settings['edirectory_site_url'] ),
+						'required'    => true,
+					),
+					true
+				);
+
+				aui()->input(
+					array(
+						'id'          => 'edirectory_api_key',
+						'name'        => 'edirectory_api_key',
+						'type'        => 'text',
+						'placeholder' => __( 'API Key', 'geodir-converter' ),
+						'label'       => __( 'eDirectory API Key', 'geodir-converter' ),
+						'label_class' => 'font-weight-bold fw-bold',
+						'help_text'   => __( 'You can find your API key in the eDirectory settings. Please go to Settings > General Settings and copy the API key from there.', 'geodir-converter' ),
+						'label_type'  => 'top',
+						'value'       => esc_attr( $settings['edirectory_api_key'] ),
+						'required'    => true,
+					),
+					true
+				);
+				?>
+
+				<div class="geodir-converter-uploads-wrapper">
+					<label class="form-label font-weight-bold fw-bold d-block mb-2"><?php esc_html_e( 'Upload Listings CSV File', 'geodir-converter' ); ?></label>
+					<p class="text-muted mb-2"><?php esc_html_e( 'Upload the exported CSV file from your eDirectory site. This is essential as some data isn’t available via the API.', 'geodir-converter' ); ?></p>
+
+					<div class="file-uploader rounded p-4 text-center bg-light geodir-converter-drop-zone">
+						<p class="mb-2 font-weight-bold"><?php esc_html_e( 'Drag and drop your CSV file here', 'geodir-converter' ); ?></p>
+						<p class="text-muted mb-2"><?php esc_html_e( 'or use the button below to browse your files.', 'geodir-converter' ); ?></p>
+						<input type="file" accept=".csv" multiple class="d-none geodir-converter-files-input">
+						<button type="button" class="btn btn-outline-primary btn-sm geodir-converter-files-btn"><?php esc_html_e( 'Select Files', 'geodir-converter' ); ?></button>
+					</div>
+
+					<div class="mt-4 geodir-converter-uploads"></div>
+				</div> 
+			</div> 
+
+			<div class="geodir-converter-configure-wrapper border-top pt-3 mt-3">
+				<h2 class="wp-heading-inline mb-3 fs-base text-uppercase fw-normal text-gray-dark"><?php esc_html_e( 'Configure & Import', 'geodir-converter' ); ?></h2>
+				
+				<?php
+				$this->display_post_type_select();
+				$this->display_author_select( true );
+				$this->display_test_mode_checkbox();
+				$this->display_progress();
+				$this->display_logs( $this->get_logs() );
+				$this->display_error_alert();
+				?>
+
+				<div class="geodir-converter-actions mt-3">
+					<button type="button" class="btn btn-primary btn-sm geodir-converter-import me-2"><?php esc_html_e( 'Start Import', 'geodir-converter' ); ?></button>
+					<button type="button" class="btn btn-outline-danger btn-sm geodir-converter-abort"><?php esc_html_e( 'Abort', 'geodir-converter' ); ?></button>
+				</div>
 			</div>
 		</form>
-		<script type="text/javascript">
-			(function ($) {
-				$(function () {
-					const GD_CONVERTER_MODULE_TYPE_LISTING = '<?php echo esc_js( self::MODULE_TYPE_LISTING ); ?>';
-					const $edirectory_modules = $('[name="edirectory_modules"]');
-					const $post_type_wrapper = $('.geodir-converter-post-type');
-
-					$edirectory_modules.on('change', function () {
-						const modules = $(this).val();
-
-						if (!modules.includes(GD_CONVERTER_MODULE_TYPE_LISTING)) {
-							$post_type_wrapper.hide();
-						} else {
-							$post_type_wrapper.show();
-						}
-					});
-
-					$edirectory_modules.trigger('change');
-				});
-			})(jQuery);
-		</script>
 		<?php
 	}
 
@@ -340,13 +350,12 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$edirectory_modules             = ! is_array( $edirectory_modules ) ? array( $edirectory_modules ) : $edirectory_modules;
 		$settings['edirectory_modules'] = array_map( 'sanitize_text_field', $edirectory_modules );
 
-		// Validate and sanitize post type.
-		if ( ! in_array( $settings['gd_post_type'], $post_types, true ) ) {
-			$errors[] = esc_html__( 'The selected post type is invalid. Please choose a valid post type.', 'geodir-converter' );
-		}
-
 		if ( empty( $settings['edirectory_modules'] ) || ! array_intersect( $settings['edirectory_modules'], $this->modules ) ) {
 			$errors[] = esc_html__( 'Please select at least one eDirectory content to import.', 'geodir-converter' );
+		}
+
+		if ( ! in_array( $settings['gd_post_type'], $post_types, true ) ) {
+			$errors[] = esc_html__( 'The selected post type is invalid. Please choose a valid post type.', 'geodir-converter' );
 		}
 
 		if ( empty( $settings['wp_author_id'] ) || ! get_userdata( (int) $settings['wp_author_id'] ) ) {
@@ -415,6 +424,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$task['updated']  = 0;
 
 		$tasks = array(
+			self::ACTION_IMPORT_USERS,
 			self::ACTION_IMPORT_CATEGORIES,
 			self::ACTION_IMPORT_FIELDS,
 			self::ACTION_PARSE_LISTINGS,
@@ -430,6 +440,164 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	}
 
 	/**
+	 * Import users from eDirectory to GeoDirectory.
+	 *
+	 * @param array $task Import task.
+	 *
+	 * @return array Result of the import operation.
+	 */
+	public function task_import_users( $task ) {
+		global $wpdb;
+
+		$offset = isset( $task['offset'] ) ? absint( $task['offset'] ) : 0;
+		$rows   = isset( $task['rows'] ) && ! empty( $task['rows'] ) ? (array) $task['rows'] : array();
+
+		// Log the import start message only for the first batch.
+		if ( 0 === $offset ) {
+			$this->log( sprintf( self::LOG_TEMPLATE_STARTED, 'Users' ), 'info' );
+		}
+
+		if ( empty( $rows ) ) {
+			$this->log( sprintf( self::LOG_TEMPLATE_SKIPPED, 'users', 'No users to import.' ), 'warning' );
+			return $this->next_task( $task );
+		}
+
+		// Get users mapping.
+		$users_mapping = (array) $this->options_handler->get_option_no_cache( 'users_mapping', array() );
+
+		// Initialize counters.
+		$imported = 0;
+		$failed   = 0;
+		$skipped  = 0;
+		$updated  = 0;
+
+		// Remove duplicate users.
+		$users  = array();
+		$emails = array();
+
+		foreach ( $rows as $row ) {
+			$email = isset( $row['accountcontactemail'] ) ? trim( $row['accountcontactemail'] ) : '';
+
+			if ( empty( $email ) || isset( $emails[ $email ] ) ) {
+				continue;
+			}
+
+			$emails[ $email ] = true;
+			$users[]          = $row;
+		}
+
+		// Process users in batches.
+		$total_users = count( $users );
+		$batches     = array_chunk( $users, $this->batch_size );
+
+		foreach ( $batches as $batch ) {
+			// Start transaction for this batch.
+			$wpdb->query( 'START TRANSACTION' );
+
+			try {
+				foreach ( $batch as $user ) {
+					$email        = isset( $user['accountcontactemail'] ) ? trim( $user['accountcontactemail'] ) : '';
+					$firstname    = isset( $user['accountcontactfirstname'] ) ? trim( $user['accountcontactfirstname'] ) : '';
+					$lastname     = isset( $user['accountcontactlastname'] ) ? trim( $user['accountcontactlastname'] ) : '';
+					$username     = isset( $user['accountusername'] ) ? trim( $user['accountusername'] ) : '';
+					$password     = isset( $user['accountpassword'] ) ? trim( $user['accountpassword'] ) : '';
+					$email_md5    = md5( $email );
+					$display_name = $firstname;
+					if ( ! empty( $lastname ) ) {
+						$display_name .= ' ' . $lastname;
+					}
+
+					$existing_user = get_user_by( 'email', $email );
+
+					// If username is the same as email, use display name as username.
+					if ( $username === $email ) {
+						$username = $display_name;
+					}
+
+					// Don't modify the super admin user login.
+					$user_data = array();
+					if ( ! $existing_user ) {
+						$user_data = array(
+							'user_pass'  => $password,
+							'user_login' => sanitize_user( $username ),
+							'user_email' => sanitize_email( $email ),
+						);
+					}
+
+					$user_data = array_merge(
+						$user_data,
+						array(
+							'display_name' => $display_name,
+							'first_name'   => $firstname,
+							'last_name'    => $lastname,
+						)
+					);
+
+					// Handle test mode.
+					if ( $this->is_test_mode() ) {
+						++$imported;
+						$this->increase_succeed_imports( 1 );
+
+						$this->log( sprintf( __( 'Imported user: %s', 'geodir-converter' ), $email ), 'info' );
+						continue;
+					}
+
+					if ( $existing_user ) {
+						$user_data['ID'] = $existing_user->ID;
+						$user_id         = wp_update_user( $user_data );
+					} else {
+						$user_id = wp_insert_user( $user_data );
+					}
+
+					if ( is_wp_error( $user_id ) ) {
+						++$failed;
+						$this->increase_failed_imports( 1 );
+
+						$this->log( sprintf( __( 'Failed to import user: %1$s. Error: %2$s', 'geodir-converter' ), $email, $user_id->get_error_message() ), 'error' );
+						continue;
+					}
+
+					$users_mapping[ $email_md5 ] = (int) $user_id;
+
+					if ( $existing_user ) {
+						++$updated;
+						$this->increase_skipped_imports( 1 );
+					} else {
+						++$imported;
+						$this->increase_succeed_imports( 1 );
+					}
+
+					$log_message = $existing_user
+					? sprintf( __( 'Updated user: %s', 'geodir-converter' ), $email )
+					: sprintf( __( 'Imported new user: %s', 'geodir-converter' ), $email );
+
+					$this->log( $log_message );
+				}
+
+				// Commit the transaction if all went well.
+				$wpdb->query( 'COMMIT' );
+			} catch ( Exception $e ) {
+				// Rollback on error.
+				$wpdb->query( 'ROLLBACK' );
+				$this->log( 'Batch import failed: ' . $e->getMessage(), 'error' );
+				$failed += count( $batch );
+			}
+
+			// Free up memory after each batch.
+			if ( function_exists( 'wp_cache_flush' ) ) {
+				wp_cache_flush();
+			}
+		}
+
+		// Update user mapping.
+		$this->options_handler->update_option( 'users_mapping', $users_mapping );
+
+		$this->log( sprintf( self::LOG_TEMPLATE_FINISHED, 'Users', count( $rows ), $imported, $updated, $skipped, $failed ), 'success' );
+
+		return $this->next_task( $task );
+	}
+
+	/**
 	 * Import categories from eDirectory to GeoDirectory.
 	 *
 	 * @param array $task Import task.
@@ -437,6 +605,8 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 */
 	public function task_import_categories( $task ) {
+		global $wpdb;
+
 		$offset   = isset( $task['offset'] ) ? absint( $task['offset'] ) : 0;
 		$imported = isset( $task['imported'] ) ? absint( $task['imported'] ) : 0;
 		$failed   = isset( $task['failed'] ) ? absint( $task['failed'] ) : 0;
@@ -492,22 +662,44 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$total_categories = count( $module_categories );
 		$this->increase_imports_total( $total_categories );
 
-		// Import categories.
-		foreach ( $module_categories as $category ) {
-			$result = $this->import_single_category( $category, 0, $taxonomy );
+		// Process categories in batches.
+		$batches = array_chunk( $module_categories, $this->batch_size );
 
-			if ( GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS === $result ) {
-				++$imported;
-				$this->increase_succeed_imports( 1 );
-			} elseif ( GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED === $result ) {
-				++$updated;
-				$this->increase_succeed_imports( 1 );
-			} elseif ( GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED === $result ) {
-				++$skipped;
-				$this->increase_skipped_imports( 1 );
-			} elseif ( GeoDir_Converter_Importer::IMPORT_STATUS_FAILED === $result ) {
-				++$failed;
-				$this->increase_failed_imports( 1 );
+		foreach ( $batches as $batch ) {
+			// Start transaction for this batch.
+			$wpdb->query( 'START TRANSACTION' );
+
+			try {
+				foreach ( $batch as $category ) {
+					$result = $this->import_single_category( $category, 0, $taxonomy );
+
+					if ( GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS === $result ) {
+						++$imported;
+						$this->increase_succeed_imports( 1 );
+					} elseif ( GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED === $result ) {
+						++$updated;
+						$this->increase_succeed_imports( 1 );
+					} elseif ( GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED === $result ) {
+						++$skipped;
+						$this->increase_skipped_imports( 1 );
+					} elseif ( GeoDir_Converter_Importer::IMPORT_STATUS_FAILED === $result ) {
+						++$failed;
+						$this->increase_failed_imports( 1 );
+					}
+				}
+				// Commit the transaction if all went well.
+				$wpdb->query( 'COMMIT' );
+
+			} catch ( Exception $e ) {
+				// Rollback on error.
+				$wpdb->query( 'ROLLBACK' );
+				$this->log( 'Batch import failed: ' . $e->getMessage(), 'error' );
+				$failed += count( $batch );
+			}
+
+			// Free up memory after each batch.
+			if ( function_exists( 'wp_cache_flush' ) ) {
+				wp_cache_flush();
 			}
 		}
 
@@ -1019,36 +1211,13 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	public function task_parse_listings( array $task ) {
 		$offset         = isset( $task['offset'], $task['total_listings'] ) ? (int) $task['offset'] : 1;
 		$total_listings = isset( $task['total_listings'] ) ? (int) $task['total_listings'] : 0;
-		$total_pages    = isset( $task['total_pages'] ) ? (int) $task['total_pages'] : 0;
-		$modules        = (array) $this->get_import_setting( 'edirectory_modules', array() );
+		$rows           = isset( $task['rows'] ) && ! empty( $task['rows'] ) ? (array) $task['rows'] : array();
+		$users_mapping  = (array) $this->options_handler->get_option_no_cache( 'users_mapping', array() );
+		$total_listings = count( $rows );
 
 		// Log the import start message only for the first batch.
 		if ( 1 === $offset ) {
 			$this->log( sprintf( self::LOG_TEMPLATE_STARTED, 'Listings' ), 'info' );
-		}
-
-		$response = $this->get(
-			'/api/v1/results.json',
-			array(
-				'module' => implode( ',', $modules ),
-				'page'   => $offset,
-			),
-			array( 'timeout' => 30 )
-		);
-
-		if ( is_wp_error( $response ) ) {
-			$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'Listings', $response->get_error_message() ), 'error' );
-			return $this->next_task( $task );
-		}
-
-		// Determine total listings count if not set.
-		if ( ! isset( $task['total_listings'] ) ) {
-			$total_listings = isset( $response['paging']['total'] ) ? (int) $response['paging']['total'] : 0;
-			$total_pages    = isset( $response['paging']['pages'] ) ? (int) $response['paging']['pages'] : 0;
-
-			$task['total_listings'] = $total_listings;
-			$task['total_pages']    = $total_pages;
-			$this->increase_imports_total( $total_listings );
 		}
 
 		// Exit early if there are no listings to import.
@@ -1057,36 +1226,55 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			return $this->next_task( $task );
 		}
 
-		$listings = isset( $response['data'] ) ? (array) $response['data'] : array();
+		$listings = array();
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
 
-		if ( empty( $listings ) ) {
-			$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'Listings', 'No more listings found for import.' ), 'info' );
-			return $this->next_task( $task );
+			$keys        = array_keys( $row );
+			$module_type = $this->detect_module_type( $keys );
+			$is_event    = ( self::MODULE_TYPE_EVENT === $module_type );
+			$title_key   = $is_event ? 'eventtitle' : 'listingtitle';
+			$id_key      = $is_event ? 'eventdbid' : 'listingdbid';
+
+			if ( ! isset( $row[ $id_key ], $row[ $title_key ] ) ) {
+				continue;
+			}
+
+			$listing = array(
+				'id'    => (int) $row[ $id_key ],
+				'title' => sanitize_text_field( $row[ $title_key ] ),
+				'type'  => $module_type,
+			);
+
+			if ( isset( $row['accountcontactemail'] ) && ! empty( $row['accountcontactemail'] ) ) {
+				$email     = trim( $row['accountcontactemail'] );
+				$email_md5 = md5( $email );
+
+				if ( isset( $users_mapping[ $email_md5 ] ) ) {
+					$listing['user_id'] = $users_mapping[ $email_md5 ];
+				}
+			}
+
+			if ( isset( $row['image_url'] ) && ! empty( $row['image_url'] ) ) {
+				$listing['image_url'] = esc_url_raw( $row['image_url'] );
+			}
+
+			$listings[] = $listing;
 		}
 
-		$import_tasks = array();
-		foreach ( $listings as $listing ) {
-			if ( isset( $listing['id'], $listing['title'], $listing['type'] ) ) {
-				$import_tasks[] = array_merge(
-					array(
-						'id'     => (int) $listing['id'],
-						'title'  => $listing['title'],
-						'type'   => $listing['type'],
-						'action' => GeoDir_Converter_Importer::ACTION_IMPORT_LISTING,
-					),
-					isset( $listing['image_url'] ) ? array( 'image_url' => $listing['image_url'] ) : array()
-				);
-			}
+		// Batch the tasks.
+		$batched_tasks = array_chunk( $listings, $this->batch_size );
+		$import_tasks  = array();
+		foreach ( $batched_tasks as $batch ) {
+			$import_tasks[] = array(
+				'action'   => GeoDir_Converter_Importer::ACTION_IMPORT_LISTINGS,
+				'listings' => $batch,
+			);
 		}
 
 		$this->background_process->add_import_tasks( $import_tasks );
-
-		$complete = ( $offset >= $total_pages );
-		if ( ! $complete ) {
-			// Continue import with the next batch.
-			$task['offset'] = $offset + 1;
-			return $task;
-		}
 
 		return $this->next_task( $task );
 	}
@@ -1098,17 +1286,18 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	 * @param array $task The task to import.
 	 * @return array Result of the import operation.
 	 */
-	public function task_import_listing( $task ) {
-		// Get the id, title and module type.
-		$id     = absint( $task['id'] );
-		$title  = $task['title'];
-		$module = $task['type'];
+	public function task_import_listings( $task ) {
+		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
+
+		if ( empty( $listings ) ) {
+			return false;
+		}
 
 		// Get the endpoint for the module type.
 		$endpoints = array(
-			self::MODULE_TYPE_LISTING => "/api/v1/listings/{$id}.json",
-			self::MODULE_TYPE_EVENT   => "/api/v1/events/{$id}.json",
-			self::MODULE_TYPE_BLOG    => "/api/v1/blogs/{$id}.json",
+			self::MODULE_TYPE_LISTING => '/api/v1/listings/%d.json',
+			self::MODULE_TYPE_EVENT   => '/api/v1/events/%d.json',
+			self::MODULE_TYPE_BLOG    => '/api/v1/blogs/%d.json',
 		);
 
 		// Remove event endpoint if events addon is not installed.
@@ -1116,69 +1305,84 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			unset( $endpoints[ self::MODULE_TYPE_EVENT ] );
 		}
 
-		// Get the response for the module type.
-		if ( ! isset( $endpoints[ $module ] ) ) {
-			$response = new WP_Error( 'invalid_module', __( 'Invalid module type.', 'geodir-converter' ) );
-		} else {
-			$response = $this->get( $endpoints[ $module ], array(), array( 'timeout' => 30 ) );
-		}
+		foreach ( $listings as $listing ) {
+			// Get the id, title and module type.
+			$id     = absint( $listing['id'] );
+			$title  = $listing['title'];
+			$module = $listing['type'];
 
-		// Get the import method for the module type.
-		$import_method = "import_single_{$module}";
-
-		// Check if the response is a WP_Error or if the import method does not exist.
-		if ( is_wp_error( $response ) || ! method_exists( $this, $import_method ) ) {
-			$this->increase_failed_imports( 1 );
-			return false;
-		}
-
-		// Get the data.
-		$data = isset( $response['data'] ) ? $response['data'] : array();
-
-		// Set image_url to image_url if it exists.
-		if ( ! isset( $data['image_url'] ) && isset( $task['image_url'] ) && ! empty( $task['image_url'] ) ) {
-			$data['image_url'] = $task['image_url'];
-		}
-
-		$import_status = $this->$import_method( $data );
-
-		switch ( $import_status ) {
-			case GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS:
-				$this->log( sprintf( self::LOG_TEMPLATE_SUCCESS, $module, $title ), 'success' );
-				$this->increase_succeed_imports( 1 );
-				break;
-
-			case GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED:
-				$this->log( sprintf( self::LOG_TEMPLATE_UPDATED, $module, $title ), 'warning' );
-				$this->increase_succeed_imports( 1 );
-				break;
-
-			case GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED:
-				$this->log( sprintf( self::LOG_TEMPLATE_SKIPPED, $module, $title ), 'warning' );
-				$this->increase_skipped_imports( 1 );
-				break;
-
-			case GeoDir_Converter_Importer::IMPORT_STATUS_FAILED:
-				$this->log( sprintf( self::LOG_TEMPLATE_FAILED, $module, $title ), 'warning' );
+			if ( ! isset( $endpoints[ $module ] ) ) {
+				$this->log( __( 'Invalid module type.', 'geodir-converter' ), 'error' );
 				$this->increase_failed_imports( 1 );
-				break;
+				continue;
+			}
+
+			$url      = sprintf( $endpoints[ $module ], $id );
+			$response = $this->get( $url, array(), array( 'timeout' => 30 ) );
+			$method   = "import_single_{$module}";
+
+			if ( is_wp_error( $response ) || ! method_exists( $this, $method ) ) {
+				$this->increase_failed_imports( 1 );
+				$this->log( sprintf( self::LOG_TEMPLATE_FAILED, $module, $title ), 'warning' );
+				continue;
+			}
+
+			// Get the data.
+			$data = isset( $response['data'] ) ? $response['data'] : array();
+
+			// Optional overrides from task.
+			if ( ! isset( $data['image_url'] ) && isset( $listing['image_url'] ) && ! empty( $listing['image_url'] ) ) {
+				$data['image_url'] = $listing['image_url'];
+			}
+
+			if ( isset( $listing['user_id'] ) ) {
+				$data['user_id'] = absint( $listing['user_id'] );
+			}
+
+			$import_status = $this->$method( $data );
+
+			switch ( $import_status ) {
+				case GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS:
+					$this->log( sprintf( self::LOG_TEMPLATE_SUCCESS, $module, $title ), 'success' );
+					$this->increase_succeed_imports( 1 );
+					break;
+
+				case GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED:
+					$this->log( sprintf( self::LOG_TEMPLATE_UPDATED, $module, $title ), 'warning' );
+					$this->increase_succeed_imports( 1 );
+					break;
+
+				case GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED:
+					$this->log( sprintf( self::LOG_TEMPLATE_SKIPPED, $module, $title ), 'warning' );
+					$this->increase_skipped_imports( 1 );
+					break;
+
+				case GeoDir_Converter_Importer::IMPORT_STATUS_FAILED:
+					$this->log( sprintf( self::LOG_TEMPLATE_FAILED, $module, $title ), 'warning' );
+					$this->increase_failed_imports( 1 );
+					break;
+			}
 		}
 
 		return false;
 	}
 
 	/**
-	 * Import events from eDirectory to GeoDirectory.
+	 * Import listings from eDirectory to GeoDirectory.
 	 *
 	 * @since 2.0.2
 	 * @param array $listing The offset to start importing from.
 	 * @return array Result of the import operation.
 	 */
-	public function import_single_listing( array $listing ) {
+	public function import_single_listing( $listing ) {
 		$post_type    = $this->get_import_post_type();
-		$wp_author_id = (int) $this->get_import_setting( 'wp_author_id', 1 );
-		$gd_post_id   = ! $this->is_test_mode() ? (int) $this->get_gd_listing_id( $listing['id'], 'edirectory_id', $post_type ) : false;
-		$is_update    = ! empty( $gd_post_id );
+		$wp_author_id = isset( $listing['user_id'] ) ? (int) $listing['user_id'] : (int) $this->get_import_setting( 'wp_author_id', 1 );
+		$is_test      = $this->is_test_mode();
+
+		// Get the post id.
+		$listing_id = isset( $listing['id'] ) ? (int) $listing['id'] : 0;
+		$gd_post_id = $is_test ? 0 : (int) $this->get_gd_listing_id( $listing_id, 'edirectory_id', $post_type );
+		$is_update  = ! empty( $gd_post_id );
 
 		// Get the gallery.
 		$gallery = isset( $listing['gallery'] ) && is_array( $listing['gallery'] ) ? (array) $listing['gallery'] : array();
@@ -1188,17 +1392,23 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$current_time_gmt = current_time( 'mysql', 1 );
 		$social_network   = isset( $listing['social_network'] ) ? (array) $listing['social_network'] : array();
 
-		// Get the location.
+		// Location & Address.
 		$location = $this->get_default_location();
-		$address  = isset( $listing['address'] ) ? $listing['address'] : array();
-		if ( isset( $listing['geo']['lat'], $listing['geo']['lng'] ) ) {
-			$location = $this->get_location_from_coords( $listing['geo']['lat'], $listing['geo']['lng'] );
-			$address  = isset( $location['address'] ) && ! empty( $location['address'] ) ? $location['address'] : $address;
+		$address  = isset( $listing['address'] ) ? $listing['address'] : '';
+
+		if ( isset( $listing['geo']['lat'], $listing['geo']['lng'] ) && ! empty( $listing['geo']['lat'] ) && ! empty( $listing['geo']['lng'] ) ) {
+			$location_from_coords = $this->get_location_from_coords( $listing['geo']['lat'], $listing['geo']['lng'] );
+
+			if ( isset( $location_from_coords['address'] ) && ! empty( $location_from_coords['address'] ) ) {
+				$address = $location_from_coords['address'];
+			}
+
+			$location = array_merge( $location, $location_from_coords );
 		}
 
-		// Get the category mapping.
+		// Get category mapping.
 		$category_mapping = (array) $this->options_handler->get_option_no_cache( 'category_mapping', array() );
-		$categories       = isset( $listing['categories'] ) && is_array( $listing['categories'] ) ? (array) $listing['categories'] : array();
+		$categories       = isset( $listing['categories'] ) && is_array( $listing['categories'] ) ? $listing['categories'] : array();
 
 		// Map the categories.
 		$gd_categories = array();
@@ -1208,7 +1418,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		$post_content = isset( $listing['long_description'] ) ? $listing['long_description'] : '';
 
-		// Prepare the listing data.
+		// Prepare the post data.
 		$post_data = array(
 			// Standard WP Fields.
 			'post_author'           => $wp_author_id,
@@ -1220,7 +1430,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			'post_type'             => $post_type,
 			'comment_status'        => 'open',
 			'ping_status'           => 'closed',
-			'post_name'             => $listing['friendly_url'],
+			'post_name'             => isset( $listing['friendly_url'] ) ? $listing['friendly_url'] : '',
 			'post_date_gmt'         => $current_time_gmt,
 			'post_date'             => $current_time,
 			'post_modified_gmt'     => $current_time_gmt,
@@ -1229,12 +1439,11 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 				"{$post_type}category" => $gd_categories,
 			),
 
-			// GD fields.
+			// GD Fields.
 			'default_category'      => ! empty( $gd_categories ) ? $gd_categories[0] : 0,
 			'submit_ip'             => '',
 			'overall_rating'        => 0,
 			'rating_count'          => 0,
-
 			'street'                => $address,
 			'street2'               => '',
 			'city'                  => isset( $location['city'] ) ? $location['city'] : '',
@@ -1246,7 +1455,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			'mapview'               => '',
 			'mapzoom'               => '',
 
-			// eDirectory standard fields.
+			// eDirectory Fields.
 			'edirectory_id'         => $listing['id'],
 			'phone'                 => isset( $listing['phone'] ) ? $listing['phone'] : '',
 			'website'               => isset( $listing['url'] ) ? $listing['url'] : '',
@@ -1257,11 +1466,10 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			'youtube'               => isset( $social_network['youtube'] ) ? $social_network['youtube'] : '',
 			'pinterest'             => isset( $social_network['pinterest'] ) ? $social_network['pinterest'] : '',
 			'linkedin'              => isset( $social_network['linkedin'] ) ? $social_network['linkedin'] : '',
-
-			'featured'              => isset( $listing['featured'] ) && 1 === (int) $listing['featured'] ? (bool) true : false,
+			'featured'              => isset( $listing['featured'] ) && (int) $listing['featured'] === 1,
 		);
 
-		// Import featured image.
+		// Import the featured image.
 		if ( isset( $listing['image_url'] ) && ! empty( $listing['image_url'] ) ) {
 			$logo = $this->import_attachment( $listing['image_url'] );
 			if ( isset( $logo['id'], $logo['src'] ) ) {
@@ -1269,7 +1477,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			}
 		}
 
-		// Get the business hours.
+		// Import business hours.
 		if ( isset( $listing['hours_work'] ) && ! empty( $listing['hours_work'] ) ) {
 			$timezone       = isset( $listing['time_zone_hours_work'] ) ? $listing['time_zone_hours_work'] : 'UTC';
 			$business_hours = $this->parse_business_hours( $listing['hours_work'], $timezone );
@@ -1289,7 +1497,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			GeoDir_Media::delete_files( (int) $gd_post_id, 'post_images' );
 		}
 
-		// Import gallery.
+		// Import gallery images.
 		$images = $this->import_gallery_image( $gallery );
 		if ( ! empty( $images ) ) {
 			$post_data['post_images'] = $images;
@@ -1308,11 +1516,8 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			if ( $gd_field ) {
 				$gd_field['field_id'] = (int) $gd_field['id'];
 
-				$option_values = $gd_field['option_values'];
-				$option_values = (array) explode( ',', $option_values );
-				$options       = array_merge( $option_values, $features );
-				$options       = array_filter( $options );
-				$options       = array_values( $options );
+				$option_values = explode( ',', $gd_field['option_values'] );
+				$options       = array_merge( array_filter( $option_values ), array_filter( $features ) );
 				$options       = array_unique( $options );
 
 				if ( $features !== $option_values ) {
@@ -1321,7 +1526,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 				}
 			}
 
-			if ( is_array( $features ) && ! empty( $features ) ) {
+			if ( ! empty( $features ) ) {
 				$post_data['features'] = implode( ',', $features );
 			}
 		}
@@ -1336,11 +1541,11 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		// Handle errors during post insertion/update.
 		if ( is_wp_error( $gd_post_id ) ) {
-			$this->log( $gd_post_id->get_error_message() );
+			$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'listing', $gd_post_id->get_error_message() ), 'error' );
 			return GeoDir_Converter_Importer::IMPORT_STATUS_FAILED;
 		}
 
-		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
+		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
 	}
 
 	/**
@@ -2072,5 +2277,79 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		}
 
 		return $url;
+	}
+
+	/**
+	 * Detect module type based on headers.
+	 *
+	 * @param array $headers The headers.
+	 * @return string The module type.
+	 */
+	public function detect_module_type( $headers ) {
+		// Count event and listing specific headers.
+		$event_header_count   = 0;
+		$listing_header_count = 0;
+
+		// Event-specific header patterns.
+		$event_patterns = array(
+			'eventtitle',
+			'eventseotitle',
+			'eventemail',
+			'eventurl',
+			'eventaddress',
+			'eventvenue',
+			'eventcontactname',
+			'eventstartdate',
+			'eventenddate',
+			'eventstarttime',
+			'eventendtime',
+		);
+
+		// Listing-specific header patterns.
+		$listing_patterns = array(
+			'listingtitle',
+			'listingseotitle',
+			'listingemail',
+			'listingurl',
+			'listingaddress',
+			'listingaddress2',
+			'listingtemplate',
+		);
+
+		// Check for event-specific headers.
+		foreach ( $event_patterns as $pattern ) {
+			if ( in_array( $pattern, $headers, true ) ) {
+				++$event_header_count;
+			}
+		}
+
+		// Check for listing-specific headers.
+		foreach ( $listing_patterns as $pattern ) {
+			if ( in_array( $pattern, $headers, true ) ) {
+				++$listing_header_count;
+			}
+		}
+
+		// Determine module type based on header counts.
+		if ( $event_header_count > 0 && $listing_header_count === 0 ) {
+			return self::MODULE_TYPE_EVENT;
+		} elseif ( $listing_header_count > 0 && $event_header_count === 0 ) {
+			return self::MODULE_TYPE_LISTING;
+		} elseif ( $event_header_count > $listing_header_count ) {
+			return self::MODULE_TYPE_EVENT;
+		} elseif ( $listing_header_count > $event_header_count ) {
+			return self::MODULE_TYPE_LISTING;
+		} elseif ( $event_header_count > 0 && $listing_header_count > 0 ) {
+			// If we have both types of headers, look at the first header.
+			$first_header = strtolower( trim( $headers[0] ) );
+			if ( strpos( $first_header, 'event' ) === 0 ) {
+				return self::MODULE_TYPE_EVENT;
+			} elseif ( strpos( $first_header, 'listing' ) === 0 ) {
+				return self::MODULE_TYPE_LISTING;
+			}
+		}
+
+		// Unable to determine the module type.
+		return null;
 	}
 }

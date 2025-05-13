@@ -185,7 +185,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 		$tasks = array(
 			self::ACTION_IMPORT_CATEGORIES,
 			self::ACTION_IMPORT_FIELDS,
-			self::ACTION_IMPORT_LISTING,
+			self::ACTION_IMPORT_LISTINGS,
 		);
 
 		$key = array_search( $task['action'], $tasks, true );

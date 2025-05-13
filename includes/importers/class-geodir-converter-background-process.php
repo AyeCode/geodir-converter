@@ -235,9 +235,9 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 	 * @param array $workloads [[id, title, type], ...]
 	 */
 	public function add_import_tasks( $workloads ) {
-		$tasks = array_map(
+        $tasks = array_map(
 			function ( $workload ) {
-				$workload['action'] = isset( $workload['action'] ) ? $workload['action'] : GeoDir_Converter_Importer::ACTION_IMPORT_LISTING;
+				$workload['action'] = GeoDir_Converter_Importer::ACTION_IMPORT_LISTINGS;
 				return $workload;
 			},
 			$workloads

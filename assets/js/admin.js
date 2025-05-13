@@ -16,7 +16,7 @@
      * @param {Object} atts - Additional parameters for $.ajax (optional).
      * @return {jqXHR} jQuery XMLHttpRequest object.
      */
-    function ajax(action, callback, data, atts) {
+    GeoDir_Converter.ajax = function (action, callback, data, atts) {
         atts = typeof atts !== 'undefined' ? atts : {};
         data = typeof data !== 'undefined' ? data : {};
 
@@ -163,7 +163,7 @@
             this.activate();
             errorHandler.hide();
 
-            ajax(self.ajaxAction, function (success, data) {
+            GeoDir_Converter.ajax(self.ajaxAction, function (success, data) {
                 if (!success) {
                     self.enable();
                     self.converter.stop();
@@ -258,7 +258,7 @@
             const importerId = this.converter.importerId;
             const self = this;
 
-            ajax(self.ajaxAction, function (success, data) {
+            GeoDir_Converter.ajax(self.ajaxAction, function (success, data) {
                 self.converter.start();
                 if (!success) {
                     self.enable();
@@ -508,7 +508,7 @@
         tick: function () {
             const self = this;
 
-            ajax(GeoDir_Converter.actions.progress, function (success, data) {
+            GeoDir_Converter.ajax(GeoDir_Converter.actions.progress, function (success, data) {
                 if (self.preventUpdates) {
                     return;
                 }

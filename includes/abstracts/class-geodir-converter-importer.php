@@ -69,7 +69,7 @@ abstract class GeoDir_Converter_Importer {
 	 *
 	 * @var string
 	 */
-	const ACTION_IMPORT_LISTING = 'import_listing';
+	const ACTION_IMPORT_LISTINGS = 'import_listings';
 
 	/**
 	 * Import status indicating failure.
@@ -349,21 +349,31 @@ abstract class GeoDir_Converter_Importer {
 	 * @since 2.0.2
 	 * @return void
 	 */
-	public function display_author_select() {
-		$wp_author_id = $this->get_import_setting( 'wp_author_id' );
-		$wp_users     = array_merge( array( '' => esc_html__( 'Current WordPress User', 'geodir-converter' ) ), wp_list_pluck( get_users(), 'display_name', 'ID' ) );
+	public function display_author_select( $default_user = false ) {
+		$wp_author_id = $this->get_import_setting( 'wp_author_id', '' );
+		$wp_users     = wp_list_pluck( get_users(), 'display_name', 'ID' );
+
+		$wp_users = array( '' => esc_html__( 'Current WordPress User', 'geodir-converter' ) ) + $wp_users;
+
+		$label     = esc_html__( 'Assign Imported Listings to a WordPress User', 'geodir-converter' );
+		$help_text = esc_html__( 'Select the WordPress user to assign imported listings to. Leave blank to use the default WordPress user.', 'geodir-converter' );
+
+		if ( $default_user ) {
+			$label     = esc_html__( 'Set Default WordPress User for Imported Listings', 'geodir-converter' );
+			$help_text = esc_html__( 'Select the default WordPress user to assign imported listings to if the listing does not have an author.', 'geodir-converter' );
+		}
 
 		aui()->select(
 			array(
 				'id'          => 'wp_author_id',
 				'name'        => 'wp_author_id',
 				'select2'     => true,
-				'label'       => esc_html__( 'Assign Imported Listings to WordPress User', 'geodir-converter' ),
+				'label'       => $label,
 				'label_class' => 'font-weight-bold fw-bold',
 				'label_type'  => 'top',
 				'value'       => $wp_author_id,
 				'options'     => $wp_users,
-				'help_text'   => esc_html__( 'Select the WordPress user to assign imported listings to. Leave blank to use the default WordPress user.', 'geodir-converter' ),
+				'help_text'   => $help_text,
 			),
 			true
 		);
@@ -852,12 +862,150 @@ abstract class GeoDir_Converter_Importer {
 	}
 
 	/**
+	 * Parse CSV file.
+	 *
+	 * @param string $file_path The path to the CSV file.
+	 * @param array  $required_headers The required headers.
+	 * @return array|WP_Error An array of parsed rows or a WP_Error object on failure.
+	 */
+	public function parse_csv( $file_path, $required_headers = array() ) {
+		if ( ! file_exists( $file_path ) ) {
+			return new WP_Error( 'file_not_found', __( 'CSV file not found.', 'geodir-converter' ) );
+		}
+
+		if ( ! is_readable( $file_path ) ) {
+			return new WP_Error( 'file_not_readable', __( 'CSV file is not readable. Please check file permissions.', 'geodir-converter' ) );
+		}
+
+		$data            = array();
+		$line_number     = 0;
+		$max_line_length = 0;
+
+		try {
+			if ( ( $handle = fopen( $file_path, 'r' ) ) !== false ) {
+				// Get headers.
+				$headers = fgetcsv( $handle, 0, ',' );
+				++$line_number;
+
+				if ( empty( $headers ) || ! is_array( $headers ) ) {
+					return new WP_Error( 'invalid_headers', __( 'CSV file has invalid or missing headers.', 'geodir-converter' ) );
+				}
+
+				// Validate headers (no empty or duplicate headers).
+				$headers = array_map( 'trim', $headers );
+				if ( count( $headers ) !== count( array_filter( $headers ) ) ) {
+					return new WP_Error( 'empty_headers', __( 'CSV headers contain empty values. Please ensure all columns have headers.', 'geodir-converter' ) );
+				}
+
+				if ( count( $headers ) !== count( array_unique( $headers ) ) ) {
+					return new WP_Error( 'duplicate_headers', __( 'CSV headers contain duplicate values. Each column must have a unique header.', 'geodir-converter' ) );
+				}
+
+				// Remove spaces and convert to lowercase.
+				$headers = array_map(
+					function ( $header ) {
+						return trim( str_replace( ' ', '', strtolower( $header ) ) );
+					},
+					$headers
+				);
+
+				// Required headers check.
+				if ( ! empty( $required_headers ) ) {
+					$missing_headers = array_diff( $required_headers, array_map( 'strtolower', $headers ) );
+
+					if ( ! empty( $missing_headers ) ) {
+						return new WP_Error(
+							'missing_headers',
+							sprintf(
+								__( 'CSV is missing required headers: %s', 'geodir-converter' ),
+								implode( ', ', $missing_headers )
+							)
+						);
+					}
+				}
+
+				// Process rows.
+				while ( ( $row = fgetcsv( $handle, 0, ',' ) ) !== false ) {
+					++$line_number;
+
+					// Skip empty rows.
+					if ( count( array_filter( $row ) ) === 0 ) {
+						continue;
+					}
+
+					// Check for row length mismatch.
+					if ( count( $row ) !== count( $headers ) ) {
+						return new WP_Error(
+							'row_length_mismatch',
+							sprintf(
+								__( 'Row %1$d has %2$d columns while the header has %3$d columns. Please ensure all rows have the correct number of columns.', 'geodir-converter' ),
+								$line_number,
+								count( $row ),
+								count( $headers )
+							),
+						);
+					}
+
+					// Track max line length for memory management.
+					$line_length     = strlen( implode( '', $row ) );
+					$max_line_length = max( $max_line_length, $line_length );
+
+					// Memory limit check.
+					if ( $max_line_length > 1048576 ) { // 1MB per line limit
+						return new WP_Error( 'excessive_row_length', __( 'CSV contains excessively long rows. Please check your data format.', 'geodir-converter' ) );
+					}
+
+					// Sanitize and validate row data.
+					$sanitized_row = array();
+					foreach ( array_combine( $headers, $row ) as $key => $value ) {
+						// Basic sanitization.
+						$value = sanitize_text_field( $value );
+
+						// Field-specific validation could be added here.
+						$sanitized_row[ $key ] = $value;
+					}
+
+					$data[] = $sanitized_row;
+
+					// Limit number of rows for memory protection.
+					if ( count( $data ) >= 10000 ) {
+						break;
+					}
+				}
+
+				fclose( $handle );
+			} else {
+				return new WP_Error( 'file_open_failed', __( 'Failed to open CSV file for reading.', 'geodir-converter' ) );
+			}
+		} catch ( Exception $e ) {
+			// Re-throw with line number information if it's a parsing error.
+			if ( $line_number > 0 && $e->getCode() === 422 ) {
+				return new WP_Error(
+					'parsing_error',
+					sprintf(
+						__( 'Error at line %1$d: %2$s', 'geodir-converter' ),
+						$line_number,
+						$e->getMessage()
+					),
+				);
+			}
+			throw $e;
+		}
+
+		if ( empty( $data ) ) {
+			return new WP_Error( 'no_data', __( 'CSV file contains no valid data rows.', 'geodir-converter' ) );
+		}
+
+		return $data;
+	}
+
+	/**
 	 * Start the import process.
 	 *
 	 * @param array $settings The import settings.
 	 * @return array The result of the import process.
 	 */
-	public function import( array $settings ) {
+	public function import( $settings, $files = array() ) {
 		// Validate and sanitize settings.
 		$settings = $this->validate_settings( $settings );
 
@@ -865,10 +1013,26 @@ abstract class GeoDir_Converter_Importer {
 			return $settings;
 		}
 
+		$rows = array();
+		if ( is_array( $files ) && ! empty( $files ) ) {
+			foreach ( $files['tmp_name'] as $file ) {
+				$csv_rows = $this->parse_csv( $file );
+
+				if ( is_wp_error( $csv_rows ) ) {
+					return $csv_rows;
+				}
+
+				$rows = array_merge( $rows, $csv_rows );
+			}
+		}
+
 		// reset all importer options.
 		$this->clear_import_options();
 
+		// save import settings.
 		$this->options_handler->update_option( 'import_settings', $settings );
+		// set import start time.
+		$this->options_handler->update_option( 'import_start_time', time() );
 
 		if ( $this->is_test_mode() ) {
 			$this->log( esc_html__( 'Test mode is enabled. No data will be imported.', 'geodir-converter' ), 'error' );
@@ -879,6 +1043,7 @@ abstract class GeoDir_Converter_Importer {
 			array(
 				'importer_id' => $this->importer_id,
 				'settings'    => $settings,
+				'rows'        => $rows,
 			)
 		);
 	}
@@ -987,11 +1152,14 @@ abstract class GeoDir_Converter_Importer {
 
 	/**
 	 * Clear all import-related options.
+	 *
+	 * @return void
 	 */
 	protected function clear_import_options() {
 		$this->options_handler->delete_option( 'stats' );
 		$this->options_handler->delete_option( 'import_log' );
 		$this->options_handler->delete_option( 'import_settings' );
+		$this->options_handler->delete_option( 'import_start_time' );
 	}
 
 	/**
@@ -1078,10 +1246,16 @@ abstract class GeoDir_Converter_Importer {
 	 * @param string $status The status of log message (info, warning, error).
 	 */
 	public function log( $message, $status = 'info' ) {
-		$logs   = $this->options_handler->get_option_no_cache( 'import_log', array() );
+		$logs         = $this->options_handler->get_option_no_cache( 'import_log', array() );
+		$start_time   = $this->options_handler->get_option( 'import_start_time' );
+		$current_time = time();
+		$elapsed      = $start_time ? $current_time - $start_time : 0;
+		$formatted    = $this->format_elapsed_time( $elapsed );
+
 		$logs[] = array(
-			'message' => $message,
-			'status'  => $status,
+			'message'   => "{$formatted} – {$message}",
+			'status'    => $status,
+			'timestamp' => gmdate( 'Y-m-d H:i:s', $current_time ),
 		);
 
 		$this->options_handler->update_option( 'import_log', $logs );
@@ -1128,5 +1302,19 @@ abstract class GeoDir_Converter_Importer {
 			$logs_html[] = $this->log_to_html( $log, $inline );
 		}
 		return $logs_html;
+	}
+
+	/**
+	 * Format elapsed time in H:i:s
+	 *
+	 * @param int $seconds Number of seconds since start.
+	 * @return string
+	 */
+	private function format_elapsed_time( $seconds ) {
+		$hours   = floor( $seconds / 3600 );
+		$minutes = floor( ( $seconds % 3600 ) / 60 );
+		$seconds = $seconds % 60;
+
+		return sprintf( '%02d:%02d:%02d', $hours, $minutes, $seconds );
 	}
 }
