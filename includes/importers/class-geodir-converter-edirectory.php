@@ -1290,7 +1290,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
 
 		if ( empty( $listings ) ) {
-			return false;
+			return $this->next_task( $task );
 		}
 
 		// Get the endpoint for the module type.
@@ -1364,7 +1364,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			}
 		}
 
-		return false;
+		return $this->next_task( $task );
 	}
 
 	/**

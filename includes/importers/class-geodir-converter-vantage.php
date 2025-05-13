@@ -1131,7 +1131,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 		$post_ids = isset( $task['post_ids'] ) && ! empty( $task['post_ids'] ) ? (array) $task['post_ids'] : array();
 
 		if ( empty( $post_ids ) ) {
-			return false;
+			return $this->next_task( $task );
 		}
 
 		$listings = get_posts(
@@ -1143,7 +1143,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 		);
 
 		if ( empty( $listings ) ) {
-			return false;
+			return $this->next_task( $task );
 		}
 
 		foreach ( $listings as $listing ) {
@@ -1173,7 +1173,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			}
 		}
 
-		return false;
+		return $this->next_task( $task );
 	}
 
 	/**
