@@ -133,13 +133,21 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 		<form class="geodir-converter-settings-form" method="post">
 			<h6 class="fs-base"><?php esc_html_e( 'Business Directory Importer Settings', 'geodir-converter' ); ?></h6>
 			
-		<?php
-		$this->display_post_type_select();
-		$this->display_test_mode_checkbox();
-		$this->display_progress();
-		$this->display_logs( $this->get_logs() );
-		$this->display_error_alert();
-		?>
+			<?php
+			if ( ! defined( 'GEODIR_PRICING_VERSION' ) ) {
+				$this->render_plugin_notice(
+					esc_html__( 'GeoDirectory Pricing Manager', 'geodir-converter' ),
+					'plans',
+					esc_url( 'https://wpgeodirectory.com/downloads/pricing-manager/' )
+				);
+			}
+
+			$this->display_post_type_select();
+			$this->display_test_mode_checkbox();
+			$this->display_progress();
+			$this->display_logs( $this->get_logs() );
+			$this->display_error_alert();
+			?>
 			
 			<div class="geodir-converter-actions mt-3">
 				<button type="button" class="btn btn-primary btn-sm geodir-converter-import me-2"><?php esc_html_e( 'Start Import', 'geodir-converter' ); ?></button>
@@ -264,7 +272,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param array $task Task details.
 	 * @return array Updated task details.
 	 */
-	public function import_categories( array $task ) {
+	public function task_import_categories( array $task ) {
 		global $wpdb;
 
 		$this->log( esc_html__( 'Categories: Import started.', 'geodir-converter' ) );
@@ -284,6 +292,19 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 
 		if ( empty( $categories ) || is_wp_error( $categories ) ) {
 			$this->log( __( 'No categories available for import. Skipping...', 'geodir-converter' ) );
+			return $this->next_task( $task );
+		}
+
+        if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Categories: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $categories ),
+					0
+				),
+				'success'
+			);
 			return $this->next_task( $task );
 		}
 
@@ -311,7 +332,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param array $task Task details.
 	 * @return array Updated task details.
 	 */
-	public function import_tags( array $task ) {
+	public function task_import_tags( array $task ) {
 		global $wpdb;
 
 		$this->log( esc_html__( 'Tags: Import started.', 'geodir-converter' ) );
@@ -330,6 +351,19 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 
 		if ( empty( $tags ) || is_wp_error( $tags ) ) {
 			$this->log( esc_html__( 'Tags: No items to import.', 'geodir-converter' ), 'notice' );
+			return $this->next_task( $task );
+		}
+
+        if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Tags: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $tags ),
+					0
+				),
+				'success'
+			);
 			return $this->next_task( $task );
 		}
 
@@ -357,7 +391,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param array $task Import task details.
 	 * @return array Updated task with the next action.
 	 */
-	public function import_packages( array $task ) {
+	public function task_import_packages( array $task ) {
 		$post_type = $this->get_import_post_type();
 		$plans     = $this->get_plans();
 
@@ -446,7 +480,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param array $task Import task details.
 	 * @return array Updated task with the next action.
 	 */
-	public function import_fields( array $task ) {
+	public function task_import_fields( array $task ) {
 		global $plugin_prefix;
 
 		$this->log( esc_html__( 'Importing listing fields...', 'geodir-converter' ) );
@@ -517,7 +551,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param array $task The import task data.
 	 * @return array|false Result of the import operation or false if complete.
 	 */
-	public function import_listings( array $task ) {
+	public function task_import_listings( array $task ) {
 		global $wpdb;
 
 		$this->log( __( 'Starting listings import...', 'geodir-converter' ) );
@@ -678,15 +712,29 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 		);
 
 		if ( empty( $post->geolocation_city ) && ( empty( $post->geolocation_lat ) || empty( $post->geolocation_long ) ) && ! empty( $fields['street'] ) && empty( $fields['city'] ) && ( empty( $fields['latitude'] ) || empty( $fields['longitude'] ) ) ) {
-			$zip = ! empty( $fields['zip'] ) ? $fields['zip'] : '-';
-			$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address( array( 'street' => $fields['street'], 'city' => $zip, 'region' => '-', 'zip' => '-' ) ); // GPS requires at least 4 non empty location fields.
+			$zip      = ! empty( $fields['zip'] ) ? $fields['zip'] : '-';
+			$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address(
+				array(
+					'street' => $fields['street'],
+					'city'   => $zip,
+					'region' => '-',
+					'zip'    => '-',
+				)
+			); // GPS requires at least 4 non empty location fields.
 			if ( ! ( is_array( $gps_data ) && ! empty( $gps_data['latitude'] ) && ! empty( $gps_data['longitude'] ) ) ) {
-				$street = explode( ",", $fields['street'] );
-				$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address( array( 'street' => trim( $street[0] ), 'city' => $zip, 'region' => '-', 'zip' => '-' ) );
+				$street   = explode( ',', $fields['street'] );
+				$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address(
+					array(
+						'street' => trim( $street[0] ),
+						'city'   => $zip,
+						'region' => '-',
+						'zip'    => '-',
+					)
+				);
 			}
 
 			if ( ( is_array( $gps_data ) && ! empty( $gps_data['latitude'] ) && ! empty( $gps_data['longitude'] ) ) ) {
-				$listing['latitude'] = $gps_data['latitude'];
+				$listing['latitude']  = $gps_data['latitude'];
 				$listing['longitude'] = $gps_data['longitude'];
 			}
 		}
@@ -799,7 +847,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 
 		if ( 'image' === $field['field_type'] ) {
 			$gd_field['extra'] = array(
-				'gd_file_types' => array( 'jpg', 'jpe', 'jpeg', 'gif', 'png', 'bmp', 'ico' ),
+				'gd_file_types' => geodir_image_extensions(),
 				'file_limit'    => 1,
 			);
 		}

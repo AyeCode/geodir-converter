@@ -277,7 +277,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 *
 	 * @return array Result of the import operation.
 	 */
-	public function import_categories( $task ) {
+	public function task_import_categories( $task ) {
 		global $wpdb;
 		$this->log( esc_html__( 'Categories: Import started.', 'geodir-converter' ) );
 		$this->set_import_total();
@@ -301,6 +301,19 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 
 		if ( empty( $categories ) || is_wp_error( $categories ) ) {
 			$this->log( esc_html__( 'Categories: No items to import.', 'geodir-converter' ), 'warning' );
+			return $this->next_task( $task );
+		}
+
+		if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Categories: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $categories ),
+					0
+				),
+				'success'
+			);
 			return $this->next_task( $task );
 		}
 
@@ -329,7 +342,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 * @param array $task Task details.
 	 * @return array Result of the import operation.
 	 */
-	public function import_fields( array $task ) {
+	public function task_import_fields( array $task ) {
 		global $plugin_prefix;
 
 		$this->log( esc_html__( 'Importing standard fields...', 'geodir-converter' ) );
@@ -665,7 +678,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 		if ( 'file' === $field_type ) {
 			$gd_field['extra'] = array(
 				'field_type'    => 'file',
-				'gd_file_types' => isset( $field['allowed_mime_types'] ) ? array_keys( $field['allowed_mime_types'] ) : array(),
+				'gd_file_types' => isset( $field['allowed_mime_types'] ) ? array_keys( $field['allowed_mime_types'] ) : geodir_image_extensions(),
 				'file_limit'    => isset( $field['multiple'] ) && ! (bool) $field['multiple'] ? 1 : 100,
 			);
 		} elseif ( 'checkbox' === $field_type ) {
@@ -702,7 +715,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 * @param array $task The offset to start importing from.
 	 * @return array Result of the import operation.
 	 */
-	public function import_listings( array $task ) {
+	public function task_import_listings( array $task ) {
 		global $wpdb;
 
 		$offset         = isset( $task['offset'] ) ? (int) $task['offset'] : 0;

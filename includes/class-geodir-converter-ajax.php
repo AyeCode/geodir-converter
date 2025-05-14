@@ -9,6 +9,7 @@
 
 namespace GeoDir_Converter;
 
+use finfo;
 use WP_Error;
 use GeoDir_Converter\Traits\GeoDir_Converter_Trait_Singleton;
 
@@ -49,6 +50,9 @@ class GeoDir_Converter_Ajax {
 			'method' => 'POST',
 		),
 		'abort'    => array(
+			'method' => 'POST',
+		),
+		'upload'   => array(
 			'method' => 'POST',
 		),
 	);
@@ -186,8 +190,9 @@ class GeoDir_Converter_Ajax {
 			$this->send_json_error( __( 'You do not have permission to perform this action.', 'geodir-converter' ) );
 		}
 
-		$importer_id = isset( $_POST['importerId'] ) ? sanitize_text_field( $_POST['importerId'] ) : '';
-		$settings    = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : array();
+		$importer_id = isset( $_POST['importerId'] ) ? wp_unslash( $_POST['importerId'] ) : '';
+		$settings    = isset( $_POST['settings'] ) ? json_decode( wp_unslash( $_POST['settings'] ), true ) : array();
+		$files       = isset( $_FILES['files'] ) ? wp_unslash( $_FILES['files'] ) : array();
 
 		$importer = $this->get_importer( $importer_id );
 
@@ -195,7 +200,7 @@ class GeoDir_Converter_Ajax {
 			$this->send_json_error( $importer->get_error_message() );
 		}
 
-		$result = $importer->import( $settings );
+		$result = $importer->import( $settings, $files );
 
 		if ( is_wp_error( $result ) ) {
 			$this->send_json_error( $result->get_error_message() );
@@ -234,6 +239,14 @@ class GeoDir_Converter_Ajax {
 		$in_progress = $importer->background_process->is_in_progress();
 		$logs        = $importer->get_logs( $logs_shown );
 
+		// Build notice.
+		if ( ! $in_progress ) {
+			$logs[] = array(
+				'message' => __( 'Import completed.', 'geodir-converter' ),
+				'status'  => 'success',
+			);
+		}
+
 		// Calculate new "logs_shown".
 		$logs_shown += count( $logs );
 
@@ -247,6 +260,117 @@ class GeoDir_Converter_Ajax {
 				'logsShown'  => $logs_shown,
 				'logs'       => $importer->logs_to_html( $logs ),
 				'inProgress' => (bool) $in_progress,
+			)
+		);
+	}
+
+	/**
+	 * AJAX handler for uploading CSV file.
+	 */
+	public function upload() {
+		$this->verify_nonce( __FUNCTION__ );
+		$importer_id = isset( $_POST['importerId'] ) ? sanitize_text_field( $_POST['importerId'] ) : '';
+
+		// Check if file was uploaded.
+		if ( ! isset( $_FILES['file'] ) ) {
+			$this->send_json_error( __( 'No file was uploaded. Please select a file and try again.', 'geodir-converter' ) );
+		}
+
+		$file = $_FILES['file'];
+
+		// Check for upload errors.
+		if ( $file['error'] !== UPLOAD_ERR_OK ) {
+			$upload_errors = array(
+				UPLOAD_ERR_INI_SIZE   => __( 'The uploaded file exceeds the upload_max_filesize directive in php.ini.', 'geodir-converter' ),
+				UPLOAD_ERR_FORM_SIZE  => __( 'The uploaded file exceeds the MAX_FILE_SIZE directive in the HTML form.', 'geodir-converter' ),
+				UPLOAD_ERR_PARTIAL    => __( 'The uploaded file was only partially uploaded. Please try again.', 'geodir-converter' ),
+				UPLOAD_ERR_NO_FILE    => __( 'No file was uploaded. Please select a file and try again.', 'geodir-converter' ),
+				UPLOAD_ERR_NO_TMP_DIR => __( 'Missing a temporary folder. Please contact the site administrator.', 'geodir-converter' ),
+				UPLOAD_ERR_CANT_WRITE => __( 'Failed to write file to disk. Please contact the site administrator.', 'geodir-converter' ),
+				UPLOAD_ERR_EXTENSION  => __( 'A PHP extension stopped the file upload. Please contact the site administrator.', 'geodir-converter' ),
+			);
+
+			$error_message = isset( $upload_errors[ $file['error'] ] )
+				? $upload_errors[ $file['error'] ]
+				: __( 'Unknown upload error.', 'geodir-converter' );
+
+			$this->send_json_error( $error_message );
+		}
+
+		// Verify the file was uploaded via HTTP POST.
+		if ( ! is_uploaded_file( $file['tmp_name'] ) ) {
+			$this->send_json_error( __( 'Invalid file upload method detected.', 'geodir-converter' ) );
+		}
+
+		$max_size = wp_max_upload_size();
+		if ( $file['size'] > $max_size ) {
+			$this->send_json_error(
+				sprintf(
+					__( 'File size exceeds the maximum limit of %s. Please upload a smaller file.', 'geodir-converter' ),
+					size_format( $max_size )
+				)
+			);
+		}
+
+		// Validate extension.
+		$ext = strtolower( pathinfo( $file['name'], PATHINFO_EXTENSION ) );
+		if ( $ext !== 'csv' ) {
+			$this->send_json_error(
+				__( 'Invalid file type. Only CSV files are allowed.', 'geodir-converter' )
+			);
+		}
+
+		// MIME type validation.
+		$finfo         = new finfo( FILEINFO_MIME_TYPE );
+		$mime          = $finfo->file( $file['tmp_name'] );
+		$allowed_mimes = array( 'text/plain', 'text/csv', 'application/csv', 'application/vnd.ms-excel', 'text/comma-separated-values' );
+
+		if ( ! in_array( $mime, $allowed_mimes, true ) ) {
+			$this->send_json_error(
+				sprintf(
+					__( 'Invalid file format detected (%s). Please upload a valid CSV file.', 'geodir-converter' ),
+					esc_html( $mime )
+				)
+			);
+		}
+
+		// Parse CSV.
+		$importer = $this->get_importer( $importer_id );
+
+		if ( is_wp_error( $importer ) ) {
+			$this->send_json_error( $importer->get_error_message() );
+		}
+
+		$rows = $importer->parse_csv( $file['tmp_name'] );
+
+		if ( is_wp_error( $rows ) ) {
+			$this->send_json_error( $rows->get_error_message() );
+		}
+
+		if ( empty( $rows ) ) {
+			$this->send_json_error( __( 'The CSV file is empty or could not be parsed. Please check the file format and try again.', 'geodir-converter' ) );
+		}
+
+		// Detect module type based on headers.
+		$module_type = $importer->detect_module_type( array_keys( $rows[0] ) );
+
+		if ( ! $module_type ) {
+			$this->send_json_error(
+				__( 'Unable to determine if this is an Events or Listings CSV. Please ensure your CSV contains the correct headers.', 'geodir-converter' ),
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message'     => sprintf(
+					__( 'Successfully parsed %1$s: Found %2$d rows.', 'geodir-converter' ),
+					$module_type,
+					count( $rows )
+				),
+				'module_type' => $module_type,
+				'file_name'   => esc_html( $file['name'] ),
+				'file_size'   => size_format( $file['size'] ),
+				'total_rows'  => count( $rows ),
 			)
 		);
 	}

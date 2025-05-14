@@ -34,77 +34,77 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_USERS = 'users';
+	private const ACTION_IMPORT_USERS = 'import_users';
 
 	/**
 	 * Action identifier for importing blog categories.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_BLOG_CATEGORIES = 'blog_categories';
+	private const ACTION_IMPORT_BLOG_CATEGORIES = 'import_blog_categories';
 
 	/**
 	 * Action identifier for importing event categories.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_EVENTS_CATEGORIES = 'events_categories';
+	private const ACTION_IMPORT_EVENTS_CATEGORIES = 'import_events_categories';
 
 	/**
 	 * Action identifier for importing invoices.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_INVOICES = 'invoices';
+	private const ACTION_IMPORT_INVOICES = 'import_invoices';
 
 	/**
 	 * Action identifier for importing discounts.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_DISCOUNTS = 'discounts';
+	private const ACTION_IMPORT_DISCOUNTS = 'import_discounts';
 
 	/**
 	 * Action identifier for importing products.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_PRODUCTS = 'products';
+	private const ACTION_IMPORT_PRODUCTS = 'import_products';
 
 	/**
 	 * Action identifier for importing reviews.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_REVIEWS = 'reviews';
+	private const ACTION_IMPORT_REVIEWS = 'import_reviews';
 
 	/**
 	 * Action identifier for importing events.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_EVENTS = 'events';
+	private const ACTION_IMPORT_EVENTS = 'import_events';
 
 	/**
 	 * Action identifier for importing comments.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_COMMENTS = 'comments';
+	private const ACTION_IMPORT_COMMENTS = 'import_comments';
 
 	/**
 	 * Action identifier for importing posts.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_POSTS = 'posts';
+	private const ACTION_IMPORT_POSTS = 'import_posts';
 
 	/**
 	 * Action identifier for importing pages.
 	 *
 	 * @var string
 	 */
-	private const ACTION_IMPORT_PAGES = 'pages';
+	private const ACTION_IMPORT_PAGES = 'import_pages';
 
 	/**
 	 * Post type identifier for events.
@@ -155,9 +155,6 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 */
 	protected function init() {
 		$this->url = $this->get_import_setting( 'site_url' );
-
-		// Skip invoice emails for imported invoices.
-		add_filter( 'getpaid_skip_invoice_email', array( $this, 'skip_invoice_email' ), 10, 3 );
 
 		// Handle logins for imported users.
 		add_filter( 'wp_authenticate_user', array( $this, 'handle_user_login' ), 10, 2 );
@@ -255,34 +252,6 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 				</button>
 			</div>
 		</form>
-		<?php
-	}
-
-	/**
-	 * Render a notice for a missing plugin.
-	 *
-	 * @param string $plugin_name The name of the plugin.
-	 * @param string $import_type The type of data that won't be imported.
-	 * @param string $plugin_url  The URL to download the plugin.
-	 */
-	private function render_plugin_notice( $plugin_name, $import_type, $plugin_url ) {
-		?>
-		<div class="notice notice-error notice-large me-0 ms-0 mb-3">
-			<p class="mb-0">
-				<?php
-				printf(
-					esc_html__(
-						'The %1$s plugin is not active. %2$s will not be imported unless you %3$sinstall and activate the %1$s plugin%4$s first.',
-						'geodir-converter'
-					),
-					esc_html( $plugin_name ),
-					esc_html( ucfirst( $import_type ) ),
-					'<a href="' . esc_url( $plugin_url ) . '">',
-					'</a>'
-				);
-				?>
-			</p>
-		</div>
 		<?php
 	}
 
@@ -594,7 +563,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array|false Result of the import operation or false if import is complete.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_users( array $task ) {
+	public function task_import_users( array $task ) {
 		$db = $this->get_db_connection();
 		if ( is_wp_error( $db ) ) {
 			throw new Exception( $db->get_error_message() );
@@ -799,7 +768,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_products( array $task ) {
+	public function task_import_products( array $task ) {
 		// Abort early if the payment manager plugin is not installed.
 		if ( ! class_exists( 'GeoDir_Pricing_Package' ) ) {
 			$this->log( __( 'Payment manager plugin is not active. Skipping products...', 'geodir-converter' ) );
@@ -1055,7 +1024,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array|false Result of the import operation or false if import is complete.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_fields( array $task ) {
+	public function task_import_fields( array $task ) {
 		global $plugin_prefix;
 
 		$db = $this->get_db_connection();
@@ -1417,7 +1386,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 						'type'        => 'checkbox',
 						'required'    => false,
 						'placeholder' => __( 'Is Claimed', 'geodir-converter' ),
-						'icon'        => 'far fa-id-card',
+						'icon'        => 'far fa-check',
 						'priority'    => 10,
 					),
 				)
@@ -1462,7 +1431,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 
 			if ( 'image' === $field['type'] ) {
 				$gd_field['extra'] = array(
-					'gd_file_types' => array( 'jpg', 'jpe', 'jpeg', 'gif', 'png', 'bmp', 'ico' ),
+					'gd_file_types' => geodir_image_extensions(),
 					'file_limit'    => 1,
 				);
 			}
@@ -1514,7 +1483,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array|false Result of the import operation or false if import is complete.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_categories( array $task ) {
+	public function task_import_categories( array $task ) {
 		$db = $this->get_db_connection();
 		if ( is_wp_error( $db ) ) {
 			throw new Exception( $db->get_error_message() );
@@ -1721,7 +1690,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array|false Result of the import operation or false if import is complete.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_blog_categories( array $task ) {
+	public function task_import_blog_categories( array $task ) {
 		$db = $this->get_db_connection();
 		if ( is_wp_error( $db ) ) {
 			throw new Exception( $db->get_error_message() );
@@ -1768,6 +1737,19 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 			return $this->next_task( $task );
 		}
 
+        if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Categories: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $categories ),
+					0
+				),
+				'success'
+			);
+			return $this->next_task( $task );
+		}
+
 		// Get existing category mapping.
 		$category_mapping = (array) $this->options_handler->get_option_no_cache( 'blog_category_mapping', array() );
 
@@ -1779,11 +1761,11 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 			$term_slug = sanitize_title( $category->friendly_url );
 			$term      = term_exists( $term_slug, 'category' );
 
-            // Handle test mode.
-            if ( $this->is_test_mode() ) {
-                $term ? ++$skipped : ++$imported;
-                continue;
-            }
+			// Handle test mode.
+			if ( $this->is_test_mode() ) {
+				$term ? ++$skipped : ++$imported;
+				continue;
+			}
 
 			if ( ! $term ) {
 				$term = wp_insert_term(
@@ -1862,7 +1844,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array|false Result of the import operation or false if import is complete.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_events_categories( array $task ) {
+	public function task_import_events_categories( array $task ) {
 		$db = $this->get_db_connection();
 		if ( is_wp_error( $db ) ) {
 			throw new Exception( $db->get_error_message() );
@@ -1910,6 +1892,19 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 			return $this->next_task( $task );
 		}
 
+        if ( $this->is_test_mode() ) {
+			$this->log(
+				sprintf(
+				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
+					esc_html__( 'Categories: Import completed. %1$d imported, %2$d failed.', 'geodir-converter' ),
+					count( $categories ),
+					0
+				),
+				'success'
+			);
+			return $this->next_task( $task );
+		}
+
 		// Get existing category mapping.
 		$category_mapping = (array) $this->options_handler->get_option_no_cache( 'events_category_mapping', array() );
 
@@ -1921,11 +1916,11 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 			$term_slug = sanitize_title( $category->friendly_url );
 			$term      = term_exists( $term_slug, $post_type . 'category' );
 
-            // Handle test mode.
-            if ( $this->is_test_mode() ) {
-                $term ? ++$skipped : ++$imported;
-                continue;
-            }
+			// Handle test mode.
+			if ( $this->is_test_mode() ) {
+				$term ? ++$skipped : ++$imported;
+				continue;
+			}
 
 			if ( ! $term ) {
 				$term = wp_insert_term(
@@ -2005,70 +2000,20 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return void
 	 */
 	public function import_category_image( $term_id, $image_url, $meta_key ) {
-		$uploads   = wp_upload_dir();
-		$timeout   = 5;
-		$temp_file = Geodir_Media::download_url( esc_url_raw( $image_url ), $timeout );
+		$attachment_data = $this->import_attachment( $image_url );
 
-		if ( is_wp_error( $temp_file ) || ! file_exists( $temp_file ) ) {
+		if ( ! isset( $attachment_data['id'], $attachment_data['src'] ) ) {
 			return false;
 		}
 
-		$file_type = wp_check_filetype( basename( parse_url( $image_url, PHP_URL_PATH ) ) );
-
-		if ( empty( $file_type['ext'] ) && empty( $file_type['type'] ) ) {
-			return false;
-		}
-
-		$image = array(
-			'name'     => basename( $image_url ),
-			'type'     => $file_type['type'],
-			'tmp_name' => $temp_file,
-			'error'    => 0,
-			'size'     => filesize( $temp_file ),
-		);
-
-		$result = wp_handle_sideload(
-			$image,
+		update_term_meta(
+			$term_id,
+			$meta_key,
 			array(
-				'test_form' => false,
-				'test_size' => true,
+				'id'  => absint( $attachment_data['id'] ),
+				'src' => $attachment_data['src'],
 			)
 		);
-
-		// Delete temp file.
-		@unlink( $temp_file );
-
-		if ( isset( $result['error'] ) && ! empty( $result['error'] ) ) {
-			return false;
-		}
-
-		$attachment = array(
-			'guid'           => $uploads['baseurl'] . '/' . basename( $result['file'] ),
-			'post_mime_type' => $file_type['type'],
-			'post_title'     => preg_replace( '/\.[^.]+$/', '', basename( $result['file'] ) ),
-			'post_content'   => '',
-			'post_status'    => 'inherit',
-		);
-
-		$attach_id       = wp_insert_attachment( $attachment, $result['file'] );
-		$attachment_data = wp_generate_attachment_metadata( $attach_id, $result['file'] );
-
-		if ( empty( $attachment_data['file'] ) && isset( $file_type['ext'] ) && 'svg' === $file_type['ext'] ) {
-			$attachment_data['file'] = str_replace( $uploads['basedir'], '', $result['file'] );
-		}
-
-		wp_update_attachment_metadata( $attach_id, $attachment_data );
-
-		if ( isset( $attachment_data['file'] ) ) {
-			update_term_meta(
-				$term_id,
-				$meta_key,
-				array(
-					'id'  => $attach_id,
-					'src' => $attachment_data['file'],
-				)
-			);
-		}
 
 		return true;
 	}
@@ -2082,7 +2027,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_listings( array $task ) {
+	public function task_import_listings( array $task ) {
 		$db = $this->get_db_connection();
 		if ( is_wp_error( $db ) ) {
 			throw new Exception( $db->get_error_message() );
@@ -2518,7 +2463,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_events( array $task ) {
+	public function task_import_events( array $task ) {
 		// Abort early if events addon is not installed.
 		if ( ! class_exists( 'GeoDir_Event_Manager' ) ) {
 			$this->log( __( 'Events addon is not active. Skipping events...', 'geodir-converter' ) );
@@ -2666,11 +2611,11 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 				$gd_event['post_images'] = $images;
 			}
 
-            // Handle test mode.
-            if ( $this->is_test_mode() ) {
-                $is_update ? ++$skipped : ++$imported;
-                continue;
-            }
+			// Handle test mode.
+			if ( $this->is_test_mode() ) {
+				$is_update ? ++$skipped : ++$imported;
+				continue;
+			}
 
 			// Delete existing media if updating.
 			if ( $is_update ) {
@@ -2750,7 +2695,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_reviews( array $task ) {
+	public function task_import_reviews( array $task ) {
 		$db = $this->get_db_connection();
 		if ( is_wp_error( $db ) ) {
 			throw new Exception( $db->get_error_message() );
@@ -2847,11 +2792,11 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 				'comment_approved'     => $approved,
 			);
 
-            // Handle test mode.
-            if ( $this->is_test_mode() ) {
-                $existing_review ? ++$skipped : ++$imported;
-                continue;
-            }
+			// Handle test mode.
+			if ( $this->is_test_mode() ) {
+				$existing_review ? ++$skipped : ++$imported;
+				continue;
+			}
 
 			if ( ! empty( $existing_review ) && isset( $existing_review[0]->comment_ID ) ) {
 				$comment_data['comment_ID'] = (int) $existing_review[0]->comment_ID;
@@ -2934,7 +2879,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_posts( array $task ) {
+	public function task_import_posts( array $task ) {
 		$db = $this->get_db_connection();
 		if ( is_wp_error( $db ) ) {
 			throw new Exception( $db->get_error_message() );
@@ -3002,11 +2947,11 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 				'post_modified'     => ( $post->date_updated ) ? $post->date_updated : '',
 			);
 
-            // Handle test mode.
-            if ( $this->is_test_mode() ) {
-                $is_update ? ++$skipped : ++$imported;
-                continue;
-            }
+			// Handle test mode.
+			if ( $this->is_test_mode() ) {
+				$is_update ? ++$skipped : ++$imported;
+				continue;
+			}
 
 			// Insert or update the post.
 			if ( $is_update ) {
@@ -3126,7 +3071,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_pages( array $task ) {
+	public function task_import_pages( array $task ) {
 		$db = $this->get_db_connection();
 		if ( is_wp_error( $db ) ) {
 			throw new Exception( $db->get_error_message() );
@@ -3195,11 +3140,11 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 				'post_modified'     => $current_time,
 			);
 
-            // Handle test mode.
-            if ( $this->is_test_mode() ) {
-                $is_update ? ++$skipped : ++$imported;
-                continue;
-            }
+			// Handle test mode.
+			if ( $this->is_test_mode() ) {
+				$is_update ? ++$skipped : ++$imported;
+				continue;
+			}
 
 			// Insert or update the post.
 			if ( $is_update ) {
@@ -3267,7 +3212,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_comments( array $task ) {
+	public function task_import_comments( array $task ) {
 		$db = $this->get_db_connection();
 		if ( is_wp_error( $db ) ) {
 			throw new Exception( $db->get_error_message() );
@@ -3365,11 +3310,11 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 				'comment_approved'     => $approved,
 			);
 
-            // Handle test mode.
-            if ( $this->is_test_mode() ) {
-                $existing_comment ? ++$skipped : ++$imported;
-                continue;
-            }
+			// Handle test mode.
+			if ( $this->is_test_mode() ) {
+				$existing_comment ? ++$skipped : ++$imported;
+				continue;
+			}
 
 			if ( $existing_comment && isset( $existing_comment[0]->comment_ID ) ) {
 				$comment_data['comment_ID'] = (int) $existing_comment[0]->comment_ID;
@@ -3434,7 +3379,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_discounts( array $task ) {
+	public function task_import_discounts( array $task ) {
 		$db = $this->get_db_connection();
 		if ( is_wp_error( $db ) ) {
 			throw new Exception( $db->get_error_message() );
@@ -3528,11 +3473,11 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 				)
 			);
 
-            // Handle test mode.
-            if ( $this->is_test_mode() ) {
-                $is_update ? ++$skipped : ++$imported;
-                continue;
-            }
+			// Handle test mode.
+			if ( $this->is_test_mode() ) {
+				$is_update ? ++$skipped : ++$imported;
+				continue;
+			}
 
 			$discount_id = $wpinv_discount->save();
 
@@ -3591,7 +3536,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 * @throws Exception If database connection fails.
 	 */
-	public function import_invoices( array $task ) {
+	public function task_import_invoices( array $task ) {
 		if ( ! class_exists( 'WPInv_Plugin' ) ) {
 			$this->log( __( 'Invoices plugin is not active. Skipping invoices...', 'geodir-converter' ) );
 			return $this->next_task( $task );
@@ -3721,23 +3666,35 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 			$package_id = isset( $packages_mapping[ $invoice->order_id ] ) ? $packages_mapping[ $invoice->order_id ] : 0;
 			$wpinv_item = wpinv_get_item_by( 'custom_id', $package_id, 'package' );
 
-			$item = new GetPaid_Form_Item( $wpinv_item->get_id() );
-			$item->set_name( $item->get_name() );
-			$item->set_description( $item->get_description() );
-			$item->set_price( $item->get_price() );
-			$item->set_quantity( $item->get_quantity() );
-			$wpi_invoice->add_item( $item );
+			if ( $wpinv_item ) {
+				$item = new GetPaid_Form_Item( $wpinv_item->get_id() );
+				$item->set_name( $wpinv_item->get_name() );
+				$item->set_description( $wpinv_item->get_description() );
+				$item->set_price( $wpinv_item->get_price() );
+				$item->set_quantity( 1 );
+				$wpi_invoice->add_item( $item );
+			} else {
+				$package = GeoDir_Pricing_Package::get_package( (int) $package_id );
+				if ( $package ) {
+					$item = new GetPaid_Form_Item( $package['id'] );
+					$item->set_name( $package['title'] );
+					$item->set_description( $package['description'] );
+					$item->set_price( (float) $package['amount'] );
+					$item->set_quantity( 1 );
+					$wpi_invoice->add_item( $item );
+				}
+			}
 
 			// Insert or update the post.
 			if ( $is_update ) {
 				$wpi_invoice->ID = absint( $invoice_id );
 			}
 
-            // Handle test mode.
-            if ( $this->is_test_mode() ) {
-                $is_update ? ++$skipped : ++$imported;
-                continue;
-            }
+			// Handle test mode.
+			if ( $this->is_test_mode() ) {
+				$is_update ? ++$skipped : ++$imported;
+				continue;
+			}
 
 			$wpi_invoice_id = $wpi_invoice->save();
 
@@ -3924,22 +3881,6 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		}
 
 		return implode( '\n', $formatted_options );
-	}
-
-	/**
-	 * Filter to skip sending completed invoice emails for invoices created by GeoDir Converter.
-	 *
-	 * @param bool   $skip     Whether to skip sending the email.
-	 * @param string $type     The email type.
-	 * @param object $invoice  The invoice object.
-	 * @return bool
-	 */
-	public function skip_invoice_email( $skip, $type, $invoice ) {
-		if ( in_array( $type, array( 'completed_invoice', 'refunded_invoice', 'cancelled_invoice' ) ) && $invoice->get_created_via() === 'geodir-converter' ) {
-			return true;
-		}
-
-		return $skip;
 	}
 
 	/**
