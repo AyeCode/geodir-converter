@@ -34,7 +34,7 @@ class GeoDir_Converter_Admin {
 	private function register_hooks() {
 		add_action( 'admin_menu', array( $this, 'admin_menus' ) );
 		add_filter( 'aui_screen_ids', array( $this, 'screen_ids' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ), 1 );
 	}
 
 	/**
@@ -89,16 +89,18 @@ class GeoDir_Converter_Admin {
 					'import'   => 'geodir_converter_import',
 					'progress' => 'geodir_converter_progress',
 					'abort'    => 'geodir_converter_abort',
+					'upload'   => 'geodir_converter_upload',
 				),
 				'i18n'    => array(
 					'selectImport' => __( 'I want to import listings from:', 'geodir-converter' ),
 					'importSource' => __( 'Import listings from:', 'geodir-converter' ),
+					'runConverter' => __( 'Run Converter', 'geodir-converter' ),
 					'loading'      => __( 'Loading...', 'geodir-converter' ),
-					'runConverter' => 'Run Converter',
 					'import'       => __( 'Start Import', 'geodir-converter' ),
 					'importing'    => __( 'Importing...', 'geodir-converter' ),
 					'abort'        => __( 'Abort', 'geodir-converter' ),
 					'aborting'     => __( 'Aborting...', 'geodir-converter' ),
+					'uploading'    => __( 'Uploading...', 'geodir-converter' ),
 				),
 			)
 		);
@@ -110,7 +112,8 @@ class GeoDir_Converter_Admin {
 			'geodir-converter-admin',
 			'.geodir-converter-wrapper { max-width: 700px; }
             .geodir-converter-icon { display: block; width: 50px; height: 50px; object-fit: cover; }
-            .geodir-converter-importer-error h1 { line-height: 1.4; font-size: 1.125rem; }'
+            .geodir-converter-importer-error h1 { line-height: 1.4; font-size: 1.125rem; }
+            .geodir-converter-wrapper .alert .alert-heading { font-size: 16px; margin-bottom: 10px; }'
 		);
 	}
 

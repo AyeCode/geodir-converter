@@ -16,7 +16,7 @@
      * @param {Object} atts - Additional parameters for $.ajax (optional).
      * @return {jqXHR} jQuery XMLHttpRequest object.
      */
-    function ajax(action, callback, data, atts) {
+    GeoDir_Converter.ajax = function (action, callback, data, atts) {
         atts = typeof atts !== 'undefined' ? atts : {};
         data = typeof data !== 'undefined' ? data : {};
 
@@ -163,7 +163,7 @@
             this.activate();
             errorHandler.hide();
 
-            ajax(self.ajaxAction, function (success, data) {
+            GeoDir_Converter.ajax(self.ajaxAction, function (success, data) {
                 if (!success) {
                     self.enable();
                     self.converter.stop();
@@ -202,17 +202,17 @@
             const settings = this.converter.settings;
 
             wrapper.find('.card-header h6').text(GeoDir_Converter.i18n.importSource);
-            
+
             wrapper.find('.geodir-converter-importer')
                 .not(converter)
                 .addClass('d-none');
-            
+
             $('.geodir-converter-settings')
                 .not(settings)
                 .addClass('d-none');
 
             this.element.addClass('d-none');
-            
+
             this.converter.backButton.element.removeClass('d-none');
             converter.addClass('border-bottom-0');
             settings.removeClass('d-none');
@@ -257,8 +257,8 @@
             this.converter.stop();
             const importerId = this.converter.importerId;
             const self = this;
-    
-            ajax(self.ajaxAction, function (success, data) {
+
+            GeoDir_Converter.ajax(self.ajaxAction, function (success, data) {
                 self.converter.start();
                 if (!success) {
                     self.enable();
@@ -314,12 +314,12 @@
 
     });
 
-     /**
-     * Error Handler.
-     *
-     * @type {Object}
-     */
-     GeoDir_Converter.ErrorHandler = {
+    /**
+    * Error Handler.
+    *
+    * @type {Object}
+    */
+    GeoDir_Converter.ErrorHandler = {
         /**
          * Initializes the error handler.
          * @param {jQuery} el - The element where errors will be displayed.
@@ -508,7 +508,7 @@
         tick: function () {
             const self = this;
 
-            ajax(GeoDir_Converter.actions.progress, function (success, data) {
+            GeoDir_Converter.ajax(GeoDir_Converter.actions.progress, function (success, data) {
                 if (self.preventUpdates) {
                     return;
                 }
@@ -575,13 +575,15 @@
         var o = {};
         var a = this.serializeArray();
         $.each(a, function () {
-            if (o[this.name]) {
-                if (!o[this.name].push) {
-                    o[this.name] = [o[this.name]];
+            var name = this.name.replace(/\[\]$/, '');
+
+            if (o[name]) {
+                if (!Array.isArray(o[name])) {
+                    o[name] = [o[name]];
                 }
-                o[this.name].push(this.value || '');
+                o[name].push(this.value || '');
             } else {
-                o[this.name] = this.value || '';
+                o[name] = this.value || '';
             }
         });
         return o;

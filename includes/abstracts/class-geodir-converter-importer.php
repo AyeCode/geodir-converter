@@ -9,6 +9,8 @@
 
 namespace GeoDir_Converter\Abstracts;
 
+use WP_Error;
+use Geodir_Media;
 use GeoDir_Converter\GeoDir_Converter_Options_Handler;
 use GeoDir_Converter\Importers\GeoDir_Converter_Background_Process;
 
@@ -21,10 +23,10 @@ defined( 'ABSPATH' ) || exit;
  */
 abstract class GeoDir_Converter_Importer {
 	/**
- * Number of records processed per batch.
- *
- * @var int
- */
+	 * Number of records processed per batch.
+	 *
+	 * @var int
+	 */
 	const BATCH_SIZE = 1000;
 
 	/**
@@ -32,35 +34,42 @@ abstract class GeoDir_Converter_Importer {
 	 *
 	 * @var string
 	 */
-	const ACTION_IMPORT_CATEGORIES = 'categories';
+	const ACTION_IMPORT_CATEGORIES = 'import_categories';
 
 	/**
 	 * Action identifier for importing tags.
 	 *
 	 * @var string
 	 */
-	const ACTION_IMPORT_TAGS = 'tags';
+	const ACTION_IMPORT_TAGS = 'import_tags';
 
 	/**
 	 * Action identifier for importing packages.
 	 *
 	 * @var string
 	 */
-	const ACTION_IMPORT_PACKAGES = 'packages';
+	const ACTION_IMPORT_PACKAGES = 'import_packages';
 
 	/**
 	 * Action identifier for importing custom fields.
 	 *
 	 * @var string
 	 */
-	const ACTION_IMPORT_FIELDS = 'fields';
+	const ACTION_IMPORT_FIELDS = 'import_fields';
+
+	/**
+	 * Action identifier for parsing listings.
+	 *
+	 * @var string
+	 */
+	const ACTION_PARSE_LISTINGS = 'parse_listings';
 
 	/**
 	 * Action identifier for importing listings.
 	 *
 	 * @var string
 	 */
-	const ACTION_IMPORT_LISTINGS = 'listings';
+	const ACTION_IMPORT_LISTINGS = 'import_listings';
 
 	/**
 	 * Import status indicating failure.
@@ -82,6 +91,55 @@ abstract class GeoDir_Converter_Importer {
 	 * @var int
 	 */
 	const IMPORT_STATUS_SKIPPED = 2;
+
+	/**
+	 * Import status indicating the item was updated.
+	 *
+	 * @var int
+	 */
+	const IMPORT_STATUS_UPDATED = 3;
+
+	/**
+	 * Log template for started.
+	 *
+	 * @var string
+	 */
+	protected const LOG_TEMPLATE_STARTED = '%s: Import started.';
+
+	/**
+	 * Log template for success.
+	 *
+	 * @var string
+	 */
+	protected const LOG_TEMPLATE_SUCCESS = 'Imported %s: %s';
+
+	/**
+	 * Log template for skipped.
+	 *
+	 * @var string
+	 */
+	protected const LOG_TEMPLATE_SKIPPED = 'Skipped %s: %s';
+
+	/**
+	 * Log template for failed.
+	 *
+	 * @var string
+	 */
+	protected const LOG_TEMPLATE_FAILED = 'Failed to import %s: %s';
+
+	/**
+	 * Log template for updated.
+	 *
+	 * @var string
+	 */
+	protected const LOG_TEMPLATE_UPDATED = 'Updated %s: %s';
+
+	/**
+	 * Log template for finished.
+	 *
+	 * @var string
+	 */
+	protected const LOG_TEMPLATE_FINISHED = '%s: Import completed. Processed: %d, Imported: %d, Updated: %d, Skipped: %d, Failed: %d';
 
 	/**
 	 * The importer ID.
@@ -174,14 +232,6 @@ abstract class GeoDir_Converter_Importer {
 	abstract public function get_action();
 
 	/**
-	 * Import categories.
-	 *
-	 * @param array $task The offset to start importing from.
-	 * @return array Result of the import operation.
-	 */
-	abstract public function import_categories( array $task );
-
-	/**
 	 * Validate importer settings.
 	 *
 	 * @param array $settings The settings to validate.
@@ -196,6 +246,34 @@ abstract class GeoDir_Converter_Importer {
 	 */
 	public function render_settings() {
 		echo '<p>' . esc_html__( 'This importer does not have any custom settings.', 'geodir-converter' ) . '</p>';
+	}
+
+	/**
+	 * Render a notice for a missing plugin.
+	 *
+	 * @param string $plugin_name The name of the plugin.
+	 * @param string $import_type The type of data that won't be imported.
+	 * @param string $plugin_url  The URL to download the plugin.
+	 */
+	protected function render_plugin_notice( $plugin_name, $import_type, $plugin_url ) {
+		aui()->alert(
+			array(
+				'type'    => 'info',
+				'heading' => esc_html__( sprintf( 'The %1$s plugin is not active.', $plugin_name ), 'geodir-converter' ),
+				'content' => sprintf(
+					esc_html__(
+						'%1$s will not be imported unless you %2$sinstall and activate the %3$s plugin%4$s first.',
+						'geodir-converter'
+					),
+					esc_html( ucfirst( $import_type ) ),
+					esc_html( $plugin_name ),
+					'<a href="' . esc_url( $plugin_url ) . '">',
+					'</a>'
+				),
+				'class'   => 'mb-3',
+			),
+			true
+		);
 	}
 
 	/**
@@ -240,21 +318,62 @@ abstract class GeoDir_Converter_Importer {
 			admin_url( 'admin.php' )
 		);
 
+		// Remove gd_events from the list of post types. Events are imported separately.
+		unset( $post_type_options['gd_events'] );
+
 		aui()->select(
 			array(
-				'id'         => 'gd_post_type',
-				'name'       => 'gd_post_type',
-				'label'      => esc_html__( 'GD Post Type', 'geodirectory' ),
-				'label_type' => 'top',
-				'value'      => $gd_post_type,
-				'options'    => $post_type_options,
-				'help_text'  => wp_kses_post(
+				'id'          => $this->importer_id . '_gd_post_type',
+				'name'        => 'gd_post_type',
+				'label'       => esc_html__( 'GD Listing Post Type', 'geodirectory' ),
+				'label_type'  => 'top',
+				'label_class' => 'font-weight-bold fw-bold',
+				'value'       => $gd_post_type,
+				'options'     => $post_type_options,
+				'wrap_class'  => 'geodir-converter-post-type',
+				'help_text'   => wp_kses_post(
 					sprintf(
 					/* translators: %s is the link to create a new post type */
 						__( 'Choose the post type to assign imported listings to. <a href="%s" target="_blank">Create a new post type</a>.', 'geodir-converter' ),
 						esc_url( $new_cpt_url )
 					)
 				),
+			),
+			true
+		);
+	}
+
+	/**
+	 * Display the author selection dropdown.
+	 *
+	 * @since 2.0.2
+	 * @return void
+	 */
+	public function display_author_select( $default_user = false ) {
+		$wp_author_id = $this->get_import_setting( 'wp_author_id', '' );
+		$wp_users     = wp_list_pluck( get_users(), 'display_name', 'ID' );
+
+		$wp_users = array( '' => esc_html__( 'Current WordPress User', 'geodir-converter' ) ) + $wp_users;
+
+		$label     = esc_html__( 'Assign Imported Listings to a WordPress User', 'geodir-converter' );
+		$help_text = esc_html__( 'Select the WordPress user to assign imported listings to. Leave blank to use the default WordPress user.', 'geodir-converter' );
+
+		if ( $default_user ) {
+			$label     = esc_html__( 'Set Default WordPress User for Imported Listings', 'geodir-converter' );
+			$help_text = esc_html__( 'Select the default WordPress user to assign imported listings to if the listing does not have an author.', 'geodir-converter' );
+		}
+
+		aui()->select(
+			array(
+				'id'          => 'wp_author_id',
+				'name'        => 'wp_author_id',
+				'select2'     => true,
+				'label'       => $label,
+				'label_class' => 'font-weight-bold fw-bold',
+				'label_type'  => 'top',
+				'value'       => $wp_author_id,
+				'options'     => $wp_users,
+				'help_text'   => $help_text,
 			),
 			true
 		);
@@ -270,15 +389,16 @@ abstract class GeoDir_Converter_Importer {
 
 		aui()->input(
 			array(
-				'id'         => 'test_mode',
-				'type'       => 'checkbox',
-				'name'       => 'test_mode',
-				'label_type' => 'top',
-				'label'      => esc_html__( 'Test Mode', 'geodirectory' ),
-				'checked'    => $is_test_mode,
-				'value'      => 'yes',
-				'switch'     => 'md',
-				'help_text'  => esc_html__( 'Run a test import without importing any data.', 'geodirectory' ),
+				'id'          => $this->importer_id . '_test_mode',
+				'type'        => 'checkbox',
+				'name'        => 'test_mode',
+				'label_type'  => 'top',
+				'label_class' => 'font-weight-bold fw-bold',
+				'label'       => esc_html__( 'Test Mode', 'geodirectory' ),
+				'checked'     => $is_test_mode,
+				'value'       => 'yes',
+				'switch'      => 'md',
+				'help_text'   => esc_html__( 'Run a test import without importing any data.', 'geodirectory' ),
 			),
 			true
 		);
@@ -397,7 +517,7 @@ abstract class GeoDir_Converter_Importer {
 			'longitude',
 			'mapview',
 			'mapzoom',
-			'street'
+			'street',
 		);
 
 		if ( in_array( $field_name, $preserved_keys, true ) ) {
@@ -516,6 +636,78 @@ abstract class GeoDir_Converter_Importer {
 	}
 
 	/**
+	 * Import image attachment.
+	 *
+	 * @since 2.0.2
+	 * @param string $url The URL to import.
+	 * @return string Gallery images string.
+	 */
+	protected function import_attachment( $url ) {
+		$uploads   = wp_upload_dir();
+		$timeout   = 5;
+		$temp_file = Geodir_Media::download_url( esc_url_raw( $url ), $timeout );
+
+		if ( is_wp_error( $temp_file ) || ! file_exists( $temp_file ) ) {
+			return false;
+		}
+
+		$file_type = wp_check_filetype( basename( wp_parse_url( $url, PHP_URL_PATH ) ) );
+
+		if ( empty( $file_type['ext'] ) && empty( $file_type['type'] ) ) {
+			return false;
+		}
+
+		$image = array(
+			'name'     => basename( $url ),
+			'type'     => $file_type['type'],
+			'tmp_name' => $temp_file,
+			'error'    => 0,
+			'size'     => filesize( $temp_file ),
+		);
+
+		$result = wp_handle_sideload(
+			$image,
+			array(
+				'test_form' => false,
+				'test_size' => true,
+			)
+		);
+
+		// Delete temp file.
+		@unlink( $temp_file );
+
+		if ( isset( $result['error'] ) && ! empty( $result['error'] ) ) {
+			return false;
+		}
+
+		$attach_id       = wp_insert_attachment(
+			array(
+				'guid'           => $uploads['baseurl'] . '/' . basename( $result['file'] ),
+				'post_mime_type' => $file_type['type'],
+				'post_title'     => preg_replace( '/\.[^.]+$/', '', basename( $result['file'] ) ),
+				'post_content'   => '',
+				'post_status'    => 'inherit',
+			),
+			$result['file']
+		);
+		$attachment_data = wp_generate_attachment_metadata( $attach_id, $result['file'] );
+
+		if ( empty( $attachment_data['file'] ) && isset( $file_type['ext'] ) && 'svg' === $file_type['ext'] ) {
+			$attachment_data['file'] = str_replace( $uploads['basedir'], '', $result['file'] );
+		}
+
+		wp_update_attachment_metadata( $attach_id, $attachment_data );
+
+		$attachment = array(
+			'id'  => $attach_id,
+			'url' => wp_get_attachment_url( $attach_id ),
+			'src' => $attachment_data['file'],
+		);
+
+		return $attachment;
+	}
+
+	/**
 	 * Import taxonomy terms.
 	 *
 	 * @param array  $terms     Array of terms to import.
@@ -581,12 +773,239 @@ abstract class GeoDir_Converter_Importer {
 	}
 
 	/**
+	 * Get location data (city, state, zip, country) from latitude and longitude.
+	 *
+	 * Uses Nominatim (OpenStreetMap) reverse geocoding.
+	 *
+	 * @param float $lat Latitude.
+	 * @param float $lng Longitude.
+	 * @return WP_Error|array Location data with keys 'city', 'state', 'zip', 'country', or WP_Error on failure.
+	 */
+	public function get_location_from_coords( $lat, $lng ) {
+		if ( ! is_numeric( $lat ) || ! is_numeric( $lng ) ) {
+			return new WP_Error( 'invalid_location', esc_html__( 'Invalid latitude or longitude', 'geodir-converter' ) );
+		}
+
+		// Check cache first.
+		$cache_key = 'geodir_converter_location_' . md5( $lat . ',' . $lng );
+		$location  = get_transient( $cache_key );
+
+		if ( false !== $location ) {
+			return $location;
+		}
+
+		$endpoint = 'https://nominatim.openstreetmap.org/reverse';
+		$args     = array(
+			'headers' => array(
+				'User-Agent' => sprintf( 'GeoDir_Converter/2.0.2 ( %s )', get_bloginfo( 'admin_email' ) ),
+			),
+			'timeout' => 10,
+		);
+
+		$url = add_query_arg(
+			array(
+				'lat'            => $lat,
+				'lon'            => $lng,
+				'format'         => 'json',
+				'addressdetails' => 1,
+			),
+			$endpoint
+		);
+
+		$response = wp_remote_get( $url, $args );
+
+		if ( is_wp_error( $response ) ) {
+			return new WP_Error( 'invalid_location', esc_html__( 'Failed to retrieve location data', 'geodir-converter' ) );
+		}
+
+		$body = wp_remote_retrieve_body( $response );
+		$data = json_decode( $body, true );
+
+		if ( ! isset( $data['address'] ) || empty( $data['address'] ) ) {
+			return new WP_Error( 'invalid_location', esc_html__( 'Invalid location data', 'geodir-converter' ) );
+		}
+
+		$address = $data['address'];
+
+		$city = '';
+		if ( isset( $address['village'] ) ) {
+			$city = $address['village'];
+		} elseif ( isset( $address['town'] ) ) {
+			$city = $address['town'];
+		} elseif ( isset( $address['city'] ) ) {
+			$city = $address['city'];
+		}
+
+		$state = '';
+		if ( isset( $address['province'] ) ) {
+			$state = $address['province'];
+		} elseif ( isset( $address['state'] ) ) {
+			$state = $address['state'];
+		} elseif ( isset( $address['region'] ) ) {
+			$state = $address['region'];
+		}
+
+		$location = array(
+			'latitude'  => $lat,
+			'longitude' => $lng,
+			'address'   => isset( $address['display_name'] ) ? $address['display_name'] : '',
+			'city'      => $city,
+			'state'     => isset( $state ) ? $state : '',
+			'zip'       => isset( $address['postcode'] ) ? $address['postcode'] : '',
+			'country'   => isset( $address['country'] ) ? $address['country'] : '',
+		);
+
+		// Cache the location for 1 hour.
+		set_transient( $cache_key, $location, 60 * 60 );
+
+		return $location;
+	}
+
+	/**
+	 * Parse CSV file.
+	 *
+	 * @param string $file_path The path to the CSV file.
+	 * @param array  $required_headers The required headers.
+	 * @return array|WP_Error An array of parsed rows or a WP_Error object on failure.
+	 */
+	public function parse_csv( $file_path, $required_headers = array() ) {
+		if ( ! file_exists( $file_path ) ) {
+			return new WP_Error( 'file_not_found', __( 'CSV file not found.', 'geodir-converter' ) );
+		}
+
+		if ( ! is_readable( $file_path ) ) {
+			return new WP_Error( 'file_not_readable', __( 'CSV file is not readable. Please check file permissions.', 'geodir-converter' ) );
+		}
+
+		$data            = array();
+		$line_number     = 0;
+		$max_line_length = 0;
+
+		try {
+			if ( ( $handle = fopen( $file_path, 'r' ) ) !== false ) {
+				// Get headers.
+				$headers = fgetcsv( $handle, 0, ',' );
+				++$line_number;
+
+				if ( empty( $headers ) || ! is_array( $headers ) ) {
+					return new WP_Error( 'invalid_headers', __( 'CSV file has invalid or missing headers.', 'geodir-converter' ) );
+				}
+
+				// Validate headers (no empty or duplicate headers).
+				$headers = array_map( 'trim', $headers );
+				if ( count( $headers ) !== count( array_filter( $headers ) ) ) {
+					return new WP_Error( 'empty_headers', __( 'CSV headers contain empty values. Please ensure all columns have headers.', 'geodir-converter' ) );
+				}
+
+				if ( count( $headers ) !== count( array_unique( $headers ) ) ) {
+					return new WP_Error( 'duplicate_headers', __( 'CSV headers contain duplicate values. Each column must have a unique header.', 'geodir-converter' ) );
+				}
+
+				// Remove spaces and convert to lowercase.
+				$headers = array_map(
+					function ( $header ) {
+						return trim( str_replace( ' ', '', strtolower( $header ) ) );
+					},
+					$headers
+				);
+
+				// Required headers check.
+				if ( ! empty( $required_headers ) ) {
+					$missing_headers = array_diff( $required_headers, array_map( 'strtolower', $headers ) );
+
+					if ( ! empty( $missing_headers ) ) {
+						return new WP_Error(
+							'missing_headers',
+							sprintf(
+								__( 'CSV is missing required headers: %s', 'geodir-converter' ),
+								implode( ', ', $missing_headers )
+							)
+						);
+					}
+				}
+
+				// Process rows.
+				while ( ( $row = fgetcsv( $handle, 0, ',' ) ) !== false ) {
+					++$line_number;
+
+					// Skip empty rows.
+					if ( count( array_filter( $row ) ) === 0 ) {
+						continue;
+					}
+
+					// Check for row length mismatch.
+					if ( count( $row ) !== count( $headers ) ) {
+						return new WP_Error(
+							'row_length_mismatch',
+							sprintf(
+								__( 'Row %1$d has %2$d columns while the header has %3$d columns. Please ensure all rows have the correct number of columns.', 'geodir-converter' ),
+								$line_number,
+								count( $row ),
+								count( $headers )
+							),
+						);
+					}
+
+					// Track max line length for memory management.
+					$line_length     = strlen( implode( '', $row ) );
+					$max_line_length = max( $max_line_length, $line_length );
+
+					// Memory limit check.
+					if ( $max_line_length > 1048576 ) { // 1MB per line limit
+						return new WP_Error( 'excessive_row_length', __( 'CSV contains excessively long rows. Please check your data format.', 'geodir-converter' ) );
+					}
+
+					// Sanitize and validate row data.
+					$sanitized_row = array();
+					foreach ( array_combine( $headers, $row ) as $key => $value ) {
+						// Basic sanitization.
+						$value = sanitize_text_field( $value );
+
+						// Field-specific validation could be added here.
+						$sanitized_row[ $key ] = $value;
+					}
+
+					$data[] = $sanitized_row;
+
+					// Limit number of rows for memory protection.
+					if ( count( $data ) >= 10000 ) {
+						break;
+					}
+				}
+
+				fclose( $handle );
+			} else {
+				return new WP_Error( 'file_open_failed', __( 'Failed to open CSV file for reading.', 'geodir-converter' ) );
+			}
+		} catch ( Exception $e ) {
+			// Re-throw with line number information if it's a parsing error.
+			if ( $line_number > 0 && $e->getCode() === 422 ) {
+				return new WP_Error(
+					'parsing_error',
+					sprintf(
+						__( 'Error at line %1$d: %2$s', 'geodir-converter' ),
+						$line_number,
+						$e->getMessage()
+					),
+				);
+			}
+			throw $e;
+		}
+
+		if ( empty( $data ) ) {
+			return new WP_Error( 'no_data', __( 'CSV file contains no valid data rows.', 'geodir-converter' ) );
+		}
+
+		return $data;
+	}
+
+	/**
 	 * Start the import process.
 	 *
 	 * @param array $settings The import settings.
 	 * @return array The result of the import process.
 	 */
-	public function import( array $settings ) {
+	public function import( $settings, $files = array() ) {
 		// Validate and sanitize settings.
 		$settings = $this->validate_settings( $settings );
 
@@ -594,20 +1013,37 @@ abstract class GeoDir_Converter_Importer {
 			return $settings;
 		}
 
+		$rows = array();
+		if ( is_array( $files ) && ! empty( $files ) ) {
+			foreach ( $files['tmp_name'] as $file ) {
+				$csv_rows = $this->parse_csv( $file );
+
+				if ( is_wp_error( $csv_rows ) ) {
+					return $csv_rows;
+				}
+
+				$rows = array_merge( $rows, $csv_rows );
+			}
+		}
+
 		// reset all importer options.
 		$this->clear_import_options();
 
+		// save import settings.
 		$this->options_handler->update_option( 'import_settings', $settings );
+		// set import start time.
+		$this->options_handler->update_option( 'import_start_time', time() );
 
 		if ( $this->is_test_mode() ) {
 			$this->log( esc_html__( 'Test mode is enabled. No data will be imported.', 'geodir-converter' ), 'error' );
 		}
 
 		// Start the background process.
-		$this->background_process->add_import_tasks(
+		$this->background_process->add_converter_tasks(
 			array(
 				'importer_id' => $this->importer_id,
 				'settings'    => $settings,
+				'rows'        => $rows,
 			)
 		);
 	}
@@ -659,7 +1095,7 @@ abstract class GeoDir_Converter_Importer {
 		$empty_stats = self::empty_stats();
 		$stats       = wp_parse_args( $stats, $empty_stats );
 
-		$stats[ $field ] = (int) $stats[ $field ] + $increment;
+		$stats[ $field ] = (int) $stats[ $field ] + (int) $increment;
 
 		$this->options_handler->update_option( 'stats', (array) $stats );
 	}
@@ -716,11 +1152,14 @@ abstract class GeoDir_Converter_Importer {
 
 	/**
 	 * Clear all import-related options.
+	 *
+	 * @return void
 	 */
 	protected function clear_import_options() {
 		$this->options_handler->delete_option( 'stats' );
 		$this->options_handler->delete_option( 'import_log' );
 		$this->options_handler->delete_option( 'import_settings' );
+		$this->options_handler->delete_option( 'import_start_time' );
 	}
 
 	/**
@@ -807,10 +1246,16 @@ abstract class GeoDir_Converter_Importer {
 	 * @param string $status The status of log message (info, warning, error).
 	 */
 	public function log( $message, $status = 'info' ) {
-		$logs   = $this->options_handler->get_option_no_cache( 'import_log', array() );
+		$logs         = $this->options_handler->get_option_no_cache( 'import_log', array() );
+		$start_time   = $this->options_handler->get_option( 'import_start_time' );
+		$current_time = time();
+		$elapsed      = $start_time ? $current_time - $start_time : 0;
+		$formatted    = $this->format_elapsed_time( $elapsed );
+
 		$logs[] = array(
-			'message' => $message,
-			'status'  => $status,
+			'message'   => "{$formatted} – {$message}",
+			'status'    => $status,
+			'timestamp' => gmdate( 'Y-m-d H:i:s', $current_time ),
 		);
 
 		$this->options_handler->update_option( 'import_log', $logs );
@@ -857,5 +1302,19 @@ abstract class GeoDir_Converter_Importer {
 			$logs_html[] = $this->log_to_html( $log, $inline );
 		}
 		return $logs_html;
+	}
+
+	/**
+	 * Format elapsed time in H:i:s
+	 *
+	 * @param int $seconds Number of seconds since start.
+	 * @return string
+	 */
+	private function format_elapsed_time( $seconds ) {
+		$hours   = floor( $seconds / 3600 );
+		$minutes = floor( ( $seconds % 3600 ) / 60 );
+		$seconds = $seconds % 60;
+
+		return sprintf( '%02d:%02d:%02d', $hours, $minutes, $seconds );
 	}
 }
