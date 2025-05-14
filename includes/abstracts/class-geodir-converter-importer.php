@@ -808,6 +808,7 @@ abstract class GeoDir_Converter_Importer {
 				'lon'            => $lng,
 				'format'         => 'json',
 				'addressdetails' => 1,
+				'email'          => get_bloginfo( 'admin_email' )
 			),
 			$endpoint
 		);
@@ -836,6 +837,15 @@ abstract class GeoDir_Converter_Importer {
 			$city = $address['city'];
 		}
 
+		// Bermuda, Norway, Sweden, Romania
+        if ( ! empty( $address['country_code'] ) && empty( $address['state'] ) && ( $address['country_code'] == 'gb' || $address['country_code'] == 'bm' || $address['country_code'] == 'no' || $address['country_code'] == 'se' || $address['country_code'] == 'ro' ) ) {
+            if ( ! empty( $address['county'] ) ) {
+                $address['state'] = $address['county'];
+            } else if ( ! empty( $address['state_district'] ) ) {
+				$address['state'] = $address['state_district'];
+            }
+        }
+
 		$state = '';
 		if ( isset( $address['province'] ) ) {
 			$state = $address['province'];
@@ -845,15 +855,24 @@ abstract class GeoDir_Converter_Importer {
 			$state = $address['region'];
 		}
 
+		if ( $state ) {
+			$state = str_replace( " (state)", "", $state );
+		}
+
 		$location = array(
 			'latitude'  => $lat,
 			'longitude' => $lng,
 			'address'   => isset( $address['display_name'] ) ? $address['display_name'] : '',
 			'city'      => $city,
 			'state'     => isset( $state ) ? $state : '',
+			'region'    => isset( $state ) ? $state : '',
 			'zip'       => isset( $address['postcode'] ) ? $address['postcode'] : '',
 			'country'   => isset( $address['country'] ) ? $address['country'] : '',
 		);
+
+		if ( $location['country'] == 'New Zealand / Aotearoa' ) {
+			$location['country'] = 'New Zealand';
+		}
 
 		// Cache the location for 1 hour.
 		set_transient( $cache_key, $location, 60 * 60 );

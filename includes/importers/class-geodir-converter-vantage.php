@@ -1139,6 +1139,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 				'post__in'    => $post_ids,
 				'post_type'   => self::POST_TYPE_LISTING,
 				'numberposts' => -1,
+				'post_status' => $this->post_statuses
 			)
 		);
 
@@ -1206,13 +1207,14 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 
 		// Location & Address.
 		$location = $this->get_default_location();
+		$defaut_location = $this->get_default_location();
 		$coord    = $this->get_listing_coordinates( $post->ID );
 		$address  = isset( $post_meta['address'] ) && ! empty( $post_meta['address'] ) ? $post_meta['address'] : '';
 
 		// Use coordinates to get location.
 		if ( ! empty( $coord->lat ) && ! empty( $coord->lng ) ) {
 			$location_from_coords = $this->get_location_from_coords( $coord->lat, $coord->lng );
-			if ( isset( $location_from_coords['address'] ) ) {
+			if ( ! empty( $location_from_coords['address'] ) ) {
 				$address = $location_from_coords['address'];
 			}
 			$location = array_merge( $location, $location_from_coords );
@@ -1224,6 +1226,18 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			$location['region']    = isset( $post_meta['geo_state_long'] ) && ! empty( $post_meta['geo_state_long'] ) ? $post_meta['geo_state_long'] : $location['region'];
 			$location['country']   = isset( $post_meta['geo_country_long'] ) && ! empty( $post_meta['geo_country_long'] ) ? $post_meta['geo_country_long'] : $location['country'];
 			$location['zip']       = isset( $post_meta['geo_postal_code'] ) && ! empty( $post_meta['geo_postal_code'] ) ? $post_meta['geo_postal_code'] : '';
+		}
+
+		if ( empty( $location['country'] ) ) {
+			$location['country'] = $defaut_location['country'];
+		}
+
+		if ( empty( $location['region'] ) ) {
+			$location['region'] = ! empty( $location['city'] ) ? $location['city'] : $defaut_location['region'];
+		}
+
+		if ( empty( $location['city'] ) ) {
+			$location['city'] = $defaut_location['city'];
 		}
 
 		// Post status normalization.
@@ -1326,6 +1340,10 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			if ( ! empty( $images ) ) {
 				$listing['post_images'] = $images;
 			}
+		}
+
+		if ( empty( $listing['package_id'] ) ) {
+			$listing['package_id'] = geodir_get_post_package_id( $gd_post_id, $post_type );
 		}
 
 		// Disable cache addition.
@@ -1652,6 +1670,10 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 
 		$images = array_map(
 			function ( $id ) {
+				if ( is_object( $id ) ) {
+					$id = ! empty( $id->ID ) ? $id->ID : 0;
+				}
+
 				$id = absint( $id );
 
 				return array(
