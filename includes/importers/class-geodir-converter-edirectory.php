@@ -166,7 +166,8 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	 * @since 1.0.0
 	 */
 	protected function init() {
-		$this->base_url  = rtrim( $this->get_import_setting( 'edirectory_site_url' ), '/' );
+		$this->base_url  = $this->get_import_setting( 'edirectory_site_url' );
+		$this->base_url  = $this->base_url ? rtrim( $this->base_url, '/' ) : '';
 		$this->api_token = $this->get_import_setting( 'edirectory_api_key' );
 	}
 

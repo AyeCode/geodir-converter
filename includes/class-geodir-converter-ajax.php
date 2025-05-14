@@ -191,7 +191,8 @@ class GeoDir_Converter_Ajax {
 		}
 
 		$importer_id = isset( $_POST['importerId'] ) ? wp_unslash( $_POST['importerId'] ) : '';
-		$settings    = isset( $_POST['settings'] ) ? json_decode( wp_unslash( $_POST['settings'] ), true ) : array();
+		$settings    = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : array();
+		$settings    = is_array( $settings ) ? $settings : json_decode( $settings, true );
 		$files       = isset( $_FILES['files'] ) ? wp_unslash( $_FILES['files'] ) : array();
 
 		$importer = $this->get_importer( $importer_id );
