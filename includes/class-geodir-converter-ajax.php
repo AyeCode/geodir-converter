@@ -341,7 +341,7 @@ class GeoDir_Converter_Ajax {
 			$this->send_json_error( $importer->get_error_message() );
 		}
 
-		$rows = $importer->parse_csv( $file['tmp_name'] );
+		$rows = GeoDir_Converter_Utils::parse_csv( $file['tmp_name'] );
 
 		if ( is_wp_error( $rows ) ) {
 			$this->send_json_error( $rows->get_error_message() );

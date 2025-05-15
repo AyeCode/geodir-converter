@@ -235,9 +235,53 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 	 * @param array $workloads [[id, title, type], ...]
 	 */
 	public function add_import_tasks( $workloads ) {
-        $tasks = array_map(
+		$tasks = array_map(
 			function ( $workload ) {
-				$workload['action'] = GeoDir_Converter_Importer::ACTION_IMPORT_LISTINGS;
+				$workload['action'] = isset( $workload['action'] ) ? $workload['action'] : GeoDir_Converter_Importer::ACTION_IMPORT_LISTING;
+				return $workload;
+			},
+			$workloads
+		);
+
+		$this->add_tasks( $tasks );
+	}
+
+	/**
+	 * Adds pull addresses tasks to the background process.
+	 *
+	 * @param array $workloads [[lat, lng], ...]
+	 *
+	 * @return void
+	 */
+	public function add_pull_addresses_tasks( $workloads ) {
+		$workloads = array_chunk( $workloads, 15, true );
+
+		$tasks = array_map(
+			function ( $workload ) {
+				$workload['coords'] = $workload;
+				$workload['action'] = GeoDir_Converter_Importer::ACTION_IMPORT_ADDRESSES;
+				return $workload;
+			},
+			$workloads
+		);
+
+		$this->add_tasks( $tasks );
+	}
+
+	/**
+	 * Adds import images tasks to the background process.
+	 *
+	 * @param array $workloads [[image_url, post_id], ...]
+	 *
+	 * @return void
+	 */
+	public function add_import_images_tasks( $workloads ) {
+		$workloads = array_chunk( $workloads, 10, true );
+
+		$tasks = array_map(
+			function ( $workload ) {
+				$workload['images'] = $workload;
+				$workload['action'] = GeoDir_Converter_Importer::ACTION_IMPORT_IMAGES;
 				return $workload;
 			},
 			$workloads

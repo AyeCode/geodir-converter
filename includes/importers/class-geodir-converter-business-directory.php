@@ -163,7 +163,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param array $settings The settings to validate.
 	 * @return array|WP_Error Validated settings or WP_Error on failure.
 	 */
-	public function validate_settings( array $settings ) {
+	public function validate_settings( array $settings, array $files = array() ) {
 		global $wpdb;
 
 		$post_types      = geodir_get_posttypes();
