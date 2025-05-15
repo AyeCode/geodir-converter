@@ -1340,6 +1340,10 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			}
 		}
 
+		if ( empty( $listing['package_id'] ) ) {
+			$listing['package_id'] = geodir_get_post_package_id( $gd_post_id, $post_type );
+		}
+
 		// Disable cache addition.
 		wp_suspend_cache_addition( true );
 
@@ -1680,6 +1684,10 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 
 		$images = array_map(
 			function ( $id ) {
+				if ( is_object( $id ) ) {
+					$id = ! empty( $id->ID ) ? $id->ID : 0;
+				}
+
 				if ( is_object( $id ) ) {
 					$id = ! empty( $id->ID ) ? $id->ID : 0;
 				}
