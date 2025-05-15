@@ -149,9 +149,11 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 * Validate importer settings.
 	 *
 	 * @param array $settings The settings to validate.
+     * @param array $files    The files to validate.
+	 *
 	 * @return array Validated and sanitized settings.
 	 */
-	public function validate_settings( array $settings ) {
+	public function validate_settings( array $settings, array $files = array() ) {
 		$post_types = geodir_get_posttypes();
 		$errors     = array();
 

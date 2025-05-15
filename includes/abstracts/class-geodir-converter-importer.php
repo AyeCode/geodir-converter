@@ -11,6 +11,7 @@ namespace GeoDir_Converter\Abstracts;
 
 use WP_Error;
 use Geodir_Media;
+use GeoDir_Converter\GeoDir_Converter_Utils;
 use GeoDir_Converter\GeoDir_Converter_Options_Handler;
 use GeoDir_Converter\Importers\GeoDir_Converter_Background_Process;
 
@@ -235,9 +236,11 @@ abstract class GeoDir_Converter_Importer {
 	 * Validate importer settings.
 	 *
 	 * @param array $settings The settings to validate.
+	 * @param array $files    The files to validate.
+	 *
 	 * @return array Validated and sanitized settings.
 	 */
-	abstract public function validate_settings( array $settings );
+	abstract public function validate_settings( array $settings, array $files = array() );
 
 	/**
 	 * Render importer settings.
@@ -585,6 +588,33 @@ abstract class GeoDir_Converter_Importer {
 	}
 
 	/**
+	 * Get post meta.
+	 *
+	 * @param int $post_id The post ID.
+	 * @return array The post meta.
+	 */
+	public function get_post_meta( $post_id ) {
+		global $wpdb;
+
+		$post_meta_raw = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT meta_key, meta_value FROM $wpdb->postmeta WHERE post_id = %d",
+				(int) $post_id
+			),
+			ARRAY_A
+		);
+
+		$post_meta = array();
+		foreach ( $post_meta_raw as $meta ) {
+			$post_meta[ $meta['meta_key'] ] = $meta['meta_value'];
+		}
+
+		unset( $post_meta_raw ); // Free memory.
+
+		return $post_meta;
+	}
+
+	/**
 	 * Format image data for GeoDirectory.
 	 *
 	 * @param array $images Images (single or multiple).
@@ -773,276 +803,46 @@ abstract class GeoDir_Converter_Importer {
 	}
 
 	/**
-	 * Get location data (city, state, zip, country) from latitude and longitude.
-	 *
-	 * Uses Nominatim (OpenStreetMap) reverse geocoding.
-	 *
-	 * @param float $lat Latitude.
-	 * @param float $lng Longitude.
-	 * @return WP_Error|array Location data with keys 'city', 'state', 'zip', 'country', or WP_Error on failure.
-	 */
-	public function get_location_from_coords( $lat, $lng ) {
-		if ( ! is_numeric( $lat ) || ! is_numeric( $lng ) ) {
-			return new WP_Error( 'invalid_location', esc_html__( 'Invalid latitude or longitude', 'geodir-converter' ) );
-		}
-
-		// Check cache first.
-		$cache_key = 'geodir_converter_location_' . md5( $lat . ',' . $lng );
-		$location  = get_transient( $cache_key );
-
-		if ( false !== $location ) {
-			return $location;
-		}
-
-		$endpoint = 'https://nominatim.openstreetmap.org/reverse';
-		$args     = array(
-			'headers' => array(
-				'User-Agent' => sprintf( 'GeoDir_Converter/2.0.2 ( %s )', get_bloginfo( 'admin_email' ) ),
-			),
-			'timeout' => 10,
-		);
-
-		$url = add_query_arg(
-			array(
-				'lat'            => $lat,
-				'lon'            => $lng,
-				'format'         => 'json',
-				'addressdetails' => 1,
-				'email'          => get_bloginfo( 'admin_email' )
-			),
-			$endpoint
-		);
-
-		$response = wp_remote_get( $url, $args );
-
-		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 'invalid_location', esc_html__( 'Failed to retrieve location data', 'geodir-converter' ) );
-		}
-
-		$body = wp_remote_retrieve_body( $response );
-		$data = json_decode( $body, true );
-
-		if ( ! isset( $data['address'] ) || empty( $data['address'] ) ) {
-			return new WP_Error( 'invalid_location', esc_html__( 'Invalid location data', 'geodir-converter' ) );
-		}
-
-		$address = $data['address'];
-
-		$city = '';
-		if ( isset( $address['village'] ) ) {
-			$city = $address['village'];
-		} elseif ( isset( $address['town'] ) ) {
-			$city = $address['town'];
-		} elseif ( isset( $address['city'] ) ) {
-			$city = $address['city'];
-		}
-
-		// Bermuda, Norway, Sweden, Romania
-        if ( ! empty( $address['country_code'] ) && empty( $address['state'] ) && ( $address['country_code'] == 'gb' || $address['country_code'] == 'bm' || $address['country_code'] == 'no' || $address['country_code'] == 'se' || $address['country_code'] == 'ro' ) ) {
-            if ( ! empty( $address['county'] ) ) {
-                $address['state'] = $address['county'];
-            } else if ( ! empty( $address['state_district'] ) ) {
-				$address['state'] = $address['state_district'];
-            }
-        }
-
-		$state = '';
-		if ( isset( $address['province'] ) ) {
-			$state = $address['province'];
-		} elseif ( isset( $address['state'] ) ) {
-			$state = $address['state'];
-		} elseif ( isset( $address['region'] ) ) {
-			$state = $address['region'];
-		}
-
-		if ( $state ) {
-			$state = str_replace( " (state)", "", $state );
-		}
-
-		$location = array(
-			'latitude'  => $lat,
-			'longitude' => $lng,
-			'address'   => isset( $address['display_name'] ) ? $address['display_name'] : '',
-			'city'      => $city,
-			'state'     => isset( $state ) ? $state : '',
-			'region'    => isset( $state ) ? $state : '',
-			'zip'       => isset( $address['postcode'] ) ? $address['postcode'] : '',
-			'country'   => isset( $address['country'] ) ? $address['country'] : '',
-		);
-
-		if ( $location['country'] == 'New Zealand / Aotearoa' ) {
-			$location['country'] = 'New Zealand';
-		}
-
-		// Cache the location for 1 hour.
-		set_transient( $cache_key, $location, 60 * 60 );
-
-		return $location;
-	}
-
-	/**
-	 * Parse CSV file.
-	 *
-	 * @param string $file_path The path to the CSV file.
-	 * @param array  $required_headers The required headers.
-	 * @return array|WP_Error An array of parsed rows or a WP_Error object on failure.
-	 */
-	public function parse_csv( $file_path, $required_headers = array() ) {
-		if ( ! file_exists( $file_path ) ) {
-			return new WP_Error( 'file_not_found', __( 'CSV file not found.', 'geodir-converter' ) );
-		}
-
-		if ( ! is_readable( $file_path ) ) {
-			return new WP_Error( 'file_not_readable', __( 'CSV file is not readable. Please check file permissions.', 'geodir-converter' ) );
-		}
-
-		$data            = array();
-		$line_number     = 0;
-		$max_line_length = 0;
-
-		try {
-			if ( ( $handle = fopen( $file_path, 'r' ) ) !== false ) {
-				// Get headers.
-				$headers = fgetcsv( $handle, 0, ',' );
-				++$line_number;
-
-				if ( empty( $headers ) || ! is_array( $headers ) ) {
-					return new WP_Error( 'invalid_headers', __( 'CSV file has invalid or missing headers.', 'geodir-converter' ) );
-				}
-
-				// Validate headers (no empty or duplicate headers).
-				$headers = array_map( 'trim', $headers );
-				if ( count( $headers ) !== count( array_filter( $headers ) ) ) {
-					return new WP_Error( 'empty_headers', __( 'CSV headers contain empty values. Please ensure all columns have headers.', 'geodir-converter' ) );
-				}
-
-				if ( count( $headers ) !== count( array_unique( $headers ) ) ) {
-					return new WP_Error( 'duplicate_headers', __( 'CSV headers contain duplicate values. Each column must have a unique header.', 'geodir-converter' ) );
-				}
-
-				// Remove spaces and convert to lowercase.
-				$headers = array_map(
-					function ( $header ) {
-						return trim( str_replace( ' ', '', strtolower( $header ) ) );
-					},
-					$headers
-				);
-
-				// Required headers check.
-				if ( ! empty( $required_headers ) ) {
-					$missing_headers = array_diff( $required_headers, array_map( 'strtolower', $headers ) );
-
-					if ( ! empty( $missing_headers ) ) {
-						return new WP_Error(
-							'missing_headers',
-							sprintf(
-								__( 'CSV is missing required headers: %s', 'geodir-converter' ),
-								implode( ', ', $missing_headers )
-							)
-						);
-					}
-				}
-
-				// Process rows.
-				while ( ( $row = fgetcsv( $handle, 0, ',' ) ) !== false ) {
-					++$line_number;
-
-					// Skip empty rows.
-					if ( count( array_filter( $row ) ) === 0 ) {
-						continue;
-					}
-
-					// Check for row length mismatch.
-					if ( count( $row ) !== count( $headers ) ) {
-						return new WP_Error(
-							'row_length_mismatch',
-							sprintf(
-								__( 'Row %1$d has %2$d columns while the header has %3$d columns. Please ensure all rows have the correct number of columns.', 'geodir-converter' ),
-								$line_number,
-								count( $row ),
-								count( $headers )
-							),
-						);
-					}
-
-					// Track max line length for memory management.
-					$line_length     = strlen( implode( '', $row ) );
-					$max_line_length = max( $max_line_length, $line_length );
-
-					// Memory limit check.
-					if ( $max_line_length > 1048576 ) { // 1MB per line limit
-						return new WP_Error( 'excessive_row_length', __( 'CSV contains excessively long rows. Please check your data format.', 'geodir-converter' ) );
-					}
-
-					// Sanitize and validate row data.
-					$sanitized_row = array();
-					foreach ( array_combine( $headers, $row ) as $key => $value ) {
-						// Basic sanitization.
-						$value = sanitize_text_field( $value );
-
-						// Field-specific validation could be added here.
-						$sanitized_row[ $key ] = $value;
-					}
-
-					$data[] = $sanitized_row;
-
-					// Limit number of rows for memory protection.
-					if ( count( $data ) >= 10000 ) {
-						break;
-					}
-				}
-
-				fclose( $handle );
-			} else {
-				return new WP_Error( 'file_open_failed', __( 'Failed to open CSV file for reading.', 'geodir-converter' ) );
-			}
-		} catch ( Exception $e ) {
-			// Re-throw with line number information if it's a parsing error.
-			if ( $line_number > 0 && $e->getCode() === 422 ) {
-				return new WP_Error(
-					'parsing_error',
-					sprintf(
-						__( 'Error at line %1$d: %2$s', 'geodir-converter' ),
-						$line_number,
-						$e->getMessage()
-					),
-				);
-			}
-			throw $e;
-		}
-
-		if ( empty( $data ) ) {
-			return new WP_Error( 'no_data', __( 'CSV file contains no valid data rows.', 'geodir-converter' ) );
-		}
-
-		return $data;
-	}
-
-	/**
 	 * Start the import process.
 	 *
 	 * @param array $settings The import settings.
 	 * @return array The result of the import process.
 	 */
 	public function import( $settings, $files = array() ) {
+		// Parse CSV files.
+		$rows         = array();
+		$import_files = array();
+
+		if ( is_array( $files ) && ! empty( $files ) ) {
+			foreach ( $files['tmp_name'] as $key => $file ) {
+				$extension = pathinfo( $files['name'][ $key ], PATHINFO_EXTENSION );
+
+				$import_files[ $key ] = array(
+					'name'      => $files['name'][ $key ],
+					'type'      => isset( $files['type'][ $key ] ) ? sanitize_text_field( $files['type'][ $key ] ) : '',
+					'size'      => isset( $files['size'][ $key ] ) ? absint( $files['size'][ $key ] ) : 0,
+					'extension' => $extension,
+				);
+
+				if ( in_array( $extension, array( 'csv' ), true ) ) {
+					$csv_rows = GeoDir_Converter_Utils::parse_csv( $file );
+
+					if ( is_wp_error( $csv_rows ) ) {
+						return $csv_rows;
+					}
+
+					$import_files[ $key ]['row_count'] = count( $csv_rows );
+
+					$rows = array_merge( $rows, $csv_rows );
+				}
+			}
+		}
+
 		// Validate and sanitize settings.
-		$settings = $this->validate_settings( $settings );
+		$settings = $this->validate_settings( $settings, $import_files );
 
 		if ( is_wp_error( $settings ) ) {
 			return $settings;
-		}
-
-		$rows = array();
-		if ( is_array( $files ) && ! empty( $files ) ) {
-			foreach ( $files['tmp_name'] as $file ) {
-				$csv_rows = $this->parse_csv( $file );
-
-				if ( is_wp_error( $csv_rows ) ) {
-					return $csv_rows;
-				}
-
-				$rows = array_merge( $rows, $csv_rows );
-			}
 		}
 
 		// reset all importer options.
