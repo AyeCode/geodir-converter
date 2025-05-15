@@ -334,9 +334,11 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * Validate importer settings.
 	 *
 	 * @param array $settings The settings to validate.
+	 * @param array $files    The files to validate.
+	 *
 	 * @return array Validated and sanitized settings.
 	 */
-	public function validate_settings( array $settings ) {
+	public function validate_settings( array $settings, array $files = array() ) {
 		$errors = array();
 
 		$settings['site_url']        = isset( $settings['site_url'] ) ? esc_url_raw( $settings['site_url'] ) : '';
@@ -1737,7 +1739,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 			return $this->next_task( $task );
 		}
 
-        if ( $this->is_test_mode() ) {
+		if ( $this->is_test_mode() ) {
 			$this->log(
 				sprintf(
 				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
@@ -1892,7 +1894,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 			return $this->next_task( $task );
 		}
 
-        if ( $this->is_test_mode() ) {
+		if ( $this->is_test_mode() ) {
 			$this->log(
 				sprintf(
 				/* translators: %1$d: number of imported terms, %2$d: number of failed imports */
