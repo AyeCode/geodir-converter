@@ -72,20 +72,6 @@ abstract class GeoDir_Converter_Importer {
 	 */
 	const ACTION_IMPORT_LISTINGS = 'import_listings';
 
-    /**
-	 * Action identifier for importing images.
-	 *
-	 * @var string
-	 */
-	const ACTION_IMPORT_IMAGES = 'import_images';
-
-	/**
-	 * Action identifier for importing addresses.
-	 *
-	 * @var string
-	 */
-	const ACTION_IMPORT_ADDRESSES = 'import_addresses';
-
 	/**
 	 * Import status indicating failure.
 	 *

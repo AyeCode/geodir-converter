@@ -147,7 +147,8 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	 * @since 1.0.0
 	 */
 	protected function init() {
-		$this->base_url  = rtrim( $this->get_import_setting( 'edirectory_site_url' ), '/' );
+		$this->base_url  = $this->get_import_setting( 'edirectory_site_url' );
+		$this->base_url  = $this->base_url ? rtrim( $this->base_url, '/' ) : '';
 		$this->api_token = $this->get_import_setting( 'edirectory_api_key' );
 	}
 
@@ -461,8 +462,6 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 */
 	public function task_import_users( $task ) {
-		global $wpdb;
-
 		$offset = isset( $task['offset'] ) ? absint( $task['offset'] ) : 0;
 		$rows   = isset( $task['rows'] ) && ! empty( $task['rows'] ) ? (array) $task['rows'] : array();
 
@@ -603,8 +602,6 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 */
 	public function task_import_categories( $task ) {
-		global $wpdb;
-
 		$offset   = isset( $task['offset'] ) ? absint( $task['offset'] ) : 0;
 		$imported = isset( $task['imported'] ) ? absint( $task['imported'] ) : 0;
 		$failed   = isset( $task['failed'] ) ? absint( $task['failed'] ) : 0;
@@ -1329,9 +1326,6 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		// Fetch the listings.
 		$responses = Requests::request_multiple( $requests );
 
-		$images = array();
-		$coords = array();
-
 		foreach ( $responses as $listing_id => $response ) {
 			if ( is_wp_error( $response ) || empty( $response->url ) ) {
 				$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'Listings', is_wp_error( $response ) ? $response->get_error_message() : __( 'Unknown error', 'geodir-converter' ) ), 'danger' );
@@ -1374,31 +1368,14 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 				$data['user_id'] = absint( $listing['user_id'] );
 			}
 
-			$result = $this->$method( $data, $category_mapping );
+			$status = $this->$method( $data, $category_mapping );
 
-			switch ( $result['status'] ) {
+			switch ( $status ) {
 				case self::IMPORT_STATUS_SUCCESS:
 				case self::IMPORT_STATUS_UPDATED:
-					$template = self::IMPORT_STATUS_SUCCESS === $result['status'] ? self::LOG_TEMPLATE_SUCCESS : self::LOG_TEMPLATE_UPDATED;
+					$template = self::IMPORT_STATUS_SUCCESS === $status ? self::LOG_TEMPLATE_SUCCESS : self::LOG_TEMPLATE_UPDATED;
 					$this->log( sprintf( $template, $module, $title ), 'success' );
 					$this->increase_succeed_imports( 1 );
-
-					// Adds images to import.
-					if ( isset( $result['images'], $result['post_id'] ) && ! empty( $result['images'] ) ) {
-						$images[] = array(
-							'post_id' => $result['post_id'],
-							'images'  => $result['images'],
-						);
-					}
-
-					// Adds coordinates to import.
-					if ( isset( $result['lat'], $result['lng'], $result['post_id'] ) && ! empty( $result['lat'] ) && ! empty( $result['lng'] ) ) {
-						$coords[ $result['post_id'] ] = array(
-							'lat' => $result['lat'],
-							'lng' => $result['lng'],
-						);
-					}
-
 					break;
 
 				case self::IMPORT_STATUS_SKIPPED:
@@ -1412,18 +1389,6 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 					$this->increase_failed_imports( 1 );
 					break;
 			}
-		}
-
-		// Import addresses.
-		if ( ! empty( $coords ) ) {
-			$this->background_process->add_pull_addresses_tasks( $coords );
-			$this->increase_imports_total( count( $coords ) );
-		}
-
-		// Import images.
-		if ( ! empty( $images ) ) {
-			$this->background_process->add_import_images_tasks( $images );
-			$this->increase_imports_total( count( $images ) );
 		}
 
 		return false;
@@ -1464,6 +1429,16 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$has_coordinates = isset( $listing['geo']['lat'], $listing['geo']['lng'] )
 		&& ! empty( $listing['geo']['lat'] )
 		&& ! empty( $listing['geo']['lng'] );
+
+		if ( $has_coordinates ) {
+			$this->log( 'Pulling listing address from coordinates: ' . $listing['geo']['lat'] . ', ' . $listing['geo']['lng'], 'info' );
+			$location_lookup = GeoDir_Converter_Utils::get_location_from_coords( $listing['geo']['lat'], $listing['geo']['lng'] );
+
+			if ( ! is_wp_error( $location_lookup ) ) {
+				$address  = isset( $location_lookup['address'] ) && ! empty( $location_lookup['address'] ) ? $location_lookup['address'] : $address;
+				$location = array_merge( $location, $location_lookup );
+			}
+		}
 
 		// Get the categories.
 		$categories = isset( $listing['categories'] ) && is_array( $listing['categories'] ) ? $listing['categories'] : array();
@@ -1547,14 +1522,22 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		// Handle test mode.
 		if ( $this->is_test_mode() ) {
-			return array(
-				'status' => $is_update ? self::IMPORT_STATUS_SKIPPED : self::IMPORT_STATUS_SUCCESS,
-			);
+			return $is_update ? self::IMPORT_STATUS_SKIPPED : self::IMPORT_STATUS_SUCCESS;
 		}
 
 		// Delete existing media if updating.
 		if ( $is_update ) {
 			GeoDir_Media::delete_files( (int) $existing_post, 'post_images' );
+		}
+
+		// Import gallery images.
+		if ( ! empty( $images ) ) {
+			$this->log( sprintf( 'Importing %s gallery images', count( $images ) ), 'info' );
+
+			$images = $this->import_listing_images( $images );
+			if ( ! empty( $images ) ) {
+				$post_data['post_images'] = $images;
+			}
 		}
 
 		// Import video.
@@ -1596,26 +1579,10 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		// Handle errors during post insertion/update.
 		if ( is_wp_error( $gd_listing_id ) ) {
 			$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'listing', $gd_listing_id->get_error_message() ), 'error' );
-			return array(
-				'status' => self::IMPORT_STATUS_FAILED,
-			);
+			return self::IMPORT_STATUS_FAILED;
 		}
 
-		$status = array_merge(
-			array(
-				'post_id' => $gd_listing_id,
-				'status'  => $is_update ? self::IMPORT_STATUS_UPDATED : self::IMPORT_STATUS_SUCCESS,
-			),
-			count( $images ) ? array(
-				'images' => $images,
-			) : array(),
-			$has_coordinates ? array(
-				'lat' => $listing['geo']['lat'],
-				'lng' => $listing['geo']['lng'],
-			) : array()
-		);
-
-		return $status;
+		return $is_update ? self::IMPORT_STATUS_UPDATED : self::IMPORT_STATUS_SUCCESS;
 	}
 
 	/**
@@ -1630,9 +1597,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		// Abort early if events addon is not installed.
 		if ( ! class_exists( 'GeoDir_Event_Manager' ) ) {
 			$this->log( sprintf( __( 'Events addon is not active. Skipping event: %s', 'geodir-converter' ), $event['title'] ), 'error' );
-			return array(
-				'status' => self::IMPORT_STATUS_SKIPPED,
-			);
+			return self::IMPORT_STATUS_SKIPPED;
 		}
 
 		// Get the post type and ID.
@@ -1695,6 +1660,16 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$has_coordinates = isset( $event['geo']['lat'], $event['geo']['lng'] )
 			&& ! empty( $event['geo']['lat'] )
 			&& ! empty( $event['geo']['lng'] );
+
+		if ( $has_coordinates ) {
+			$this->log( 'Pulling listing address from coordinates: ' . $event['geo']['lat'] . ', ' . $event['geo']['lng'], 'info' );
+			$location_lookup = GeoDir_Converter_Utils::get_location_from_coords( $event['geo']['lat'], $event['geo']['lng'] );
+
+			if ( ! is_wp_error( $location_lookup ) ) {
+				$address  = isset( $location_lookup['address'] ) && ! empty( $location_lookup['address'] ) ? $location_lookup['address'] : $address;
+				$location = array_merge( $location, $location_lookup );
+			}
+		}
 
 		// Prepare the listing data.
 		$gd_event = array(
@@ -1767,14 +1742,22 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		// Handle test mode.
 		if ( $this->is_test_mode() ) {
-			return array(
-				'status' => $is_update ? self::IMPORT_STATUS_SKIPPED : self::IMPORT_STATUS_SUCCESS,
-			);
+			return $is_update ? self::IMPORT_STATUS_SKIPPED : self::IMPORT_STATUS_SUCCESS;
 		}
 
 		// Delete existing media if updating.
 		if ( $is_update ) {
 			GeoDir_Media::delete_files( (int) $gd_event_id, 'post_images' );
+		}
+
+		// Import gallery images.
+		if ( ! empty( $images ) ) {
+			$this->log( sprintf( 'Importing %s gallery images', count( $images ) ), 'info' );
+
+			$images = $this->import_listing_images( $images );
+			if ( ! empty( $images ) ) {
+				$gd_event['post_images'] = $images;
+			}
 		}
 
 		// Disable cache addition.
@@ -1791,26 +1774,10 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		wp_suspend_cache_addition( false );
 
 		if ( is_wp_error( $gd_event_id ) ) {
-			return array(
-				'status' => self::IMPORT_STATUS_FAILED,
-			);
+			return self::IMPORT_STATUS_FAILED;
 		}
 
-		$status = array_merge(
-			array(
-				'post_id' => $gd_event_id,
-				'status'  => $is_update ? self::IMPORT_STATUS_UPDATED : self::IMPORT_STATUS_SUCCESS,
-			),
-			count( $images ) ? array(
-				'images' => $images,
-			) : array(),
-			$has_coordinates ? array(
-				'lat' => $event['geo']['lat'],
-				'lng' => $event['geo']['lng'],
-			) : array()
-		);
-
-		return $status;
+		return $is_update ? self::IMPORT_STATUS_UPDATED : self::IMPORT_STATUS_SUCCESS;
 	}
 
 	/**
@@ -1892,155 +1859,6 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		update_post_meta( $blog_id, 'edirectory_blog_id', $blog['id'] );
 
 		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
-	}
-
-	/**
-	 * Import listing meta data for a post.
-	 *
-	 * @param array $task The task to import meta data for.
-	 * @return bool|string False on success, string status on failure.
-	 */
-	public function task_import_images( $task ) {
-		if ( ! isset( $task['images'] ) ) {
-			return false;
-		}
-
-		foreach ( $task['images'] as $image ) {
-			$post_id = (int) $image['post_id'];
-			$images  = isset( $image['images'] ) ? (array) $image['images'] : array();
-			$count   = count( $images );
-
-			// Skip if no images.
-			if ( 0 === $count ) {
-				continue;
-			}
-
-			$post_images = $this->import_listing_images( $images );
-
-			if ( ! empty( $post_images ) ) {
-				wp_update_post(
-					array(
-						'ID'          => $post_id,
-						'post_images' => $post_images,
-					),
-					true
-				);
-
-				$this->log(
-					sprintf(
-						self::LOG_TEMPLATE_SUCCESS,
-						'listing images',
-						sprintf( _n( '%s image imported', '%s images imported', $count, 'geodir-converter' ), $count )
-					),
-					'success'
-				);
-				$this->increase_succeed_imports( $count );
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Import listing coordinates for a post.
-	 *
-	 * @param array $task The task to import coordinates for.
-	 * @return bool|string False on success, string status on failure.
-	 */
-	public function task_import_addresses( $task ) {
-		if ( ! isset( $task['coords'] ) ) {
-			return false;
-		}
-
-		$coords   = (array) $task['coords'];
-		$imported = 0;
-		$failed   = 0;
-		$count    = count( $coords );
-
-		$this->log(
-			sprintf( _n( '%d address pulled for import.', '%d addresses pulled for import.', $count, 'geodir-converter' ), $count ),
-			'info'
-		);
-
-		$locations = GeoDir_Converter_Utils::get_locations_from_coords_batch( $coords );
-
-		foreach ( $locations as $post_id => $location ) {
-			if ( is_wp_error( $location ) ) {
-				$this->log(
-					sprintf(
-						self::LOG_TEMPLATE_FAILED,
-						'address',
-						$location->get_error_message()
-					),
-					'warning'
-				);
-
-				++$failed;
-				$this->increase_failed_imports( 1 );
-				continue;
-			}
-
-			$post_data = array_merge(
-				array(
-					'ID' => $post_id,
-				),
-				isset( $location['address'] ) && ! empty( $location['address'] ) ? array(
-					'street' => $location['address'],
-				) : array(),
-				isset( $location['city'] ) && ! empty( $location['city'] ) ? array(
-					'city' => $location['city'],
-				) : array(),
-				isset( $location['state'] ) && ! empty( $location['state'] ) ? array(
-					'region' => $location['state'],
-				) : array(),
-				isset( $location['country'] ) && ! empty( $location['country'] ) ? array(
-					'country' => $location['country'],
-				) : array(),
-				isset( $location['zip'] ) && ! empty( $location['zip'] ) ? array(
-					'zip' => $location['zip'],
-				) : array(),
-				isset( $location['latitude'] ) && ! empty( $location['latitude'] ) ? array(
-					'latitude' => $location['latitude'],
-				) : array(),
-				isset( $location['longitude'] ) && ! empty( $location['longitude'] ) ? array(
-					'longitude' => $location['longitude'],
-				) : array(),
-			);
-
-			$ok = wp_update_post( $post_data );
-
-			if ( is_wp_error( $ok ) ) {
-				$this->log(
-					sprintf(
-						self::LOG_TEMPLATE_FAILED,
-						'address',
-						$ok->get_error_message()
-					),
-					'warning'
-				);
-				$this->increase_failed_imports( 1 );
-				++$failed;
-				continue;
-			}
-
-			$this->increase_succeed_imports( 1 );
-			++$imported;
-		}
-
-		$this->log(
-			sprintf(
-				self::LOG_TEMPLATE_FINISHED,
-				'Addresses',
-				$count,
-				$imported,
-				0,
-				0,
-				$failed
-			),
-			'success'
-		);
-
-		return false;
 	}
 
 	/**

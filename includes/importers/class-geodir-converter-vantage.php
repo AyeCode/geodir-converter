@@ -92,6 +92,13 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 	protected $importer_id = 'vantage';
 
 	/**
+	 * The import listing status ID.
+	 *
+	 * @var array
+	 */
+	protected $post_statuses = array( 'publish', 'expired', 'draft', 'deleted', 'pending' );
+
+	/**
 	 * Payment statuses.
 	 *
 	 * @var array
@@ -1119,8 +1126,6 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 	 * @return array Result of the import operation.
 	 */
 	public function task_import_listings( $task ) {
-		global $wpdb;
-
 		$post_ids = isset( $task['post_ids'] ) && ! empty( $task['post_ids'] ) ? (array) $task['post_ids'] : array();
 		$mapping  = (array) $this->options_handler->get_option_no_cache( 'listings_mapping', array() );
 
@@ -1128,29 +1133,18 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			return false;
 		}
 
-		$placeholders = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
-
-		$args   = $post_ids;
-		$args[] = self::POST_TYPE_LISTING;
-
-		$sql = call_user_func_array(
-			array( $wpdb, 'prepare' ),
-			array_merge(
-				array(
-					"SELECT * FROM {$wpdb->posts}
-                    WHERE ID IN ($placeholders) AND post_type = %s",
-				),
-				$args
+		$listings = get_posts(
+			array(
+				'post__in'    => $post_ids,
+				'post_type'   => self::POST_TYPE_LISTING,
+				'numberposts' => -1,
+				'post_status' => $this->post_statuses,
 			)
 		);
-
-		$listings = $wpdb->get_results( $sql );
 
 		if ( empty( $listings ) ) {
 			return false;
 		}
-
-		$coords = array();
 
 		foreach ( $listings as $listing ) {
 			$title  = $listing->post_title;
@@ -1172,14 +1166,6 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 						'gd_post_id'    => $result['gd_post_id'],
 						'gd_package_id' => $result['gd_package_id'],
 					);
-
-					// Adds coordinates to import.
-					if ( isset( $result['lat'], $result['lng'], $result['gd_post_id'] ) && ! empty( $result['lat'] ) && ! empty( $result['lng'] ) ) {
-						$coords[ $result['gd_post_id'] ] = array(
-							'lat' => $result['lat'],
-							'lng' => $result['lng'],
-						);
-					}
 					break;
 
 				case self::IMPORT_STATUS_SKIPPED:
@@ -1192,12 +1178,6 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 					$this->increase_failed_imports( 1 );
 					break;
 			}
-		}
-
-		// Import addresses.
-		if ( ! empty( $coords ) ) {
-			$this->background_process->add_pull_addresses_tasks( $coords );
-			$this->increase_imports_total( count( $coords ) );
 		}
 
 		// Update listings mapping.
@@ -1233,19 +1213,24 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 		$address  = isset( $post_meta['address'] ) && ! empty( $post_meta['address'] ) ? $post_meta['address'] : '';
 
 		$has_coordinates = isset( $coord->lat, $coord->lng ) && ! empty( $coord->lat ) && ! empty( $coord->lng );
-		$has_city        = isset( $post_meta['geo_city'] ) && ! empty( $post_meta['geo_city'] );
-		$has_region      = isset( $post_meta['geo_state_long'] ) && ! empty( $post_meta['geo_state_long'] );
-		$has_country     = isset( $post_meta['geo_country_long'] ) && ! empty( $post_meta['geo_country_long'] );
-		$has_zip         = isset( $post_meta['geo_postal_code'] ) && ! empty( $post_meta['geo_postal_code'] );
-		$coords_lookup   = $has_coordinates && ( ! $has_city || ! $has_region || ! $has_country || ! $has_zip );
 
-		$address               = isset( $post_meta['geo_street'] ) && ! empty( $post_meta['geo_street'] ) ? $post_meta['geo_street'] : $address;
-		$location['latitude']  = $has_coordinates ? $coord->lat : $location['latitude'];
-		$location['longitude'] = $has_coordinates ? $coord->lng : $location['longitude'];
-		$location['city']      = $has_city ? $post_meta['geo_city'] : $location['city'];
-		$location['region']    = $has_region ? $post_meta['geo_state_long'] : $location['region'];
-		$location['country']   = $has_country ? $post_meta['geo_country_long'] : $location['country'];
-		$location['zip']       = $has_zip ? $post_meta['geo_postal_code'] : '';
+		if ( $has_coordinates ) {
+			$this->log( 'Pulling listing address from coordinates: ' . $coord->lat . ', ' . $coord->lng, 'info' );
+			$location_lookup = GeoDir_Converter_Utils::get_location_from_coords( $coord->lat, $coord->lng );
+
+			if ( ! is_wp_error( $location_lookup ) ) {
+				$address  = isset( $location_lookup['address'] ) && ! empty( $location_lookup['address'] ) ? $location_lookup['address'] : $address;
+				$location = array_merge( $location, $location_lookup );
+			}
+		} else {
+			$address               = isset( $post_meta['geo_street'] ) && ! empty( $post_meta['geo_street'] ) ? $post_meta['geo_street'] : $address;
+			$location['latitude']  = $has_coordinates ? $coord->lat : $location['latitude'];
+			$location['longitude'] = $has_coordinates ? $coord->lng : $location['longitude'];
+			$location['city']      = isset( $post_meta['geo_city'] ) && ! empty( $post_meta['geo_city'] ) ? $post_meta['geo_city'] : $location['city'];
+			$location['region']    = isset( $post_meta['geo_state_long'] ) && ! empty( $post_meta['geo_state_long'] ) ? $post_meta['geo_state_long'] : $location['region'];
+			$location['country']   = isset( $post_meta['geo_country_long'] ) && ! empty( $post_meta['geo_country_long'] ) ? $post_meta['geo_country_long'] : $location['country'];
+			$location['zip']       = isset( $post_meta['geo_postal_code'] ) && ! empty( $post_meta['geo_postal_code'] ) ? $post_meta['geo_postal_code'] : '';
+		}
 
 		// Post status normalization.
 		switch ( $post->post_status ) {
@@ -1331,6 +1316,10 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			}
 		}
 
+		if ( empty( $listing['package_id'] ) ) {
+			$listing['package_id'] = geodir_get_post_package_id( $gd_post_id, $post_type );
+		}
+
 		// Handle test mode.
 		if ( $is_test ) {
 			return array(
@@ -1385,115 +1374,9 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 				'gd_package_id' => (int) $gd_package_id,
 				'status'        => $is_update ? self::IMPORT_STATUS_UPDATED : self::IMPORT_STATUS_SUCCESS,
 			),
-			$coords_lookup ? array(
-				'lat' => $location['latitude'],
-				'lng' => $location['longitude'],
-			) : array()
 		);
 
 		return $status;
-	}
-
-	/**
-	 * Import listing coordinates for a post.
-	 *
-	 * @param array $task The task to import coordinates for.
-	 * @return bool|string False on success, string status on failure.
-	 */
-	public function task_import_addresses( $task ) {
-		if ( ! isset( $task['coords'] ) ) {
-			return false;
-		}
-
-		$coords   = (array) $task['coords'];
-		$imported = 0;
-		$failed   = 0;
-		$count    = count( $coords );
-
-		$this->log(
-			sprintf( _n( '%d address pulled for import.', '%d addresses pulled for import.', $count, 'geodir-converter' ), $count ),
-			'info'
-		);
-
-		$locations = GeoDir_Converter_Utils::get_locations_from_coords_batch( $coords );
-
-		foreach ( $locations as $post_id => $location ) {
-			if ( is_wp_error( $location ) ) {
-				$this->log(
-					sprintf(
-						self::LOG_TEMPLATE_FAILED,
-						'address',
-						$location->get_error_message()
-					),
-					'warning'
-				);
-
-				++$failed;
-				$this->increase_failed_imports( 1 );
-				continue;
-			}
-
-			$post_data = array_merge(
-				array(
-					'ID' => $post_id,
-				),
-				isset( $location['address'] ) && ! empty( $location['address'] ) ? array(
-					'street' => $location['address'],
-				) : array(),
-				isset( $location['city'] ) && ! empty( $location['city'] ) ? array(
-					'city' => $location['city'],
-				) : array(),
-				isset( $location['state'] ) && ! empty( $location['state'] ) ? array(
-					'region' => $location['state'],
-				) : array(),
-				isset( $location['country'] ) && ! empty( $location['country'] ) ? array(
-					'country' => $location['country'],
-				) : array(),
-				isset( $location['zip'] ) && ! empty( $location['zip'] ) ? array(
-					'zip' => $location['zip'],
-				) : array(),
-				isset( $location['latitude'] ) && ! empty( $location['latitude'] ) ? array(
-					'latitude' => $location['latitude'],
-				) : array(),
-				isset( $location['longitude'] ) && ! empty( $location['longitude'] ) ? array(
-					'longitude' => $location['longitude'],
-				) : array(),
-			);
-
-			$ok = wp_update_post( $post_data );
-
-			if ( is_wp_error( $ok ) ) {
-				$this->log(
-					sprintf(
-						self::LOG_TEMPLATE_FAILED,
-						'address',
-						$ok->get_error_message()
-					),
-					'warning'
-				);
-				$this->increase_failed_imports( 1 );
-				++$failed;
-				continue;
-			}
-
-			$this->increase_succeed_imports( 1 );
-			++$imported;
-		}
-
-		$this->log(
-			sprintf(
-				self::LOG_TEMPLATE_FINISHED,
-				'Addresses',
-				$count,
-				$imported,
-				0,
-				0,
-				$failed
-			),
-			'success'
-		);
-
-		return false;
 	}
 
 	/**
@@ -1797,7 +1680,11 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 
 		$images = array_map(
 			function ( $id ) {
-				$id = is_object( $id ) ? $id->ID : absint( $id );
+				if ( is_object( $id ) ) {
+					$id = ! empty( $id->ID ) ? $id->ID : 0;
+				}
+
+				$id = absint( $id );
 
 				return array(
 					'id'      => (int) $id,
@@ -1925,8 +1812,9 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$wpdb->posts} 
-                WHERE post_type = %s ",
-				array( self::POST_TYPE_LISTING )
+                WHERE post_type = %s 
+                AND post_status IN (" . implode( ',', array_fill( 0, count( $this->post_statuses ), '%s' ) ) . ')',
+				array_merge( array( self::POST_TYPE_LISTING ), $this->post_statuses )
 			)
 		);
 

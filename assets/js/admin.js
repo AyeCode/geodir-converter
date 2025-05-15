@@ -168,7 +168,7 @@
             // Handle files
             if (files.length > 0) {
                 for (let i = 0; i < files.length; i++) {
-                    formData.append('files[]', files[i]); 
+                    formData.append('files[]', files[i]);
                 }
             }
 
@@ -296,6 +296,7 @@
          */
         init: function (el) {
             this.element = el;
+            this.element.scrollTop(this.element[0].scrollHeight);
             return this;
         },
 
@@ -414,6 +415,7 @@
     GeoDir_Converter.DropZone = $.extend({}, {
         dropzone: null,
         input: null,
+        btn: null,
         uploads: null,
 
         /**
@@ -739,6 +741,10 @@
                 self.progressBar.updateProgress(data.progress);
                 self.logsHandler.setShown(data.logsShown);
                 self.logsHandler.insertLogs(data.logs);
+
+                if(self.dropZone.btn) {
+                    self.dropZone.btn.prop('disabled', data.inProgress);
+                }
 
                 if (self.inProgress) {
                     self.updateTimeout = setTimeout(self.tick.bind(self), self.tickInterval);
