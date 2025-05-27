@@ -416,7 +416,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$this->base_url  = rtrim( $settings['edirectory_site_url'], '/' );
 		$this->api_token = $settings['edirectory_api_key'];
 
-		$response = $this->get( '/api/v1/home.json', array(), array( 'timeout' => 30 ) );
+		$response = $this->get( '/api/v3/home.json', array(), array( 'timeout' => 30 ) );
 
 		if ( is_wp_error( $response ) ) {
 			return new WP_Error( 'api_connection_failed', esc_html__( 'Failed to connect to eDirectory API.', 'geodir-converter' ) );
@@ -742,7 +742,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		// Sets total categories.
 		$module_categories = array();
 		foreach ( $modules as $module ) {
-			$response = $this->get( "/api/v1/{$module}/categories.json", array(), array( 'timeout' => 30 ) );
+			$response = $this->get( "/api/v3/{$module}/categories.json", array(), array( 'timeout' => 30 ) );
 
 			if ( is_wp_error( $response ) ) {
 				$this->log( sprintf( self::LOG_TEMPLATE_SKIPPED, 'category', $response->get_error_message() ), 'warning' );
@@ -1330,9 +1330,9 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		// Get the endpoint for the module type.
 		$endpoints = array(
-			self::MODULE_TYPE_LISTING => '/api/v1/listings/%d.json',
-			self::MODULE_TYPE_EVENT   => '/api/v1/events/%d.json',
-			self::MODULE_TYPE_BLOG    => '/api/v1/blogs/%d.json',
+			self::MODULE_TYPE_LISTING => '/api/v3/listings/%d.json',
+			self::MODULE_TYPE_EVENT   => '/api/v3/events/%d.json',
+			self::MODULE_TYPE_BLOG    => '/api/v3/blogs/%d.json',
 		);
 
 		// Remove event endpoint if events addon is not installed.
@@ -1384,14 +1384,9 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 				}
 			}
 
-            // Map the product.
-            if ( isset( $row['product'] ) && ! empty( $row['product'] ) ) {
+			// Map the product.
+			if ( isset( $row['product'] ) && ! empty( $row['product'] ) ) {
 				$listing['product'] = trim( $row['product'] );
-			}
-
-			// Map the image URL.
-			if ( isset( $row['image_url'] ) && ! empty( $row['image_url'] ) ) {
-				$listing['image_url'] = esc_url_raw( $row['image_url'] );
 			}
 
 			$listings[ $listing_id ] = $listing;
@@ -1430,9 +1425,9 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		}
 
 		$endpoints = array(
-			self::MODULE_TYPE_LISTING => '/api/v1/listings/%d.json',
-			self::MODULE_TYPE_EVENT   => '/api/v1/events/%d.json',
-			self::MODULE_TYPE_BLOG    => '/api/v1/blogs/%d.json',
+			self::MODULE_TYPE_LISTING => '/api/v3/listings/%d.json',
+			self::MODULE_TYPE_EVENT   => '/api/v3/events/%d.json',
+			self::MODULE_TYPE_BLOG    => '/api/v3/blogs/%d.json',
 		);
 
 		// Unset event endpoint if event addon is missing.
@@ -1492,10 +1487,6 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			}
 
 			// Optional overrides.
-			if ( empty( $data['image_url'] ) && ! empty( $listing['image_url'] ) ) {
-				$data['image_url'] = $listing['image_url'];
-			}
-
 			if ( isset( $listing['user_id'] ) ) {
 				$data['user_id'] = absint( $listing['user_id'] );
 			}
@@ -1639,14 +1630,6 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			'featured'              => isset( $listing['featured'] ) && (int) $listing['featured'] === 1,
 		);
 
-		// Import the featured image.
-		if ( isset( $listing['image_url'] ) && ! empty( $listing['image_url'] ) ) {
-			$logo = $this->import_attachment( $listing['image_url'] );
-			if ( isset( $logo['id'], $logo['src'] ) ) {
-				$post_data['logo'] = $logo['src'] . '|||';
-			}
-		}
-
 		// Import business hours.
 		if ( isset( $listing['hours_work'] ) && ! empty( $listing['hours_work'] ) ) {
 			$timezone       = isset( $listing['time_zone_hours_work'] ) ? $listing['time_zone_hours_work'] : 'UTC';
@@ -1674,6 +1657,17 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		// Delete existing media if updating.
 		if ( $is_update ) {
 			GeoDir_Media::delete_files( (int) $existing_post, 'post_images' );
+		}
+
+		// Import the featured image.
+		if ( isset( $listing['logo_image_url'] ) && ! empty( $listing['logo_image_url'] ) ) {
+			$this->log( 'Importing listing logo', 'info' );
+
+			$logo_image = $this->import_attachment( $listing['logo_image_url'] );
+
+			if ( isset( $logo_image['id'], $logo_image['url'] ) ) {
+				$post_data['logo'] = $logo_image['url'] . '|||';
+			}
 		}
 
 		// Import gallery images.
@@ -1997,6 +1991,8 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		// Import featured image.
 		if ( isset( $blog['image_url'] ) && ! empty( $blog['image_url'] ) ) {
+			$this->log( 'Importing blog featured image', 'info' );
+
 			$attachment = $this->import_attachment( $blog['image_url'] );
 			if ( isset( $attachment['id'] ) ) {
 				set_post_thumbnail( $blog_id, $attachment['id'] );
