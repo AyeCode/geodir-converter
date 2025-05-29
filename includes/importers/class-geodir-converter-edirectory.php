@@ -416,7 +416,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$this->base_url  = rtrim( $settings['edirectory_site_url'], '/' );
 		$this->api_token = $settings['edirectory_api_key'];
 
-		$response = $this->get( '/api/v1/home.json', array(), array( 'timeout' => 30 ) );
+		$response = $this->get( '/api/v3/home.json', array(), array( 'timeout' => 30 ) );
 
 		if ( is_wp_error( $response ) ) {
 			return new WP_Error( 'api_connection_failed', esc_html__( 'Failed to connect to eDirectory API.', 'geodir-converter' ) );
@@ -440,6 +440,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		$tasks = array(
 			self::ACTION_IMPORT_USERS,
+			self::ACTION_IMPORT_PACKAGES,
 			self::ACTION_IMPORT_CATEGORIES,
 			self::ACTION_IMPORT_FIELDS,
 			self::ACTION_PARSE_LISTINGS,
@@ -479,14 +480,9 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$users_mapping = (array) $this->options_handler->get_option_no_cache( 'users_mapping', array() );
 
 		// Initialize counters.
-		$imported = 0;
-		$failed   = 0;
-		$skipped  = 0;
-		$updated  = 0;
-
+		$imported = $failed = $skipped = $updated = 0;
 		// Remove duplicate users.
-		$users  = array();
-		$emails = array();
+		$users = $emails = array();
 
 		foreach ( $rows as $row ) {
 			$email = isset( $row['accountcontactemail'] ) ? trim( $row['accountcontactemail'] ) : '';
@@ -595,6 +591,135 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	}
 
 	/**
+	 * Import packages from eDirectory to GeoDirectory.
+	 *
+	 * @param array $task Import task.
+	 *
+	 * @return array Result of the import operation.
+	 */
+	public function task_import_packages( $task ) {
+		// Abort early if the payment manager plugin is not installed.
+		if ( ! class_exists( 'GeoDir_Pricing_Package' ) ) {
+			$this->log( __( 'Payment manager plugin is not active. Skipping plans...', 'geodir-converter' ) );
+			return $this->next_task( $task, true );
+		}
+
+		$offset    = isset( $task['offset'] ) ? absint( $task['offset'] ) : 0;
+		$imported  = isset( $task['imported'] ) ? absint( $task['imported'] ) : 0;
+		$failed    = isset( $task['failed'] ) ? absint( $task['failed'] ) : 0;
+		$skipped   = isset( $task['skipped'] ) ? absint( $task['skipped'] ) : 0;
+		$updated   = isset( $task['updated'] ) ? absint( $task['updated'] ) : 0;
+		$listings  = isset( $task['rows'] ) && ! empty( $task['rows'] ) ? (array) $task['rows'] : array();
+		$post_type = $this->get_import_post_type();
+
+		// Log the import start message only for the first batch.
+		if ( 0 === $offset ) {
+			$this->log( sprintf( self::LOG_TEMPLATE_STARTED, 'Packages' ), 'info' );
+		}
+
+		if ( empty( $listings ) ) {
+			$this->log( sprintf( self::LOG_TEMPLATE_SKIPPED, 'packages', 'No packages to import.' ), 'warning' );
+			return $this->next_task( $task );
+		}
+
+		// Get packages mapping.
+		$packages_mapping = (array) $this->options_handler->get_option_no_cache( 'packages_mapping', array() );
+
+		$products = array_map(
+			static function ( $listing ) {
+				return isset( $listing['product'] ) ? trim( $listing['product'] ) : '';
+			},
+			$listings
+		);
+
+		// Filter out empty products and get unique values.
+		$products = array_unique( array_filter( $products ) );
+		$products = array_values( $products );
+
+		// Process products in batches.
+		$total_products = count( $products );
+
+		$this->increase_imports_total( $total_products );
+
+		foreach ( $products as $product_title ) {
+			$product_id = md5( $product_title );
+
+			// Check if the package already exists.
+			$existing_package = $this->get_existing_package( $post_type, $product_id, false );
+
+			$package_data = array(
+				'post_type'       => $post_type,
+				'name'            => $product_title,
+				'title'           => $product_title,
+				'description'     => '',
+				'fa_icon'         => '',
+				'amount'          => 0,
+				'time_interval'   => 1,
+				'time_unit'       => 'M',
+				'recurring'       => false,
+				'recurring_limit' => 0,
+				'trial'           => '',
+				'trial_amount'    => '',
+				'trial_interval'  => '',
+				'trial_unit'      => '',
+				'is_default'      => 0,
+				'display_order'   => 0,
+				'downgrade_pkg'   => 0,
+				'post_status'     => 'publish',
+				'status'          => true,
+			);
+
+			// If existing package found, update ID before saving.
+			if ( $existing_package ) {
+				$package_data['id'] = absint( $existing_package->id );
+			}
+
+			// Handle test mode.
+			if ( $this->is_test_mode() ) {
+				$existing_package ? ++$updated : ++$imported;
+				continue;
+			}
+
+			$package_data = GeoDir_Pricing_Package::prepare_data_for_save( $package_data );
+			$package_id   = GeoDir_Pricing_Package::insert_package( $package_data );
+
+			if ( ! $package_id || is_wp_error( $package_id ) ) {
+				$this->log( sprintf( __( 'Failed to import plan: %s', 'geodir-converter' ), $product_title ), 'error' );
+				++$failed;
+			} else {
+				$log_message = $existing_package
+					? sprintf( __( 'Updated plan: %s', 'geodir-converter' ), $product_title )
+					: sprintf( __( 'Imported new plan: %s', 'geodir-converter' ), $product_title );
+
+				$this->log( $log_message );
+
+				$existing_package ? ++$updated : ++$imported;
+
+				// Store package mapping.
+				$packages_mapping[ $product_id ] = (int) $package_id;
+
+				GeoDir_Pricing_Package::update_meta( $package_id, '_edirectory_product_id', $product_id );
+			}
+		}
+
+		// Update task progress.
+		$task['imported'] = absint( $imported );
+		$task['failed']   = absint( $failed );
+		$task['skipped']  = absint( $skipped );
+
+		// Save packages mapping.
+		$this->options_handler->update_option( 'packages_mapping', $packages_mapping );
+
+		$this->increase_succeed_imports( $imported );
+		$this->increase_failed_imports( $failed );
+		$this->increase_skipped_imports( $skipped );
+
+		$this->log( sprintf( self::LOG_TEMPLATE_FINISHED, 'Packages', count( $products ), $imported, $updated, $skipped, $failed ), 'success' );
+
+		return $this->next_task( $task );
+	}
+
+	/**
 	 * Import categories from eDirectory to GeoDirectory.
 	 *
 	 * @param array $task Import task.
@@ -617,7 +742,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		// Sets total categories.
 		$module_categories = array();
 		foreach ( $modules as $module ) {
-			$response = $this->get( "/api/v1/{$module}/categories.json", array(), array( 'timeout' => 30 ) );
+			$response = $this->get( "/api/v3/{$module}/categories.json", array(), array( 'timeout' => 30 ) );
 
 			if ( is_wp_error( $response ) ) {
 				$this->log( sprintf( self::LOG_TEMPLATE_SKIPPED, 'category', $response->get_error_message() ), 'warning' );
@@ -1205,9 +1330,9 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		// Get the endpoint for the module type.
 		$endpoints = array(
-			self::MODULE_TYPE_LISTING => '/api/v1/listings/%d.json',
-			self::MODULE_TYPE_EVENT   => '/api/v1/events/%d.json',
-			self::MODULE_TYPE_BLOG    => '/api/v1/blogs/%d.json',
+			self::MODULE_TYPE_LISTING => '/api/v3/listings/%d.json',
+			self::MODULE_TYPE_EVENT   => '/api/v3/events/%d.json',
+			self::MODULE_TYPE_BLOG    => '/api/v3/blogs/%d.json',
 		);
 
 		// Remove event endpoint if events addon is not installed.
@@ -1259,9 +1384,9 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 				}
 			}
 
-			// Map the image URL.
-			if ( isset( $row['image_url'] ) && ! empty( $row['image_url'] ) ) {
-				$listing['image_url'] = esc_url_raw( $row['image_url'] );
+			// Map the product.
+			if ( isset( $row['product'] ) && ! empty( $row['product'] ) ) {
+				$listing['product'] = trim( $row['product'] );
 			}
 
 			$listings[ $listing_id ] = $listing;
@@ -1300,9 +1425,9 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		}
 
 		$endpoints = array(
-			self::MODULE_TYPE_LISTING => '/api/v1/listings/%d.json',
-			self::MODULE_TYPE_EVENT   => '/api/v1/events/%d.json',
-			self::MODULE_TYPE_BLOG    => '/api/v1/blogs/%d.json',
+			self::MODULE_TYPE_LISTING => '/api/v3/listings/%d.json',
+			self::MODULE_TYPE_EVENT   => '/api/v3/events/%d.json',
+			self::MODULE_TYPE_BLOG    => '/api/v3/blogs/%d.json',
 		);
 
 		// Unset event endpoint if event addon is missing.
@@ -1310,7 +1435,9 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			unset( $endpoints[ self::MODULE_TYPE_EVENT ] );
 		}
 
+		// Get the category and package mappings.
 		$category_mapping = (array) $this->options_handler->get_option_no_cache( 'category_mapping', array() );
+		$packages_mapping = (array) $this->options_handler->get_option_no_cache( 'packages_mapping', array() );
 
 		$requests = array_map(
 			static function ( $listing ) {
@@ -1360,15 +1487,15 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			}
 
 			// Optional overrides.
-			if ( empty( $data['image_url'] ) && ! empty( $listing['image_url'] ) ) {
-				$data['image_url'] = $listing['image_url'];
-			}
-
 			if ( isset( $listing['user_id'] ) ) {
 				$data['user_id'] = absint( $listing['user_id'] );
 			}
 
-			$status = $this->$method( $data, $category_mapping );
+			if ( isset( $listing['product'] ) ) {
+				$data['product'] = trim( $listing['product'] );
+			}
+
+			$status = $this->$method( $data, $category_mapping, $packages_mapping );
 
 			switch ( $status ) {
 				case self::IMPORT_STATUS_SUCCESS:
@@ -1400,10 +1527,11 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	 * @since 2.0.2
 	 * @param array $listing The offset to start importing from.
 	 * @param array $category_mapping The category mapping.
+	 * @param array $packages_mapping The packages mapping.
 	 *
 	 * @return array Result of the import operation.
 	 */
-	public function import_single_listing( $listing, $category_mapping ) {
+	public function import_single_listing( $listing, $category_mapping, $packages_mapping ) {
 		$post_type    = $this->get_import_post_type();
 		$default_user = (int) $this->get_import_setting( 'wp_author_id', 1 );
 		$wp_author_id = isset( $listing['user_id'] ) ? (int) $listing['user_id'] : $default_user;
@@ -1502,14 +1630,6 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			'featured'              => isset( $listing['featured'] ) && (int) $listing['featured'] === 1,
 		);
 
-		// Import the featured image.
-		if ( isset( $listing['image_url'] ) && ! empty( $listing['image_url'] ) ) {
-			$logo = $this->import_attachment( $listing['image_url'] );
-			if ( isset( $logo['id'], $logo['src'] ) ) {
-				$post_data['logo'] = $logo['src'] . '|||';
-			}
-		}
-
 		// Import business hours.
 		if ( isset( $listing['hours_work'] ) && ! empty( $listing['hours_work'] ) ) {
 			$timezone       = isset( $listing['time_zone_hours_work'] ) ? $listing['time_zone_hours_work'] : 'UTC';
@@ -1517,6 +1637,15 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 			if ( ! is_wp_error( $business_hours ) ) {
 				$post_data['business_hours'] = $business_hours;
+			}
+		}
+
+		// Import product.
+		if ( isset( $listing['product'] ) && ! empty( $listing['product'] ) && ! empty( $packages_mapping ) ) {
+			$product_id = md5( trim( $listing['product'] ) );
+
+			if ( isset( $packages_mapping[ $product_id ] ) ) {
+				$post_data['package_id'] = (int) $packages_mapping[ $product_id ];
 			}
 		}
 
@@ -1528,6 +1657,17 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		// Delete existing media if updating.
 		if ( $is_update ) {
 			GeoDir_Media::delete_files( (int) $existing_post, 'post_images' );
+		}
+
+		// Import the featured image.
+		if ( isset( $listing['logo_image_url'] ) && ! empty( $listing['logo_image_url'] ) ) {
+			$this->log( 'Importing listing logo', 'info' );
+
+			$logo_image = $this->import_attachment( $listing['logo_image_url'] );
+
+			if ( isset( $logo_image['id'], $logo_image['url'] ) ) {
+				$post_data['logo'] = $logo_image['url'] . '|||';
+			}
 		}
 
 		// Import gallery images.
@@ -1591,9 +1731,10 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	 * @since 2.0.2
 	 * @param array $event The offset to start importing from.
 	 * @param array $category_mapping The category mapping.
+	 * @param array $packages_mapping The packages mapping.
 	 * @return array Result of the import operation.
 	 */
-	public function import_single_event( $event, $category_mapping ) {
+	public function import_single_event( $event, $category_mapping, $packages_mapping ) {
 		// Abort early if events addon is not installed.
 		if ( ! class_exists( 'GeoDir_Event_Manager' ) ) {
 			$this->log( sprintf( __( 'Events addon is not active. Skipping event: %s', 'geodir-converter' ), $event['title'] ), 'error' );
@@ -1662,7 +1803,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			&& ! empty( $event['geo']['lng'] );
 
 		if ( $has_coordinates ) {
-			$this->log( 'Pulling listing address from coordinates: ' . $event['geo']['lat'] . ', ' . $event['geo']['lng'], 'info' );
+			$this->log( 'Pulling event address from coordinates: ' . $event['geo']['lat'] . ', ' . $event['geo']['lng'], 'info' );
 			$location_lookup = GeoDir_Converter_Utils::get_location_from_coords( $event['geo']['lat'], $event['geo']['lng'] );
 
 			if ( ! is_wp_error( $location_lookup ) ) {
@@ -1850,6 +1991,8 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		// Import featured image.
 		if ( isset( $blog['image_url'] ) && ! empty( $blog['image_url'] ) ) {
+			$this->log( 'Importing blog featured image', 'info' );
+
 			$attachment = $this->import_attachment( $blog['image_url'] );
 			if ( isset( $attachment['id'] ) ) {
 				set_post_thumbnail( $blog_id, $attachment['id'] );
@@ -1859,6 +2002,50 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		update_post_meta( $blog_id, 'edirectory_blog_id', $blog['id'] );
 
 		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
+	}
+
+	/**
+	 * Get existing package based on eDirectory product ID or find a suitable free package.
+	 *
+	 * @param string  $post_type     The post type associated with the package.
+	 * @param string  $product_id    The product ID.
+	 * @param boolean $free_fallback Whether to fallback to a free package if no match is found.
+	 * @return object|null The existing package object if found, or null otherwise.
+	 */
+	private function get_existing_package( $post_type, $product_id, $free_fallback = true ) {
+		global $wpdb;
+
+		// Fetch the package by package ID.
+		$query = $wpdb->prepare(
+			'SELECT p.*, g.* 
+            FROM ' . GEODIR_PRICING_PACKAGES_TABLE . ' AS p
+            INNER JOIN ' . GEODIR_PRICING_PACKAGE_META_TABLE . ' AS g ON p.ID = g.package_id
+            WHERE p.post_type = %s 
+            AND g.meta_key = %s 
+            AND g.meta_value = %s
+            LIMIT 1',
+			$post_type,
+			'_edirectory_product_id',
+			$product_id
+		);
+
+		$existing_package = $wpdb->get_row( $query );
+
+		// If not found, attempt to retrieve a free package.
+		if ( ! $existing_package && $free_fallback ) {
+			$query_free = $wpdb->prepare(
+				'SELECT * FROM ' . GEODIR_PRICING_PACKAGES_TABLE . ' 
+                WHERE post_type = %s AND amount = 0 AND status = 1
+                ORDER BY display_order ASC, ID ASC
+                LIMIT 1',
+				$post_type
+			);
+
+			$existing_package = $wpdb->get_row( $query_free );
+
+		}
+
+		return $existing_package;
 	}
 
 	/**
