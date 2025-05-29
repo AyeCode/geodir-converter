@@ -3,9 +3,9 @@ Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://wpgeodirectory.com
 Tags: convert, converter, directory, directory converter, geodirectory, listify, phpmydirectory
 Requires at least: 5.0
-Tested up to: 6.7
+Tested up to: 6.8
 Requires PHP: 5.6
-Stable tag: 2.1.0
+Stable tag: 2.1.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
  
@@ -26,7 +26,7 @@ Currently supported directories:
 
 == Changelog ==
 
-= 2.1.1 - TBD =
+= 2.1.1 - 2025-05-29 =
 * Added support for importing listings from eDirectory Software - ADDED
 * Added support for importing listings from Vantage Directory Theme - ADDED
 
