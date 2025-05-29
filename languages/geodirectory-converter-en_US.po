@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: GeoDirectory Converter 2.1.0\n"
+"Project-Id-Version: GeoDirectory Converter 2.1.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-03 18:59+0530\n"
-"PO-Revision-Date: 2025-04-03 18:59+0530\n"
+"POT-Creation-Date: 2025-05-29 18:55+0530\n"
+"PO-Revision-Date: 2025-05-29 18:55+0530\n"
 "Last-Translator: \n"
 "Language-Team: AyeCode Ltd <contact@ayecode.io>\n"
 "Language: en_US\n"
@@ -55,35 +55,66 @@ msgid ""
 "%3$s. Please update GeoDirectory."
 msgstr ""
 
-#: includes/abstracts/class-geodir-converter-importer.php:198
+#: includes/abstracts/class-geodir-converter-importer.php:251
 msgid "This importer does not have any custom settings."
 msgstr ""
 
-#: includes/abstracts/class-geodir-converter-importer.php:247
-msgid "GD Post Type"
+#: includes/abstracts/class-geodir-converter-importer.php:268
+#, php-format
+msgid ""
+"%1$s will not be imported unless you %2$sinstall and activate the %3$s "
+"plugin%4$s first."
 msgstr ""
 
-#: includes/abstracts/class-geodir-converter-importer.php:254
+#: includes/abstracts/class-geodir-converter-importer.php:331
+msgid "GD Listing Post Type"
+msgstr ""
+
+#: includes/abstracts/class-geodir-converter-importer.php:340
 #, php-format
 msgid ""
 "Choose the post type to assign imported listings to. <a href=\"%s\" "
 "target=\"_blank\">Create a new post type</a>."
 msgstr ""
 
-#: includes/abstracts/class-geodir-converter-importer.php:277
+#: includes/abstracts/class-geodir-converter-importer.php:359
+msgid "Current WordPress User"
+msgstr ""
+
+#: includes/abstracts/class-geodir-converter-importer.php:361
+msgid "Assign Imported Listings to a WordPress User"
+msgstr ""
+
+#: includes/abstracts/class-geodir-converter-importer.php:362
+msgid ""
+"Select the WordPress user to assign imported listings to. Leave blank to use "
+"the default WordPress user."
+msgstr ""
+
+#: includes/abstracts/class-geodir-converter-importer.php:365
+msgid "Set Default WordPress User for Imported Listings"
+msgstr ""
+
+#: includes/abstracts/class-geodir-converter-importer.php:366
+msgid ""
+"Select the default WordPress user to assign imported listings to if the "
+"listing does not have an author."
+msgstr ""
+
+#: includes/abstracts/class-geodir-converter-importer.php:400
 msgid "Test Mode"
 msgstr ""
 
-#: includes/abstracts/class-geodir-converter-importer.php:281
+#: includes/abstracts/class-geodir-converter-importer.php:404
 msgid "Run a test import without importing any data."
 msgstr ""
 
-#: includes/abstracts/class-geodir-converter-importer.php:559
+#: includes/abstracts/class-geodir-converter-importer.php:781
 #, php-format
 msgid "Taxonomy error with \"%1$s\": %2$s"
 msgstr ""
 
-#: includes/abstracts/class-geodir-converter-importer.php:603
+#: includes/abstracts/class-geodir-converter-importer.php:857
 msgid "Test mode is enabled. No data will be imported."
 msgstr ""
 
@@ -92,95 +123,242 @@ msgstr ""
 msgid "GeoDirectory Converter"
 msgstr ""
 
-#: includes/admin/class-geodir-converter-admin.php:94
-#: includes/admin/class-geodir-converter-admin.php:144
+#: includes/admin/class-geodir-converter-admin.php:95
+#: includes/admin/class-geodir-converter-admin.php:148
 msgid "I want to import listings from:"
 msgstr ""
 
-#: includes/admin/class-geodir-converter-admin.php:95
+#: includes/admin/class-geodir-converter-admin.php:96
 msgid "Import listings from:"
 msgstr ""
 
-#: includes/admin/class-geodir-converter-admin.php:96
-msgid "Loading..."
+#: includes/admin/class-geodir-converter-admin.php:97
+#: includes/admin/class-geodir-converter-admin.php:172
+msgid "Run Converter"
 msgstr ""
 
 #: includes/admin/class-geodir-converter-admin.php:98
-#: includes/importers/class-geodir-converter-business-directory.php:145
-#: includes/importers/class-geodir-converter-listify.php:141
-#: includes/importers/class-geodir-converter-pmd.php:251
-msgid "Start Import"
+msgid "Loading..."
 msgstr ""
 
 #: includes/admin/class-geodir-converter-admin.php:99
-#: includes/admin/class-geodir-converter-admin.php:168
-msgid "Importing..."
+#: includes/importers/class-geodir-converter-business-directory.php:153
+#: includes/importers/class-geodir-converter-edirectory.php:320
+#: includes/importers/class-geodir-converter-listify.php:141
+#: includes/importers/class-geodir-converter-pmd.php:248
+#: includes/importers/class-geodir-converter-vantage.php:209
+msgid "Start Import"
 msgstr ""
 
 #: includes/admin/class-geodir-converter-admin.php:100
-#: includes/importers/class-geodir-converter-business-directory.php:146
-#: includes/importers/class-geodir-converter-listify.php:142
-#: includes/importers/class-geodir-converter-pmd.php:254
-msgid "Abort"
+#: includes/admin/class-geodir-converter-admin.php:172
+msgid "Importing..."
 msgstr ""
 
 #: includes/admin/class-geodir-converter-admin.php:101
+#: includes/importers/class-geodir-converter-business-directory.php:154
+#: includes/importers/class-geodir-converter-edirectory.php:321
+#: includes/importers/class-geodir-converter-listify.php:142
+#: includes/importers/class-geodir-converter-pmd.php:251
+#: includes/importers/class-geodir-converter-vantage.php:210
+msgid "Abort"
+msgstr ""
+
+#: includes/admin/class-geodir-converter-admin.php:102
 msgid "Aborting..."
 msgstr ""
 
-#: includes/admin/class-geodir-converter-admin.php:131
+#: includes/admin/class-geodir-converter-admin.php:103
+msgid "Uploading..."
+msgstr ""
+
+#: includes/admin/class-geodir-converter-admin.php:135
 msgid "Import Listings"
 msgstr ""
 
-#: includes/admin/class-geodir-converter-admin.php:132
+#: includes/admin/class-geodir-converter-admin.php:136
 msgid "Import listings from another website or platform."
 msgstr ""
 
-#: includes/admin/class-geodir-converter-admin.php:137
+#: includes/admin/class-geodir-converter-admin.php:141
 msgid ""
 "Don't forget to set up your default GeoDirectory listing location before "
 "running this tool!"
 msgstr ""
 
-#: includes/admin/class-geodir-converter-admin.php:160
+#: includes/admin/class-geodir-converter-admin.php:164
 msgid "Importer Icon"
 msgstr ""
 
-#: includes/admin/class-geodir-converter-admin.php:168
-msgid "Run Converter"
-msgstr ""
-
-#: includes/admin/class-geodir-converter-admin.php:172
+#: includes/admin/class-geodir-converter-admin.php:176
 msgid "Back"
 msgstr ""
 
-#: includes/admin/class-geodir-converter-admin.php:184
+#: includes/admin/class-geodir-converter-admin.php:188
 msgid "No importers available."
 msgstr ""
 
-#: includes/class-geodir-converter-ajax.php:144
+#: includes/class-geodir-converter-ajax.php:148
 msgid ""
 "Request does not pass security verification. Please refresh the page and try "
 "one more time."
 msgstr ""
 
-#: includes/class-geodir-converter-ajax.php:162
+#: includes/class-geodir-converter-ajax.php:166
 msgid "Importer not found."
 msgstr ""
 
-#: includes/class-geodir-converter-ajax.php:186
-#: includes/class-geodir-converter-ajax.php:221
-#: includes/class-geodir-converter-ajax.php:261
+#: includes/class-geodir-converter-ajax.php:190
+#: includes/class-geodir-converter-ajax.php:227
+#: includes/class-geodir-converter-ajax.php:386
 msgid "You do not have permission to perform this action."
 msgstr ""
 
-#: includes/class-geodir-converter-ajax.php:244
+#: includes/class-geodir-converter-ajax.php:246
+msgid "Import completed."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:258
 #, php-format
 msgid "Import progress: %d%%"
 msgstr ""
 
-#: includes/class-geodir-converter.php:134
-#: includes/class-geodir-converter.php:135
+#: includes/class-geodir-converter-ajax.php:277
+#: includes/class-geodir-converter-ajax.php:288
+msgid "No file was uploaded. Please select a file and try again."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:285
+msgid "The uploaded file exceeds the upload_max_filesize directive in php.ini."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:286
+msgid "The uploaded file exceeds the MAX_FILE_SIZE directive in the HTML form."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:287
+msgid "The uploaded file was only partially uploaded. Please try again."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:289
+msgid "Missing a temporary folder. Please contact the site administrator."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:290
+msgid "Failed to write file to disk. Please contact the site administrator."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:291
+msgid ""
+"A PHP extension stopped the file upload. Please contact the site "
+"administrator."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:296
+msgid "Unknown upload error."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:303
+msgid "Invalid file upload method detected."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:310
+#, php-format
+msgid ""
+"File size exceeds the maximum limit of %s. Please upload a smaller file."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:320
+msgid "Invalid file type. Only CSV files are allowed."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:332
+#, php-format
+msgid "Invalid file format detected (%s). Please upload a valid CSV file."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:352
+msgid ""
+"The CSV file is empty or could not be parsed. Please check the file format "
+"and try again."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:360
+msgid ""
+"Unable to determine if this is an Events or Listings CSV. Please ensure your "
+"CSV contains the correct headers."
+msgstr ""
+
+#: includes/class-geodir-converter-ajax.php:367
+#, php-format
+msgid "Successfully parsed %1$s: Found %2$d rows."
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:37
+msgid "Invalid latitude or longitude"
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:69
+msgid "Failed to retrieve location data"
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:76
+msgid "Invalid location data"
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:157
+msgid "CSV file not found."
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:161
+msgid "CSV file is not readable. Please check file permissions."
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:175
+msgid "CSV file has invalid or missing headers."
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:181
+msgid ""
+"CSV headers contain empty values. Please ensure all columns have headers."
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:185
+msgid ""
+"CSV headers contain duplicate values. Each column must have a unique header."
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:204
+#, php-format
+msgid "CSV is missing required headers: %s"
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:225
+#, php-format
+msgid ""
+"Row %1$d has %2$d columns while the header has %3$d columns. Please ensure "
+"all rows have the correct number of columns."
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:239
+msgid "CSV contains excessively long rows. Please check your data format."
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:262
+msgid "Failed to open CSV file for reading."
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:270
+#, php-format
+msgid "Error at line %1$d: %2$s"
+msgstr ""
+
+#: includes/class-geodir-converter-utils.php:280
+msgid "CSV file contains no valid data rows."
+msgstr ""
+
+#: includes/class-geodir-converter.php:141
+#: includes/class-geodir-converter.php:142
 msgid "Convert"
 msgstr ""
 
@@ -206,158 +384,588 @@ msgstr ""
 msgid "Business Directory Importer Settings"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:173
-#: includes/importers/class-geodir-converter-listify.php:162
+#: includes/importers/class-geodir-converter-business-directory.php:139
+#: includes/importers/class-geodir-converter-vantage.php:195
+msgid "GeoDirectory Pricing Manager"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-business-directory.php:181
+#: includes/importers/class-geodir-converter-edirectory.php:373
+#: includes/importers/class-geodir-converter-listify.php:164
+#: includes/importers/class-geodir-converter-vantage.php:232
 msgid "The selected post type is invalid. Please choose a valid post type."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:189
-#: includes/importers/class-geodir-converter-pmd.php:502
+#: includes/importers/class-geodir-converter-business-directory.php:197
+#: includes/importers/class-geodir-converter-pmd.php:473
 msgid "Required tables are missing"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:270
-#: includes/importers/class-geodir-converter-listify.php:282
+#: includes/importers/class-geodir-converter-business-directory.php:278
+#: includes/importers/class-geodir-converter-listify.php:284
+#: includes/importers/class-geodir-converter-vantage.php:325
 msgid "Categories: Import started."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:286
-#: includes/importers/class-geodir-converter-pmd.php:1549
+#: includes/importers/class-geodir-converter-business-directory.php:294
+#: includes/importers/class-geodir-converter-pmd.php:1520
 msgid "No categories available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:298
-#: includes/importers/class-geodir-converter-listify.php:315
+#: includes/importers/class-geodir-converter-business-directory.php:302
+#: includes/importers/class-geodir-converter-business-directory.php:319
+#: includes/importers/class-geodir-converter-edirectory.php:772
+#: includes/importers/class-geodir-converter-listify.php:313
+#: includes/importers/class-geodir-converter-listify.php:330
+#: includes/importers/class-geodir-converter-pmd.php:1746
+#: includes/importers/class-geodir-converter-pmd.php:1901
+#: includes/importers/class-geodir-converter-vantage.php:353
+#: includes/importers/class-geodir-converter-vantage.php:370
 #, php-format
 msgid "Categories: Import completed. %1$d imported, %2$d failed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:317
+#: includes/importers/class-geodir-converter-business-directory.php:338
+#: includes/importers/class-geodir-converter-vantage.php:389
 msgid "Tags: Import started."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:332
+#: includes/importers/class-geodir-converter-business-directory.php:353
+#: includes/importers/class-geodir-converter-vantage.php:404
 msgid "Tags: No items to import."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:344
+#: includes/importers/class-geodir-converter-business-directory.php:361
+#: includes/importers/class-geodir-converter-business-directory.php:378
+#: includes/importers/class-geodir-converter-vantage.php:412
+#: includes/importers/class-geodir-converter-vantage.php:429
 #, php-format
 msgid "Tags: Import completed. %1$d imported, %2$d failed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:365
+#: includes/importers/class-geodir-converter-business-directory.php:399
 msgid "Packages: No items to import."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:411
-#: includes/importers/class-geodir-converter-pmd.php:933
+#: includes/importers/class-geodir-converter-business-directory.php:445
+#: includes/importers/class-geodir-converter-edirectory.php:687
+#: includes/importers/class-geodir-converter-pmd.php:904
+#: includes/importers/class-geodir-converter-vantage.php:585
+#: includes/importers/class-geodir-converter-vantage.php:638
 #, php-format
 msgid "Failed to import plan: %s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:415
-#: includes/importers/class-geodir-converter-pmd.php:937
+#: includes/importers/class-geodir-converter-business-directory.php:449
+#: includes/importers/class-geodir-converter-edirectory.php:691
+#: includes/importers/class-geodir-converter-pmd.php:908
+#: includes/importers/class-geodir-converter-vantage.php:642
 #, php-format
 msgid "Updated plan: %s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:416
-#: includes/importers/class-geodir-converter-pmd.php:938
+#: includes/importers/class-geodir-converter-business-directory.php:450
+#: includes/importers/class-geodir-converter-edirectory.php:692
+#: includes/importers/class-geodir-converter-pmd.php:909
+#: includes/importers/class-geodir-converter-vantage.php:643
 #, php-format
 msgid "Imported new plan: %s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:432
+#: includes/importers/class-geodir-converter-business-directory.php:466
+#: includes/importers/class-geodir-converter-vantage.php:661
 #, php-format
 msgid "Plans import completed: %1$d imported, %2$d updated, %3$d failed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:452
+#: includes/importers/class-geodir-converter-business-directory.php:486
 msgid "Importing listing fields..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:457
+#: includes/importers/class-geodir-converter-business-directory.php:491
+#: includes/importers/class-geodir-converter-vantage.php:459
 msgid "No fields found for import."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:477
-#: includes/importers/class-geodir-converter-listify.php:357
-#: includes/importers/class-geodir-converter-pmd.php:1157
+#: includes/importers/class-geodir-converter-business-directory.php:511
+#: includes/importers/class-geodir-converter-listify.php:372
+#: includes/importers/class-geodir-converter-pmd.php:1128
 #, php-format
 msgid "Skipped custom field: %s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:492
-#: includes/importers/class-geodir-converter-listify.php:372
-#: includes/importers/class-geodir-converter-pmd.php:1172
+#: includes/importers/class-geodir-converter-business-directory.php:526
+#: includes/importers/class-geodir-converter-listify.php:387
+#: includes/importers/class-geodir-converter-pmd.php:1143
 #, php-format
 msgid "Failed to import custom field: %s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:502
+#: includes/importers/class-geodir-converter-business-directory.php:536
 #, php-format
 msgid ""
 "Custom fields import completed: %1$d imported, %2$d updated, %3$d skipped, "
 "%4$d failed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:523
+#: includes/importers/class-geodir-converter-business-directory.php:557
 msgid "Starting listings import..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:533
+#: includes/importers/class-geodir-converter-business-directory.php:567
 msgid "No listings to import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:555
+#: includes/importers/class-geodir-converter-business-directory.php:589
 msgid "Finished importing listings."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:562
-#: includes/importers/class-geodir-converter-listify.php:757
+#: includes/importers/class-geodir-converter-business-directory.php:596
+#: includes/importers/class-geodir-converter-listify.php:772
 #, php-format
 msgid "Failed to import listing: %s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:571
-#: includes/importers/class-geodir-converter-listify.php:766
-#: includes/importers/class-geodir-converter-pmd.php:2138
+#: includes/importers/class-geodir-converter-business-directory.php:605
+#: includes/importers/class-geodir-converter-listify.php:781
+#: includes/importers/class-geodir-converter-pmd.php:2085
 #, php-format
 msgid "Skipped listing: %s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:574
-#: includes/importers/class-geodir-converter-listify.php:769
-#: includes/importers/class-geodir-converter-pmd.php:2141
+#: includes/importers/class-geodir-converter-business-directory.php:608
+#: includes/importers/class-geodir-converter-listify.php:784
+#: includes/importers/class-geodir-converter-pmd.php:2088
 #, php-format
 msgid "Failed import: %s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:577
-#: includes/importers/class-geodir-converter-listify.php:772
-#: includes/importers/class-geodir-converter-pmd.php:2144
+#: includes/importers/class-geodir-converter-business-directory.php:611
+#: includes/importers/class-geodir-converter-listify.php:787
+#: includes/importers/class-geodir-converter-pmd.php:2091
 #, php-format
 msgid "Imported listing: %s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:595
+#: includes/importers/class-geodir-converter-business-directory.php:629
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d listings imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:605
+#: includes/importers/class-geodir-converter-business-directory.php:639
 #, php-format
 msgid ""
 "Processed %1$d of %2$d listings. Imported: %3$d, skipped: %4$d, failed: %5$d"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:1131
-#: includes/importers/class-geodir-converter-business-directory.php:1133
+#: includes/importers/class-geodir-converter-business-directory.php:1179
+#: includes/importers/class-geodir-converter-business-directory.php:1181
 msgid "BDP ID"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-business-directory.php:1132
+#: includes/importers/class-geodir-converter-business-directory.php:1180
 msgid "Business Directory Plugin ID"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:173
+msgid "eDirectory"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:182
+msgid ""
+"Import listings, events, users and invoices from your eDirectory "
+"installation."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:228
+#: includes/importers/class-geodir-converter-pmd.php:232
+msgid "Events Addon"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:236
+msgid "Upload & Connect"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:241
+msgid ""
+"Please provide your eDirectory Site URL and API Key to fetch clean data. You "
+"must also upload your listings CSV file, as it contains details that are not "
+"available in the API."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:251
+msgid "e.g. https://site.com"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:252
+msgid "eDirectory Site URL"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:254
+msgid ""
+"Enter the URL of your eDirectory site. Include the protocol (http or https)."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:267
+msgid "API Key"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:268
+msgid "eDirectory API Key"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:270
+msgid ""
+"You can find your API key in the eDirectory settings. Please go to Settings "
+"> General Settings and copy the API key from there."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:280
+msgid "Upload Listings CSV File"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:281
+msgid ""
+"Upload the exported CSV file from your eDirectory site. This is essential as "
+"some data isn’t available via the API."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:284
+msgid "Drag and drop your CSV file here"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:285
+msgid "or use the button below to browse your files."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:287
+msgid "Select Files"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:300
+#, php-format
+msgid "Successfully parsed listing: Found %d rows."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:308
+msgid "Configure & Import"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:352
+#: includes/importers/class-geodir-converter-edirectory.php:357
+msgid "Please upload a CSV file."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:369
+msgid "Please select at least one eDirectory content to import."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:377
+msgid ""
+"The selected WordPress author is invalid. Please select a valid author to "
+"import listings to."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:382
+msgid "eDirectory site URL is required."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:386
+msgid "Invalid eDirectory site URL."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:391
+msgid "eDirectory API key is required."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:422
+msgid "Failed to connect to eDirectory API."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:548
+#, php-format
+msgid "Imported user: %s"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:563
+#, php-format
+msgid "Failed to import user: %1$s. Error: %2$s"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:578
+#, php-format
+msgid "Updated user: %s"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:579
+#, php-format
+msgid "Imported new user: %s"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:603
+#: includes/importers/class-geodir-converter-vantage.php:530
+msgid "Payment manager plugin is not active. Skipping plans..."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:762
+#, php-format
+msgid "Importing %1$d %2$s categories."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1055
+#: includes/importers/class-geodir-converter-edirectory.php:1058
+msgid "eDirectory ID"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1056
+msgid "Original eDirectory Listing ID."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1067
+#: includes/importers/class-geodir-converter-edirectory.php:1070
+#: includes/importers/class-geodir-converter-pmd.php:1246
+#: includes/importers/class-geodir-converter-pmd.php:1250
+#: includes/importers/class-geodir-converter-vantage.php:738
+#: includes/importers/class-geodir-converter-vantage.php:741
+msgid "Email"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1068
+#: includes/importers/class-geodir-converter-pmd.php:1247
+#: includes/importers/class-geodir-converter-vantage.php:739
+msgid "The email of the listing."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1079
+#: includes/importers/class-geodir-converter-edirectory.php:1082
+#: includes/importers/class-geodir-converter-pmd.php:1228
+#: includes/importers/class-geodir-converter-pmd.php:1232
+#: includes/importers/class-geodir-converter-vantage.php:750
+#: includes/importers/class-geodir-converter-vantage.php:753
+msgid "Phone"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1080
+#: includes/importers/class-geodir-converter-pmd.php:1229
+#: includes/importers/class-geodir-converter-vantage.php:751
+msgid "The phone number of the listing."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1091
+#: includes/importers/class-geodir-converter-edirectory.php:1094
+#: includes/importers/class-geodir-converter-listify.php:530
+#: includes/importers/class-geodir-converter-pmd.php:1237
+#: includes/importers/class-geodir-converter-pmd.php:1241
+#: includes/importers/class-geodir-converter-vantage.php:762
+#: includes/importers/class-geodir-converter-vantage.php:765
+msgid "Website"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1092
+#: includes/importers/class-geodir-converter-pmd.php:1238
+#: includes/importers/class-geodir-converter-vantage.php:763
+msgid "The website of the listing."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1106
+#: includes/importers/class-geodir-converter-edirectory.php:1109
+msgid "WhatsApp"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1107
+msgid "The WhatsApp page of the listing."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1118
+#: includes/importers/class-geodir-converter-edirectory.php:1121
+#: includes/importers/class-geodir-converter-pmd.php:1322
+#: includes/importers/class-geodir-converter-vantage.php:774
+#: includes/importers/class-geodir-converter-vantage.php:777
+msgid "Facebook"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1119
+#: includes/importers/class-geodir-converter-vantage.php:775
+msgid "The Facebook page of the listing."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1136
+#: includes/importers/class-geodir-converter-edirectory.php:1139
+#: includes/importers/class-geodir-converter-pmd.php:1271
+#: includes/importers/class-geodir-converter-pmd.php:1275
+msgid "Venue"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1137
+#: includes/importers/class-geodir-converter-pmd.php:1272
+msgid "The venue that will host this event."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1148
+#: includes/importers/class-geodir-converter-edirectory.php:1151
+#: includes/importers/class-geodir-converter-pmd.php:1289
+#: includes/importers/class-geodir-converter-pmd.php:1293
+msgid "Contact Name"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1149
+#: includes/importers/class-geodir-converter-pmd.php:1290
+msgid "The contact person."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1167
+#: includes/importers/class-geodir-converter-pmd.php:1304
+#: includes/importers/class-geodir-converter-pmd.php:1308
+msgid "Company Logo"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1168
+#: includes/importers/class-geodir-converter-pmd.php:1305
+msgid "You can upload your company logo."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1169
+msgid ""
+"Adds a logo input. This can be used in conjunction with the `GD > Post "
+"Images` widget, there is a setting to allow it to use the logo if available. "
+"This can also be used by other plugins if the field key remains `logo`."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1171
+#: includes/importers/class-geodir-converter-listify.php:559
+msgid "Logo"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1181
+#: includes/importers/class-geodir-converter-edirectory.php:1184
+#: includes/importers/class-geodir-converter-pmd.php:1313
+#: includes/importers/class-geodir-converter-vantage.php:786
+#: includes/importers/class-geodir-converter-vantage.php:789
+msgid "Twitter"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1182
+#: includes/importers/class-geodir-converter-vantage.php:787
+msgid "The Twitter page of the listing."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1193
+#: includes/importers/class-geodir-converter-edirectory.php:1196
+#: includes/importers/class-geodir-converter-pmd.php:1376
+#: includes/importers/class-geodir-converter-vantage.php:798
+#: includes/importers/class-geodir-converter-vantage.php:801
+msgid "Instagram"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1194
+#: includes/importers/class-geodir-converter-vantage.php:799
+msgid "The Instagram page of the listing."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1205
+#: includes/importers/class-geodir-converter-edirectory.php:1208
+#: includes/importers/class-geodir-converter-pmd.php:1358
+#: includes/importers/class-geodir-converter-vantage.php:810
+#: includes/importers/class-geodir-converter-vantage.php:813
+msgid "YouTube"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1206
+#: includes/importers/class-geodir-converter-vantage.php:811
+msgid "The YouTube page of the listing."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1217
+#: includes/importers/class-geodir-converter-edirectory.php:1220
+#: includes/importers/class-geodir-converter-pmd.php:1349
+#: includes/importers/class-geodir-converter-vantage.php:822
+#: includes/importers/class-geodir-converter-vantage.php:825
+msgid "Pinterest"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1218
+#: includes/importers/class-geodir-converter-vantage.php:823
+msgid "The Pinterest page of the listing."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1229
+#: includes/importers/class-geodir-converter-edirectory.php:1232
+#: includes/importers/class-geodir-converter-pmd.php:1340
+#: includes/importers/class-geodir-converter-vantage.php:834
+#: includes/importers/class-geodir-converter-vantage.php:837
+msgid "LinkedIn"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1230
+#: includes/importers/class-geodir-converter-vantage.php:835
+msgid "The LinkedIn page of the listing."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1241
+#: includes/importers/class-geodir-converter-edirectory.php:1244
+msgid "TikTok"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1242
+msgid "The TikTok page of the listing."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1253
+#: includes/importers/class-geodir-converter-edirectory.php:1256
+msgid "Business Hours"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1254
+msgid "Select your business opening/operating hours."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1266
+#: includes/importers/class-geodir-converter-edirectory.php:1269
+msgid "Features"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1267
+msgid "Select the features of the listing. e.g. Wi-Fi, Parking, etc."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1278
+#: includes/importers/class-geodir-converter-edirectory.php:1281
+msgid "Video URL"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1279
+msgid ""
+"Enter the URL of the video you want to associate with this listing. This can "
+"be a YouTube or Vimeo URL."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1291
+#: includes/importers/class-geodir-converter-edirectory.php:1292
+#: includes/importers/class-geodir-converter-edirectory.php:1295
+#: includes/importers/class-geodir-converter-pmd.php:1256
+#: includes/importers/class-geodir-converter-vantage.php:846
+#: includes/importers/class-geodir-converter-vantage.php:847
+#: includes/importers/class-geodir-converter-vantage.php:850
+msgid "Is Featured?"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1293
+#: includes/importers/class-geodir-converter-pmd.php:1257
+#: includes/importers/class-geodir-converter-vantage.php:848
+msgid "Mark listing as a featured."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1458
+msgid "Unknown error"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:1740
+#, php-format
+msgid "Events addon is not active. Skipping event: %s"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-edirectory.php:2060
+msgid "Invalid hours string."
 msgstr ""
 
 #: includes/importers/class-geodir-converter-listify.php:94
@@ -372,923 +980,910 @@ msgstr ""
 msgid "Listify Importer Settings"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:286
-#: includes/importers/class-geodir-converter-listify.php:303
+#: includes/importers/class-geodir-converter-listify.php:288
+#: includes/importers/class-geodir-converter-listify.php:305
+#: includes/importers/class-geodir-converter-vantage.php:328
+#: includes/importers/class-geodir-converter-vantage.php:345
 msgid "Categories: No items to import."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:335
+#: includes/importers/class-geodir-converter-listify.php:350
 msgid "Importing standard fields..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:341
+#: includes/importers/class-geodir-converter-listify.php:356
 msgid "No custom fields found for import."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:382
+#: includes/importers/class-geodir-converter-listify.php:397
 #, php-format
 msgid ""
 "Listing fields import completed: %1$d imported, %2$d updated, %3$d skipped, "
 "%4$d failed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:404
+#: includes/importers/class-geodir-converter-listify.php:419
 msgid "Application email"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:405
+#: includes/importers/class-geodir-converter-listify.php:420
 msgid "you@example.com"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:408
+#: includes/importers/class-geodir-converter-listify.php:423
 msgid "Application URL"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:409
+#: includes/importers/class-geodir-converter-listify.php:424
 msgid "https://"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:412
+#: includes/importers/class-geodir-converter-listify.php:427
 msgid "Application email/URL"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:413
+#: includes/importers/class-geodir-converter-listify.php:428
 msgid "Enter an email address or website URL"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:422
+#: includes/importers/class-geodir-converter-listify.php:437
 msgid "Job Title"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:429
-#: includes/importers/class-geodir-converter-pmd.php:1309
-#: includes/importers/class-geodir-converter-pmd.php:1313
+#: includes/importers/class-geodir-converter-listify.php:444
+#: includes/importers/class-geodir-converter-pmd.php:1280
+#: includes/importers/class-geodir-converter-pmd.php:1284
 msgid "Location"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:430
+#: includes/importers/class-geodir-converter-listify.php:445
 msgid "Leave this blank if the location is not important"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:433
+#: includes/importers/class-geodir-converter-listify.php:448
 msgid "e.g. \"London\""
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:437
+#: includes/importers/class-geodir-converter-listify.php:452
 msgid "Remote Position"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:438
+#: includes/importers/class-geodir-converter-listify.php:453
 msgid "Select if this is a remote position."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:444
+#: includes/importers/class-geodir-converter-listify.php:459
 msgid "Job type"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:447
+#: includes/importers/class-geodir-converter-listify.php:462
 msgid "Choose job type&hellip;"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:453
+#: includes/importers/class-geodir-converter-listify.php:468
 msgid "Job category"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:462
+#: includes/importers/class-geodir-converter-listify.php:477
 msgid "Description"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:475
+#: includes/importers/class-geodir-converter-listify.php:490
 msgid "Salary"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:478
+#: includes/importers/class-geodir-converter-listify.php:493
 msgid "e.g. 20000"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:482
+#: includes/importers/class-geodir-converter-listify.php:497
 msgid "Salary Currency"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:485
+#: includes/importers/class-geodir-converter-listify.php:500
 msgid "e.g. USD"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:486
+#: includes/importers/class-geodir-converter-listify.php:501
 msgid ""
 "Add a salary currency, this field is optional. Leave it empty to use the "
 "default salary currency."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:490
+#: includes/importers/class-geodir-converter-listify.php:505
 msgid "Salary Unit"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:493
+#: includes/importers/class-geodir-converter-listify.php:508
 msgid ""
 "Add a salary period unit, this field is optional. Leave it empty to use the "
 "default salary unit, if one is defined."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:498
+#: includes/importers/class-geodir-converter-listify.php:513
 msgid "Scheduled Date"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:499
+#: includes/importers/class-geodir-converter-listify.php:514
 msgid "Optionally set the date when this listing will be published."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:508
+#: includes/importers/class-geodir-converter-listify.php:523
 msgid "Company name"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:511
+#: includes/importers/class-geodir-converter-listify.php:526
 msgid "Enter the name of the company"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:515
-#: includes/importers/class-geodir-converter-pmd.php:1266
-#: includes/importers/class-geodir-converter-pmd.php:1270
-msgid "Website"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-listify.php:518
+#: includes/importers/class-geodir-converter-listify.php:533
 msgid "http://"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:522
+#: includes/importers/class-geodir-converter-listify.php:537
 msgid "Tagline"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:525
+#: includes/importers/class-geodir-converter-listify.php:540
 msgid "Briefly describe your company"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:530
+#: includes/importers/class-geodir-converter-listify.php:545
 msgid "Video"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:533
+#: includes/importers/class-geodir-converter-listify.php:548
 msgid "A link to a video about your company"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:537
+#: includes/importers/class-geodir-converter-listify.php:552
 msgid "Twitter username"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:540
-#: includes/importers/class-geodir-converter-pmd.php:1346
-#: includes/importers/class-geodir-converter-pmd.php:1355
-#: includes/importers/class-geodir-converter-pmd.php:1364
-#: includes/importers/class-geodir-converter-pmd.php:1373
-#: includes/importers/class-geodir-converter-pmd.php:1382
-#: includes/importers/class-geodir-converter-pmd.php:1391
-#: includes/importers/class-geodir-converter-pmd.php:1400
-#: includes/importers/class-geodir-converter-pmd.php:1409
+#: includes/importers/class-geodir-converter-listify.php:555
+#: includes/importers/class-geodir-converter-pmd.php:1317
+#: includes/importers/class-geodir-converter-pmd.php:1326
+#: includes/importers/class-geodir-converter-pmd.php:1335
+#: includes/importers/class-geodir-converter-pmd.php:1344
+#: includes/importers/class-geodir-converter-pmd.php:1353
+#: includes/importers/class-geodir-converter-pmd.php:1362
+#: includes/importers/class-geodir-converter-pmd.php:1371
+#: includes/importers/class-geodir-converter-pmd.php:1380
 msgid "@yourcompany"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:544
-msgid "Logo"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-listify.php:565
+#: includes/importers/class-geodir-converter-listify.php:580
 msgid "WPJM ID"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:566
+#: includes/importers/class-geodir-converter-listify.php:581
 msgid "Original WPJM Job ID"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:723
+#: includes/importers/class-geodir-converter-listify.php:738
 msgid "Starting listings import process..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:728
+#: includes/importers/class-geodir-converter-listify.php:743
 msgid "No listings found for import. Skipping process."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:750
+#: includes/importers/class-geodir-converter-listify.php:765
 msgid "Import process completed. No more listings found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:794
-#: includes/importers/class-geodir-converter-pmd.php:2166
+#: includes/importers/class-geodir-converter-listify.php:809
+#: includes/importers/class-geodir-converter-pmd.php:2113
 #, php-format
 msgid ""
 "Import completed: %1$d/%2$d listings processed. Imported: %3$d, Failed: %4$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:1174
+#: includes/importers/class-geodir-converter-listify.php:1189
 msgid "--"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:1175
+#: includes/importers/class-geodir-converter-listify.php:1190
 msgid "Year"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:1176
+#: includes/importers/class-geodir-converter-listify.php:1191
 msgid "Month"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:1177
+#: includes/importers/class-geodir-converter-listify.php:1192
 msgid "Week"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:1178
+#: includes/importers/class-geodir-converter-listify.php:1193
 msgid "Day"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-listify.php:1179
+#: includes/importers/class-geodir-converter-listify.php:1194
 msgid "Hour"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:184
+#: includes/importers/class-geodir-converter-pmd.php:181
 msgid "PhpMyDirectory"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:193
+#: includes/importers/class-geodir-converter-pmd.php:190
 msgid ""
 "Import listings, events, users and invoices from your PhpMyDirectory "
 "installation."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:222
+#: includes/importers/class-geodir-converter-pmd.php:219
 msgid "PhpMyDirectory Connection Settings"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:227
+#: includes/importers/class-geodir-converter-pmd.php:224
+#: includes/importers/class-geodir-converter-vantage.php:187
 msgid "Invoicing"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:235
-msgid "Events Addon"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:275
-#, php-format
-msgid ""
-"The %1$s plugin is not active. %2$s will not be imported unless you "
-"%3$sinstall and activate the %1$s plugin%4$s first."
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:308
+#: includes/importers/class-geodir-converter-pmd.php:277
 msgid "PMD Root URL"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:315
+#: includes/importers/class-geodir-converter-pmd.php:284
 msgid "Database Host Name"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:321
+#: includes/importers/class-geodir-converter-pmd.php:290
 msgid "Database Name"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:327
+#: includes/importers/class-geodir-converter-pmd.php:296
 msgid "Database Username"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:333
+#: includes/importers/class-geodir-converter-pmd.php:302
 msgid "Database Password"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:338
+#: includes/importers/class-geodir-converter-pmd.php:307
 msgid "Table Prefix"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:381
+#: includes/importers/class-geodir-converter-pmd.php:352
 msgid "PMD root URL is required."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:385
+#: includes/importers/class-geodir-converter-pmd.php:356
 msgid "Invalid PMD root URL."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:390
+#: includes/importers/class-geodir-converter-pmd.php:361
 msgid "Database host is required."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:395
+#: includes/importers/class-geodir-converter-pmd.php:366
 msgid "Database name is required."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:400
+#: includes/importers/class-geodir-converter-pmd.php:371
 msgid "Database username is required."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:405
+#: includes/importers/class-geodir-converter-pmd.php:376
 msgid "Database password is required."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:452
+#: includes/importers/class-geodir-converter-pmd.php:423
 msgid "Database connection failed"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:453
+#: includes/importers/class-geodir-converter-pmd.php:424
 msgid "Are you sure you have the correct username and password?"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:454
+#: includes/importers/class-geodir-converter-pmd.php:425
 msgid "Are you sure you have typed the correct hostname?"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:455
+#: includes/importers/class-geodir-converter-pmd.php:426
 msgid "Are you sure the database server is running?"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:523
+#: includes/importers/class-geodir-converter-pmd.php:494
 msgid "Invalid database settings"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:623
+#: includes/importers/class-geodir-converter-pmd.php:594
 #, php-format
 msgid "Starting user import: %d users found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:628
+#: includes/importers/class-geodir-converter-pmd.php:599
 msgid "No users available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:637
+#: includes/importers/class-geodir-converter-pmd.php:608
 msgid "No more users to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:717
+#: includes/importers/class-geodir-converter-pmd.php:688
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d users imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:723
+#: includes/importers/class-geodir-converter-pmd.php:694
 #, php-format
 msgid ""
 "User import completed: %1$d/%2$d processed. Imported: %3$d, Failed: %4$d, "
 "Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:805
+#: includes/importers/class-geodir-converter-pmd.php:776
 msgid "Payment manager plugin is not active. Skipping products..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:834
+#: includes/importers/class-geodir-converter-pmd.php:805
 #, php-format
 msgid "Starting products import: %d products found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:839
+#: includes/importers/class-geodir-converter-pmd.php:810
 msgid "No products available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:847
+#: includes/importers/class-geodir-converter-pmd.php:818
 msgid "Skipping products as you are using an incompatible version of PMD"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:877
+#: includes/importers/class-geodir-converter-pmd.php:848
 msgid "No more products to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:968
+#: includes/importers/class-geodir-converter-pmd.php:939
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d products imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:978
+#: includes/importers/class-geodir-converter-pmd.php:949
 #, php-format
 msgid ""
 "Products import completed: %1$d/%2$d processed. Imported: %3$d, Failed: "
 "%4$d, Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1095
+#: includes/importers/class-geodir-converter-pmd.php:1066
 #, php-format
 msgid "Starting custom fields import: %d fields found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1100
+#: includes/importers/class-geodir-converter-pmd.php:1071
 msgid "No custom fields available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1114
+#: includes/importers/class-geodir-converter-pmd.php:1085
 msgid "No more custom fields to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1181
+#: includes/importers/class-geodir-converter-pmd.php:1152
 #, php-format
 msgid "Failed to import field %1$s: %2$s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1211
+#: includes/importers/class-geodir-converter-pmd.php:1182
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d fields imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1221
+#: includes/importers/class-geodir-converter-pmd.php:1192
 #, php-format
 msgid ""
 "Custom fields import completed: %1$d/%2$d processed. Imported: %3$d, Failed: "
 "%4$d, Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1248
-#: includes/importers/class-geodir-converter-pmd.php:1252
+#: includes/importers/class-geodir-converter-pmd.php:1219
+#: includes/importers/class-geodir-converter-pmd.php:1223
 msgid "PMD ID"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1249
+#: includes/importers/class-geodir-converter-pmd.php:1220
 msgid "Original PMD Listing ID."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1257
-#: includes/importers/class-geodir-converter-pmd.php:1261
-msgid "Phone"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1258
-msgid "The phone number of the listing."
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1267
-msgid "The website of the listing."
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1275
-#: includes/importers/class-geodir-converter-pmd.php:1279
-msgid "Email"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1276
-msgid "The email of the listing."
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1284
-#: includes/importers/class-geodir-converter-pmd.php:1289
+#: includes/importers/class-geodir-converter-pmd.php:1255
+#: includes/importers/class-geodir-converter-pmd.php:1260
 msgid "Featured"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1285
-msgid "Is Featured?"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1286
-msgid "Mark listing as a featured."
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1300
-#: includes/importers/class-geodir-converter-pmd.php:1304
-msgid "Venue"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1301
-msgid "The venue that will host this event."
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1310
+#: includes/importers/class-geodir-converter-pmd.php:1281
 msgid "The actual location of this event."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1318
-#: includes/importers/class-geodir-converter-pmd.php:1322
-msgid "Contact Name"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1319
-msgid "The contact person."
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1333
-#: includes/importers/class-geodir-converter-pmd.php:1337
-msgid "Company Logo"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1334
-msgid "You can upload your company logo."
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1342
-msgid "Twitter"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1343
+#: includes/importers/class-geodir-converter-pmd.php:1314
 msgid "You can enter your business or listing twitter url."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1351
-msgid "Facebook"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1352
+#: includes/importers/class-geodir-converter-pmd.php:1323
 msgid "You can enter your business or listing facebook url."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1360
+#: includes/importers/class-geodir-converter-pmd.php:1331
 msgid "Google+"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1361
+#: includes/importers/class-geodir-converter-pmd.php:1332
 msgid "You can enter your business or listing google url."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1369
-msgid "LinkedIn"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1370
+#: includes/importers/class-geodir-converter-pmd.php:1341
 msgid "You can enter your business or listing linkedin url."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1378
-msgid "Pinterest"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1379
+#: includes/importers/class-geodir-converter-pmd.php:1350
 msgid "You can enter your business or listing pinterest url."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1387
-msgid "YouTube"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1388
+#: includes/importers/class-geodir-converter-pmd.php:1359
 msgid "You can enter your business or listing youtube url."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1396
+#: includes/importers/class-geodir-converter-pmd.php:1367
 msgid "Foursquare"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1397
+#: includes/importers/class-geodir-converter-pmd.php:1368
 msgid "You can enter your business or listing foursquare url."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1405
-msgid "Instagram"
-msgstr ""
-
-#: includes/importers/class-geodir-converter-pmd.php:1406
+#: includes/importers/class-geodir-converter-pmd.php:1377
 msgid "You can enter your business or listing instagram url."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1414
-#: includes/importers/class-geodir-converter-pmd.php:1419
+#: includes/importers/class-geodir-converter-pmd.php:1385
+#: includes/importers/class-geodir-converter-pmd.php:1390
+#: includes/importers/class-geodir-converter-vantage.php:859
+#: includes/importers/class-geodir-converter-vantage.php:863
 msgid "Is Claimed"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1415
+#: includes/importers/class-geodir-converter-pmd.php:1386
+#: includes/importers/class-geodir-converter-vantage.php:860
 msgid "Business Owner/Associate?"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1416
+#: includes/importers/class-geodir-converter-pmd.php:1387
+#: includes/importers/class-geodir-converter-vantage.php:861
 msgid "Mark listing as a claimed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1473
+#: includes/importers/class-geodir-converter-pmd.php:1444
 #, php-format
 msgid "Skipped standard field: %s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1488
+#: includes/importers/class-geodir-converter-pmd.php:1459
 #, php-format
 msgid "Failed to import standard field: %s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1498
+#: includes/importers/class-geodir-converter-pmd.php:1469
 #, php-format
 msgid ""
 "Standard fields import completed: %1$d imported, %2$d updated, %3$d skipped, "
 "%4$d failed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1544
+#: includes/importers/class-geodir-converter-pmd.php:1515
 #, php-format
 msgid "Starting category import: %d categories found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1563
+#: includes/importers/class-geodir-converter-pmd.php:1534
 msgid "No more categories to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1583
-#: includes/importers/class-geodir-converter-pmd.php:1776
-#: includes/importers/class-geodir-converter-pmd.php:1918
+#: includes/importers/class-geodir-converter-pmd.php:1554
+#: includes/importers/class-geodir-converter-pmd.php:1760
+#: includes/importers/class-geodir-converter-pmd.php:1915
 #, php-format
 msgid "Category %d"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1611
-#: includes/importers/class-geodir-converter-pmd.php:1800
+#: includes/importers/class-geodir-converter-pmd.php:1582
+#: includes/importers/class-geodir-converter-pmd.php:1784
 #, php-format
 msgid "Failed to import category %1$s: %2$s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1639
-#: includes/importers/class-geodir-converter-pmd.php:1658
+#: includes/importers/class-geodir-converter-pmd.php:1610
+#: includes/importers/class-geodir-converter-pmd.php:1629
 #, php-format
 msgid "Failed to import category image %1$s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1692
+#: includes/importers/class-geodir-converter-pmd.php:1663
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d categories imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1702
+#: includes/importers/class-geodir-converter-pmd.php:1673
 #, php-format
 msgid ""
 "Category import completed: %1$d/%2$d processed. Imported: %3$d, Failed: "
 "%4$d, Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1748
+#: includes/importers/class-geodir-converter-pmd.php:1719
 #, php-format
 msgid "Starting blog category import: %d categories found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1753
+#: includes/importers/class-geodir-converter-pmd.php:1724
 msgid "No blog categories available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1767
+#: includes/importers/class-geodir-converter-pmd.php:1738
 msgid "No more blog categories to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1833
+#: includes/importers/class-geodir-converter-pmd.php:1817
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d blog categories imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1843
+#: includes/importers/class-geodir-converter-pmd.php:1827
 #, php-format
 msgid ""
 "Blog category import completed: %1$d/%2$d processed. Imported: %3$d, Failed: "
 "%4$d, Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1890
+#: includes/importers/class-geodir-converter-pmd.php:1874
 #, php-format
 msgid "Starting event category import: %d categories found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1895
+#: includes/importers/class-geodir-converter-pmd.php:1879
 msgid "No event categories available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1909
+#: includes/importers/class-geodir-converter-pmd.php:1893
 msgid "No more event categories to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1942
+#: includes/importers/class-geodir-converter-pmd.php:1939
 #, php-format
 msgid "Failed to import event category %1$s: %2$s"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1975
+#: includes/importers/class-geodir-converter-pmd.php:1972
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d event categories imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:1985
+#: includes/importers/class-geodir-converter-pmd.php:1982
 #, php-format
 msgid ""
 "Event category import completed: %1$d/%2$d processed. Imported: %3$d, "
 "Failed: %4$d, Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2110
+#: includes/importers/class-geodir-converter-pmd.php:2057
 #, php-format
 msgid "Starting listing import: %d listings found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2115
+#: includes/importers/class-geodir-converter-pmd.php:2062
 msgid "No listings available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2129
+#: includes/importers/class-geodir-converter-pmd.php:2076
 msgid "No more listings to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2524
+#: includes/importers/class-geodir-converter-pmd.php:2471
 msgid "Events addon is not active. Skipping events..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2558
+#: includes/importers/class-geodir-converter-pmd.php:2505
 #, php-format
 msgid "Starting events import: %d events found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2563
+#: includes/importers/class-geodir-converter-pmd.php:2510
 msgid "No events available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2577
+#: includes/importers/class-geodir-converter-pmd.php:2524
 msgid "No more events to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2689
+#: includes/importers/class-geodir-converter-pmd.php:2636
 #, php-format
 msgid "Failed to import event %s."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2721
+#: includes/importers/class-geodir-converter-pmd.php:2668
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d events imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2731
+#: includes/importers/class-geodir-converter-pmd.php:2678
 #, php-format
 msgid ""
 "Events import completed: %1$d/%2$d processed. Imported: %3$d, Failed: %4$d, "
 "Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2781
+#: includes/importers/class-geodir-converter-pmd.php:2728
 #, php-format
 msgid "Starting reviews import: %d reviews found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2786
+#: includes/importers/class-geodir-converter-pmd.php:2733
 msgid "No reviews available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2813
+#: includes/importers/class-geodir-converter-pmd.php:2760
 msgid "No more reviews to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2828
-#: includes/importers/class-geodir-converter-pmd.php:2865
+#: includes/importers/class-geodir-converter-pmd.php:2775
+#: includes/importers/class-geodir-converter-pmd.php:2812
 #, php-format
 msgid "Failed to import review %s."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2905
+#: includes/importers/class-geodir-converter-pmd.php:2852
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d reviews imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2915
+#: includes/importers/class-geodir-converter-pmd.php:2862
 #, php-format
 msgid ""
 "Reviews import completed: %1$d/%2$d processed. Imported: %3$d, Failed: %4$d, "
 "Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2963
+#: includes/importers/class-geodir-converter-pmd.php:2910
 #, php-format
 msgid "Starting posts import: %d posts found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2968
+#: includes/importers/class-geodir-converter-pmd.php:2915
 msgid "No posts available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:2982
+#: includes/importers/class-geodir-converter-pmd.php:2929
 msgid "No more posts to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3020
+#: includes/importers/class-geodir-converter-pmd.php:2967
 #, php-format
 msgid "Failed to import post %s."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3067
+#: includes/importers/class-geodir-converter-pmd.php:3014
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d posts imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3077
+#: includes/importers/class-geodir-converter-pmd.php:3024
 #, php-format
 msgid ""
 "Post import completed: %1$d/%2$d processed. Imported: %3$d, Failed: %4$d, "
 "Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3153
+#: includes/importers/class-geodir-converter-pmd.php:3100
 #, php-format
 msgid "Starting pages import: %d pages found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3158
+#: includes/importers/class-geodir-converter-pmd.php:3105
 msgid "No pages available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3172
+#: includes/importers/class-geodir-converter-pmd.php:3119
 msgid "No more pages to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3213
+#: includes/importers/class-geodir-converter-pmd.php:3160
 #, php-format
 msgid "Failed to import page %s."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3238
+#: includes/importers/class-geodir-converter-pmd.php:3185
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d pages imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3248
+#: includes/importers/class-geodir-converter-pmd.php:3195
 #, php-format
 msgid ""
 "Page import completed: %1$d/%2$d processed. Imported: %3$d, Failed: %4$d, "
 "Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3296
+#: includes/importers/class-geodir-converter-pmd.php:3243
 #, php-format
 msgid "Starting comments import: %d comments found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3301
+#: includes/importers/class-geodir-converter-pmd.php:3248
 msgid "No comments available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3328
+#: includes/importers/class-geodir-converter-pmd.php:3275
 msgid "No more comments to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3342
-#: includes/importers/class-geodir-converter-pmd.php:3383
+#: includes/importers/class-geodir-converter-pmd.php:3289
+#: includes/importers/class-geodir-converter-pmd.php:3330
 #, php-format
 msgid "Failed to import comment %s."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3405
+#: includes/importers/class-geodir-converter-pmd.php:3352
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d comments imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3415
+#: includes/importers/class-geodir-converter-pmd.php:3362
 #, php-format
 msgid ""
 "Comments import completed: %1$d/%2$d processed. Imported: %3$d, Failed: "
 "%4$d, Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3461
+#: includes/importers/class-geodir-converter-pmd.php:3408
 #, php-format
 msgid "Starting discounts import: %d discounts found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3466
+#: includes/importers/class-geodir-converter-pmd.php:3413
 msgid "No discounts available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3480
+#: includes/importers/class-geodir-converter-pmd.php:3427
 msgid "No more discounts to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3540
+#: includes/importers/class-geodir-converter-pmd.php:3487
 #, php-format
 msgid "Failed to import discount %s."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3562
+#: includes/importers/class-geodir-converter-pmd.php:3509
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d discounts imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3572
+#: includes/importers/class-geodir-converter-pmd.php:3519
 #, php-format
 msgid ""
 "Discount import completed: %1$d/%2$d processed. Imported: %3$d, Failed: "
 "%4$d, Skipped: %5$d."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3596
+#: includes/importers/class-geodir-converter-pmd.php:3543
+#: includes/importers/class-geodir-converter-vantage.php:1397
 msgid "Invoices plugin is not active. Skipping invoices..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3624
+#: includes/importers/class-geodir-converter-pmd.php:3571
 #, php-format
 msgid "Starting invoices import: %d invoices found."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3629
+#: includes/importers/class-geodir-converter-pmd.php:3576
 msgid "No invoices available for import. Skipping..."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3643
+#: includes/importers/class-geodir-converter-pmd.php:3590
 msgid "No more invoices to import. Process completed."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3672
+#: includes/importers/class-geodir-converter-pmd.php:3619
+#: includes/importers/class-geodir-converter-vantage.php:1560
 msgid "Tax"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3676
+#: includes/importers/class-geodir-converter-pmd.php:3623
 msgid "Tax 2"
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3745
+#: includes/importers/class-geodir-converter-pmd.php:3704
 #, php-format
 msgid "Failed to import invoice %s."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3770
+#: includes/importers/class-geodir-converter-pmd.php:3729
 #, php-format
 msgid "Batch complete. Progress: %1$d/%2$d invoices imported."
 msgstr ""
 
-#: includes/importers/class-geodir-converter-pmd.php:3780
+#: includes/importers/class-geodir-converter-pmd.php:3739
 #, php-format
 msgid ""
 "Invoice import completed: %1$d/%2$d processed. Imported: %3$d, Failed: %4$d, "
 "Skipped: %5$d."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:146
+msgid "Vantage"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:155
+msgid ""
+"Import listings, events, users and invoices from your Vantage installation."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:182
+msgid "Vantage Importer Settings"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:449
+msgid "Importing fields..."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:473
+#: includes/importers/class-geodir-converter-vantage.php:482
+#, php-format
+msgid "Skipped field: %s"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:497
+#, php-format
+msgid "Failed to import field: %s"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:507
+#, php-format
+msgid ""
+"Fields import completed: %1$d imported, %2$d updated, %3$d skipped, %4$d "
+"failed."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:555
+msgid "Starting plans import process..."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:560
+msgid "No plans found for import. Skipping process."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:578
+msgid "Finished importing plans."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:726
+#: includes/importers/class-geodir-converter-vantage.php:729
+msgid "Vantage ID"
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:727
+msgid "Original Vantage Listing ID."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:1075
+msgid "Starting listings parsing process..."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:1080
+msgid "No listings found for parsing. Skipping process."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:1094
+msgid "Parsing process completed. No more listings found."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:1413
+msgid "Starting payments parsing process..."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:1418
+msgid "No payments found for parsing. Skipping process."
+msgstr ""
+
+#: includes/importers/class-geodir-converter-vantage.php:1432
+msgid "Finished parsing payments. No more payments found."
 msgstr ""
