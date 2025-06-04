@@ -47,13 +47,6 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	private const ACTION_PARSE_BLOGS = 'parse_blogs';
 
 	/**
-	 * Action identifier for importing blogs.
-	 *
-	 * @var string
-	 */
-	private const ACTION_IMPORT_BLOGS = 'import_blogs';
-
-	/**
 	 * Post type identifier for listings.
 	 *
 	 * @var string
@@ -361,6 +354,9 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$edirectory_modules             = isset( $settings['edirectory_modules'] ) ? $settings['edirectory_modules'] : array();
 		$edirectory_modules             = ! is_array( $edirectory_modules ) ? array( $edirectory_modules ) : $edirectory_modules;
 		$settings['edirectory_modules'] = array_map( 'sanitize_text_field', $edirectory_modules );
+
+		// Add blog module to import.
+		$settings['edirectory_modules'] = array_merge( $settings['edirectory_modules'], array( self::MODULE_TYPE_BLOG ) );
 
 		if ( empty( $files ) ) {
 			$errors[] = esc_html__( 'Please upload a CSV file.', 'geodir-converter' );
@@ -764,8 +760,18 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 				continue;
 			}
 
-			$post_type  = ( self::MODULE_TYPE_EVENT === $module ) ? self::POST_TYPE_EVENTS : $this->get_import_post_type();
-			$taxonomy   = $post_type . 'category';
+			// Map eDirectory module to GeoDirectory post type.
+			if ( self::MODULE_TYPE_BLOG === $module ) {
+				$post_type = 'post';
+				$taxonomy  = 'category';
+			} elseif ( self::MODULE_TYPE_EVENT === $module ) {
+				$post_type = self::POST_TYPE_EVENTS;
+				$taxonomy  = $post_type . 'category';
+			} else {
+				$post_type = $this->get_import_post_type();
+				$taxonomy  = $post_type . 'category';
+			}
+
 			$categories = isset( $response['data'] ) ? (array) $response['data'] : array();
 
 			if ( empty( $categories ) ) {
@@ -777,7 +783,11 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			$this->log( sprintf( esc_html__( 'Importing %1$d %2$s categories.', 'geodir-converter' ), $total_categories, $module ), 'info' );
 
 			// Merge categories from all modules.
-			$module_categories = array_merge( $module_categories, $categories );
+			if ( ! isset( $module_categories[ $taxonomy ] ) ) {
+				$module_categories[ $taxonomy ] = array();
+			}
+
+			$module_categories[ $taxonomy ] = array_merge( $module_categories[ $taxonomy ], $categories );
 		}
 
 		if ( $this->is_test_mode() ) {
@@ -797,11 +807,8 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$total_categories = count( $module_categories );
 		$this->increase_imports_total( $total_categories );
 
-		// Process categories in batches.
-		$batches = array_chunk( $module_categories, $this->batch_size );
-
-		foreach ( $batches as $batch ) {
-			foreach ( $batch as $category ) {
+		foreach ( $module_categories as $taxonomy => $categories ) {
+			foreach ( $categories as $category ) {
 				$result = $this->import_single_category( $category, 0, $taxonomy );
 
 				if ( GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS === $result ) {
@@ -865,6 +872,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$term = term_exists( $name, $taxonomy, $parent_term_id );
 
 		if ( $term && ! is_wp_error( $term ) ) {
+
 			$term_id = absint( $term['term_id'] );
 			wp_update_term( $term_id, $taxonomy, $args );
 			$category_mapping[ $external_id ] = $term_id;
@@ -872,6 +880,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			$new_term = wp_insert_term( $name, $taxonomy, $args );
 
 			if ( is_wp_error( $new_term ) ) {
+				$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'Category', $name . ': ' . $new_term->get_error_message() ), 'error' );
 				return GeoDir_Converter_Importer::IMPORT_STATUS_FAILED;
 			}
 
@@ -890,7 +899,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			}
 		}
 
-		return isset( $term ) ? GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
+		return $term ? GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
 	}
 
 	/**
@@ -2096,6 +2105,11 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		if ( is_wp_error( $blog_id ) ) {
 			$this->log( $blog_id->get_error_message() );
 			return GeoDir_Converter_Importer::IMPORT_STATUS_FAILED;
+		}
+
+		// Set categories.
+		if ( ! empty( $gd_categories ) && is_array( $gd_categories ) ) {
+			wp_set_post_terms( $blog_id, $gd_categories, 'category' );
 		}
 
 		// Import featured image.
