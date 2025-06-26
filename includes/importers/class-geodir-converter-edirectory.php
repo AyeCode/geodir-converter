@@ -40,6 +40,13 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	private const ACTION_IMPORT_USERS = 'import_users';
 
 	/**
+	 * Action identifier for parsing blogs.
+	 *
+	 * @var string
+	 */
+	private const ACTION_PARSE_BLOGS = 'parse_blogs';
+
+	/**
 	 * Post type identifier for listings.
 	 *
 	 * @var string
@@ -348,6 +355,9 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$edirectory_modules             = ! is_array( $edirectory_modules ) ? array( $edirectory_modules ) : $edirectory_modules;
 		$settings['edirectory_modules'] = array_map( 'sanitize_text_field', $edirectory_modules );
 
+		// Add blog module to import.
+		$settings['edirectory_modules'] = array_merge( $settings['edirectory_modules'], array( self::MODULE_TYPE_BLOG ) );
+
 		if ( empty( $files ) ) {
 			$errors[] = esc_html__( 'Please upload a CSV file.', 'geodir-converter' );
 		}
@@ -444,6 +454,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			self::ACTION_IMPORT_CATEGORIES,
 			self::ACTION_IMPORT_FIELDS,
 			self::ACTION_PARSE_LISTINGS,
+			self::ACTION_PARSE_BLOGS,
 		);
 
 		$key = array_search( $task['action'], $tasks, true );
@@ -749,8 +760,18 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 				continue;
 			}
 
-			$post_type  = ( self::MODULE_TYPE_EVENT === $module ) ? self::POST_TYPE_EVENTS : $this->get_import_post_type();
-			$taxonomy   = $post_type . 'category';
+			// Map eDirectory module to GeoDirectory post type.
+			if ( self::MODULE_TYPE_BLOG === $module ) {
+				$post_type = 'post';
+				$taxonomy  = 'category';
+			} elseif ( self::MODULE_TYPE_EVENT === $module ) {
+				$post_type = self::POST_TYPE_EVENTS;
+				$taxonomy  = $post_type . 'category';
+			} else {
+				$post_type = $this->get_import_post_type();
+				$taxonomy  = $post_type . 'category';
+			}
+
 			$categories = isset( $response['data'] ) ? (array) $response['data'] : array();
 
 			if ( empty( $categories ) ) {
@@ -762,7 +783,11 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			$this->log( sprintf( esc_html__( 'Importing %1$d %2$s categories.', 'geodir-converter' ), $total_categories, $module ), 'info' );
 
 			// Merge categories from all modules.
-			$module_categories = array_merge( $module_categories, $categories );
+			if ( ! isset( $module_categories[ $taxonomy ] ) ) {
+				$module_categories[ $taxonomy ] = array();
+			}
+
+			$module_categories[ $taxonomy ] = array_merge( $module_categories[ $taxonomy ], $categories );
 		}
 
 		if ( $this->is_test_mode() ) {
@@ -782,11 +807,8 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$total_categories = count( $module_categories );
 		$this->increase_imports_total( $total_categories );
 
-		// Process categories in batches.
-		$batches = array_chunk( $module_categories, $this->batch_size );
-
-		foreach ( $batches as $batch ) {
-			foreach ( $batch as $category ) {
+		foreach ( $module_categories as $taxonomy => $categories ) {
+			foreach ( $categories as $category ) {
 				$result = $this->import_single_category( $category, 0, $taxonomy );
 
 				if ( GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS === $result ) {
@@ -850,6 +872,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$term = term_exists( $name, $taxonomy, $parent_term_id );
 
 		if ( $term && ! is_wp_error( $term ) ) {
+
 			$term_id = absint( $term['term_id'] );
 			wp_update_term( $term_id, $taxonomy, $args );
 			$category_mapping[ $external_id ] = $term_id;
@@ -857,6 +880,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			$new_term = wp_insert_term( $name, $taxonomy, $args );
 
 			if ( is_wp_error( $new_term ) ) {
+				$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'Category', $name . ': ' . $new_term->get_error_message() ), 'error' );
 				return GeoDir_Converter_Importer::IMPORT_STATUS_FAILED;
 			}
 
@@ -875,7 +899,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			}
 		}
 
-		return isset( $term ) ? GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
+		return $term ? GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
 	}
 
 	/**
@@ -1925,6 +1949,99 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 	 * Import blogs from eDirectory to GeoDirectory.
 	 *
 	 * @since 2.0.2
+	 * @param array $task The offset to start importing from.
+	 * @return array Result of the import operation.
+	 */
+	public function task_parse_blogs( array $task ) {
+		$offset      = isset( $task['offset'], $task['total_blogs'] ) ? (int) $task['offset'] : 1;
+		$total_blogs = isset( $task['total_blogs'] ) ? (int) $task['total_blogs'] : 0;
+		$total_pages = isset( $task['total_pages'] ) ? (int) $task['total_pages'] : 0;
+
+		// Log the import start message only for the first batch.
+		if ( 1 === $offset ) {
+			$this->log( sprintf( self::LOG_TEMPLATE_STARTED, 'Blogs' ), 'info' );
+		}
+
+		$response = $this->get(
+			'/api/v1/results.json',
+			array(
+				'module' => implode( ',', array( self::MODULE_TYPE_BLOG ) ),
+				'page'   => $offset,
+			),
+			array( 'timeout' => 30 )
+		);
+
+		if ( is_wp_error( $response ) ) {
+			$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'Blogs', $response->get_error_message() ), 'error' );
+			return $this->next_task( $task );
+		}
+
+		// Determine total listings count if not set.
+		if ( ! isset( $task['total_blogs'] ) ) {
+			$total_blogs = isset( $response['paging']['total'] ) ? (int) $response['paging']['total'] : 0;
+			$total_pages = isset( $response['paging']['pages'] ) ? (int) $response['paging']['pages'] : 0;
+
+			$task['total_blogs'] = $total_blogs;
+			$task['total_pages'] = $total_pages;
+			$this->increase_imports_total( $total_blogs );
+		}
+
+		// Exit early if there are no blogs to import.
+		if ( 0 === $total_blogs ) {
+			$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'Blogs', 'No blogs found for import.' ), 'error' );
+			return $this->next_task( $task );
+		}
+
+		$blogs = isset( $response['data'] ) ? (array) $response['data'] : array();
+
+		if ( empty( $blogs ) ) {
+			$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'Blogs', 'No more blogs found for import.' ), 'info' );
+			return $this->next_task( $task );
+		}
+
+		$listings = array();
+
+		foreach ( $blogs as $blog ) {
+			$blog_id = (int) $blog['id'];
+			$url     = sprintf( '/api/v1/blogs/%d.json', $blog_id );
+			$url     = $this->build_url(
+				$url,
+				array(
+					'token' => $this->api_token,
+				)
+			);
+
+			$blog = array(
+				'id'    => $blog_id,
+				'url'   => $url,
+				'title' => sanitize_text_field( $blog['title'] ),
+				'type'  => self::MODULE_TYPE_BLOG,
+			);
+
+			$listings[ $blog_id ] = $blog;
+		}
+
+		$this->increase_imports_total( count( $listings ) );
+
+		// Batch the tasks.
+		$batched_tasks = array_chunk( $listings, 10, true );
+		$import_tasks  = array();
+		foreach ( $batched_tasks as $batch ) {
+			$import_tasks[] = array(
+				'action'   => GeoDir_Converter_Importer::ACTION_IMPORT_LISTINGS,
+				'listings' => $batch,
+			);
+		}
+
+		$this->background_process->add_import_tasks( $import_tasks );
+
+		return $this->next_task( $task );
+	}
+
+	/**
+	 * Import blogs from eDirectory to GeoDirectory.
+	 *
+	 * @since 2.0.2
 	 * @param array $blog The offset to start importing from.
 	 * @param array $category_mapping The category mapping.
 	 *
@@ -1959,6 +2076,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$post_updated_gmt = current_time( 'mysql', 1 );
 
 		$post_data = array(
+			'post_type'         => 'post',
 			'post_author'       => $wp_author_id,
 			'post_content'      => $post_content,
 			'post_title'        => $blog['title'],
@@ -1989,6 +2107,11 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			return GeoDir_Converter_Importer::IMPORT_STATUS_FAILED;
 		}
 
+		// Set categories.
+		if ( ! empty( $gd_categories ) && is_array( $gd_categories ) ) {
+			wp_set_post_terms( $blog_id, $gd_categories, 'category' );
+		}
+
 		// Import featured image.
 		if ( isset( $blog['image_url'] ) && ! empty( $blog['image_url'] ) ) {
 			$this->log( 'Importing blog featured image', 'info' );
@@ -2001,7 +2124,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		update_post_meta( $blog_id, 'edirectory_blog_id', $blog['id'] );
 
-		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
+		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
 	}
 
 	/**
