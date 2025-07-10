@@ -5,7 +5,7 @@ Tags: convert, converter, directorist, directory, directory converter, geodirect
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 5.6
-Stable tag: 2.1.2
+Stable tag: 2.1.3
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
  
@@ -29,7 +29,7 @@ Currently supported directories:
 
 == Changelog ==
 
-= 2.1.3 - 2025-07-TBD =
+= 2.1.3 - 2025-07-10 =
 * Added support for importing listings from Directorist plugin - ADDED
 
 = 2.1.2 - 2025-06-26 =
