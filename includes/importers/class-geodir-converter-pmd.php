@@ -815,7 +815,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$pricing_fields = $db->get_col( "SHOW COLUMNS FROM `$pricing_table`" );
 
 		if ( ! in_array( 'overdue_pricing_id', $pricing_fields, true ) ) {
-			$this->log( __( 'Skipping products as you are using an incompatible version of PMD', 'geodirectory-converter' ) );
+			$this->log( __( 'Skipping products as you are using an incompatible version of PMD', 'geodir-converter' ) );
 			return $this->next_task( $task );
 		}
 

@@ -123,11 +123,12 @@ final class GeoDir_Converter {
 	 * Load the plugin text domain for translation.
 	 */
 	public function load_plugin_textdomain() {
-		load_plugin_textdomain(
-			'geodir-converter',
-			false,
-			dirname( GEODIR_CONVERTER_PLUGIN_BASENAME ) . '/languages/'
-		);
+		// Determines the current locale.
+		$locale = determine_locale();
+
+		unload_textdomain( 'geodir-converter', true );
+		load_textdomain( 'geodir-converter', WP_LANG_DIR . '/geodir-converter/geodir-converter-' . $locale . '.mo' );
+		load_plugin_textdomain( 'geodir-converter', false, basename( dirname( GEODIR_CONVERTER_PLUGIN_FILE ) ) . '/languages/' );
 	}
 
 	/**
