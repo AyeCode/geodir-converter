@@ -16,6 +16,7 @@ use GeoDir_Converter\Traits\GeoDir_Converter_Trait_Singleton;
 use GeoDir_Converter\Importers\GeoDir_Converter_Business_Directory;
 use GeoDir_Converter\Importers\GeoDir_Converter_Vantage;
 use GeoDir_Converter\Importers\GeoDir_Converter_EDirectory;
+use GeoDir_Converter\Importers\GeoDir_Converter_Directorist;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -69,6 +70,7 @@ final class GeoDir_Converter {
 
 		if ( is_admin() ) {
 			add_filter( 'plugin_action_links', array( $this, 'plugin_action_links' ), 10, 2 );
+			add_filter( 'geodir_cpt_cf_save_data', array( $this, 'cpt_cf_save_data' ), 10, 2 );
 		}
 	}
 
@@ -84,6 +86,7 @@ final class GeoDir_Converter {
 		GeoDir_Converter_Business_Directory::instance();
 		GeoDir_Converter_Vantage::instance();
 		GeoDir_Converter_EDirectory::instance();
+		GeoDir_Converter_Directorist::instance();
 	}
 
 	/**
@@ -205,5 +208,19 @@ final class GeoDir_Converter {
 		}
 
 		return $skip;
+	}
+
+	public function cpt_cf_save_data( $cf_data, $field ) {
+		if ( ! isset( $cf_data['tab_parent'] ) && ! isset( $cf_data['tab_level'] ) && isset( $field->tab_parent ) && isset( $field->tab_level ) ) {
+			if ( defined( 'GEODIR_CONVERT_CF_DIRECTORIST' ) ) {
+				$cf_data['db_data']['tab_parent'] = $field->tab_parent;
+				$cf_data['db_format'][] = '%d';
+
+				$cf_data['db_data']['tab_level'] = $field->tab_level;
+				$cf_data['db_format'][] = '%d';
+			}
+		}
+
+		return $cf_data;
 	}
 }
