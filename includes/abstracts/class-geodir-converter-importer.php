@@ -11,6 +11,7 @@ namespace GeoDir_Converter\Abstracts;
 
 use WP_Error;
 use Geodir_Media;
+use GeoDir_Admin_Taxonomies;
 use GeoDir_Converter\GeoDir_Converter_Utils;
 use GeoDir_Converter\GeoDir_Converter_Options_Handler;
 use GeoDir_Converter\Importers\GeoDir_Converter_Background_Process;
@@ -620,7 +621,7 @@ abstract class GeoDir_Converter_Importer {
 	 * @param array $images Images (single or multiple).
 	 * @return string Formatted image data.
 	 */
-	protected function format_images_data( $images ) {
+	protected function format_images_data( $images, $image_urls = array() ) {
 		$attachments = array();
 
 		foreach ( $images as $index => $attachment ) {
@@ -639,7 +640,7 @@ abstract class GeoDir_Converter_Importer {
 			);
 		}
 
-		if ( empty( $attachments ) ) {
+		if ( empty( $attachments ) && empty( $image_urls ) ) {
 			return '';
 		}
 
@@ -660,6 +661,10 @@ abstract class GeoDir_Converter_Importer {
 				esc_html( $attachment['title'] ),
 				esc_html( $attachment['caption'] )
 			);
+		}
+
+		if ( ! empty( $image_urls ) ) {
+			$formatted_images = array_merge( $formatted_images, $image_urls );
 		}
 
 		return implode( '::', $formatted_images );
@@ -745,12 +750,24 @@ abstract class GeoDir_Converter_Importer {
 	 * @param string $desc_meta_key  The meta key for storing term description.
 	 * @return array Result of the import operation.
 	 */
-	protected function import_taxonomy_terms( $terms, $taxonomy, $desc_meta_key = 'ct_cat_top_desc' ) {
+	protected function import_taxonomy_terms( $terms, $taxonomy, $desc_meta_key = 'ct_cat_top_desc', $params = array() ) {
 		$imported = 0;
 		$failed   = 0;
 
 		if ( empty( $terms ) ) {
 			return compact( 'imported', 'failed' );
+		}
+
+		$params = wp_parse_args( $params, array(
+			'importer_id' => '',
+			'eq_suffix' => ''
+		) );
+
+		$admin_taxonomies = new GeoDir_Admin_Taxonomies();
+
+		$equivalent_key = 'gd_equivalent';
+		if ( ! empty( $params['eq_suffix'] ) ) {
+			$equivalent_key .= $params['eq_suffix'];
 		}
 
 		foreach ( $terms as $term ) {
@@ -761,7 +778,8 @@ abstract class GeoDir_Converter_Importer {
 
 			// Handle parent terms.
 			if ( ! empty( $term->parent ) ) {
-				$parent = get_term_meta( $term->parent, 'gd_equivalent', true );
+				$parent = get_term_meta( $term->parent, $equivalent_key, true );
+
 				if ( $parent ) {
 					$args['parent'] = $parent;
 				}
@@ -793,7 +811,30 @@ abstract class GeoDir_Converter_Importer {
 					update_term_meta( $term_id, $desc_meta_key, $term->description );
 				}
 
-				update_term_meta( $term->term_id, 'gd_equivalent', $term_id );
+				if ( $params['importer_id'] == 'directorist' && strpos( $taxonomy, 'category' ) !== false ) {
+					$category_icon = get_term_meta( $term->term_id, 'category_icon', true );
+
+					if ( $category_icon ) {
+						update_term_meta( $term_id, 'ct_cat_font_icon', $category_icon );
+
+						$category_icon = $admin_taxonomies->generate_cat_icon( $category_icon, '#ff8c00' );
+
+						if ( $category_icon ) {
+							update_term_meta( $term_id, 'ct_cat_color', '#ff8c00' );
+							update_term_meta( $term_id, 'ct_cat_icon', $category_icon );
+						}
+					}
+
+					$image_id = get_term_meta( $term->term_id, 'image', true );
+
+					if ( $image_id && ( $attachment_url = wp_get_attachment_url( $image_id ) ) ) {
+						$image_url = geodir_file_relative_url( $attachment_url );
+
+						update_term_meta( $term_id, 'ct_cat_default_img', array( 'id'  => $image_id, 'src' => $image_url ) );
+					}
+				}
+
+				update_term_meta( $term->term_id, $equivalent_key, $term_id );
 			}
 
 			++$imported;

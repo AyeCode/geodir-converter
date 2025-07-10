@@ -103,6 +103,12 @@ class GeoDir_Converter_Utils {
 			$city = $address['town'];
 		} elseif ( isset( $address['city'] ) ) {
 			$city = $address['city'];
+		} elseif ( isset( $address['county'] ) ) {
+			$city = $address['county'];
+		} elseif ( isset( $address['city_district'] ) ) {
+			$city = $address['city_district'];
+		} elseif ( isset( $address['state_district'] ) ) {
+			$city = $address['state_district'];
 		}
 
 		// Bermuda, Norway, Sweden, Romania.

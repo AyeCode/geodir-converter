@@ -1,12 +1,13 @@
 # [GeoDirectory Directory Converter](https://wpgeodirectory.com/downloads/directory-converter/) #
 
-This plugin allows to convert directories like [phpMyDirectory](https://wordpress.org/plugins/phpmydirectory/), [Listify](https://astoundify.com/products/listify/), [Business Directory Plugin](https://wordpress.org/plugins/business-directory-plugin/), [Vantage](https://www.appthemes.com/themes/vantage/) and [eDirectory](https://www.edirectory.com/) to GeoDirectory.
+This plugin allows to convert directories like [phpMyDirectory](https://wordpress.org/plugins/phpmydirectory/), [Listify](https://astoundify.com/products/listify/), [Business Directory Plugin](https://wordpress.org/plugins/business-directory-plugin/), [Vantage](https://www.appthemes.com/themes/vantage/), [eDirectory](https://www.edirectory.com/) and [Directorist](https://www.directorist.com/) to GeoDirectory.
 
 ### Usage Details ###
 
 - Make sure you have installed and activated:-
 
 * GeoDirectory
+* GeoDirectory Custom Posts - To import multiple post types.
 * GeoDirectory Location Manager - Otherwise all listings will be imported into the default location
 * GeoDirectory Pricing Manager - To import products/packages
 * Events for GeoDirectory - To import events
@@ -21,6 +22,7 @@ This plugin allows to convert directories like [phpMyDirectory](https://wordpres
 * [Business Directory Plugin](https://wordpress.org/plugins/business-directory-plugin/) 6.3 or greater
 * [Vantage](https://www.appthemes.com/themes/vantage/) 4.2 or greater
 * [eDirectory](https://www.edirectory.com/)
+* [Directorist](https://directorist.com/) 7.9.0 or greater
 
 (more directory support coming soon)
 
