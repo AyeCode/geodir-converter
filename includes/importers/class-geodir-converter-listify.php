@@ -14,6 +14,7 @@ use WP_Post;
 use WP_Error;
 use GeoDir_Media;
 use GeoDir_Converter\Abstracts\GeoDir_Converter_Importer;
+use GeoDir_Converter\GeoDir_Converter_Utils;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -131,6 +132,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 			
 			<?php
 			$this->display_post_type_select();
+			$this->display_author_select( true );
 			$this->display_test_mode_checkbox();
 			$this->display_progress();
 			$this->display_logs( $this->get_logs() );
@@ -149,7 +151,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 * Validate importer settings.
 	 *
 	 * @param array $settings The settings to validate.
-     * @param array $files    The files to validate.
+	 * @param array $files    The files to validate.
 	 *
 	 * @return array Validated and sanitized settings.
 	 */
@@ -157,11 +159,16 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 		$post_types = geodir_get_posttypes();
 		$errors     = array();
 
-		$settings['test_mode']    = ( isset( $settings['test_mode'] ) && ! empty( $settings['test_mode'] ) && $settings['test_mode'] != 'no' ) ? 'yes' : 'no';
 		$settings['gd_post_type'] = isset( $settings['gd_post_type'] ) && ! empty( $settings['gd_post_type'] ) ? sanitize_text_field( $settings['gd_post_type'] ) : 'gd_place';
+		$settings['wp_author_id'] = ( isset( $settings['wp_author_id'] ) && ! empty( $settings['wp_author_id'] ) ) ? absint( $settings['wp_author_id'] ) : get_current_user_id();
+		$settings['test_mode']    = ( isset( $settings['test_mode'] ) && ! empty( $settings['test_mode'] ) && $settings['test_mode'] != 'no' ) ? 'yes' : 'no';
 
 		if ( ! in_array( $settings['gd_post_type'], $post_types, true ) ) {
 			$errors[] = esc_html__( 'The selected post type is invalid. Please choose a valid post type.', 'geodir-converter' );
+		}
+
+		if ( empty( $settings['wp_author_id'] ) || ! get_userdata( (int) $settings['wp_author_id'] ) ) {
+			$errors[] = esc_html__( 'The selected WordPress author is invalid. Please select a valid author to import listings to.', 'geodir-converter' );
 		}
 
 		if ( ! empty( $errors ) ) {
@@ -175,19 +182,24 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 * Get next task.
 	 *
 	 * @param array $task The current task.
+	 * @param bool  $reset_offset Whether to reset the offset.
 	 *
 	 * @return array|false The next task or false if all tasks are completed.
 	 */
-	public function next_task( $task ) {
+	public function next_task( $task, $reset_offset = false ) {
 		$task['imported'] = 0;
 		$task['failed']   = 0;
 		$task['skipped']  = 0;
 		$task['updated']  = 0;
 
+		if ( $reset_offset ) {
+			$task['offset'] = 0;
+		}
+
 		$tasks = array(
 			self::ACTION_IMPORT_CATEGORIES,
 			self::ACTION_IMPORT_FIELDS,
-			self::ACTION_IMPORT_LISTINGS,
+			self::ACTION_PARSE_LISTINGS,
 		);
 
 		$key = array_search( $task['action'], $tasks, true );
@@ -717,13 +729,10 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 * @param array $task The offset to start importing from.
 	 * @return array Result of the import operation.
 	 */
-	public function task_import_listings( array $task ) {
+	public function task_parse_listings( array $task ) {
 		global $wpdb;
 
 		$offset         = isset( $task['offset'] ) ? (int) $task['offset'] : 0;
-		$imported       = isset( $task['imported'] ) ? (int) $task['imported'] : 0;
-		$failed         = isset( $task['failed'] ) ? (int) $task['failed'] : 0;
-		$skipped        = isset( $task['skipped'] ) ? (int) $task['skipped'] : 0;
 		$total_listings = isset( $task['total_listings'] ) ? (int) $task['total_listings'] : 0;
 		$batch_size     = (int) $this->get_batch_size();
 
@@ -735,13 +744,13 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 
 		// Log the import start message only for the first batch.
 		if ( 0 === $offset ) {
-			$this->log( __( 'Starting listings import process...', 'geodir-converter' ) );
+			$this->log( __( 'Starting listings parsing process...', 'geodir-converter' ) );
 		}
 
 		// Exit early if there are no listings to import.
 		if ( 0 === $total_listings ) {
-			$this->log( __( 'No listings found for import. Skipping process.', 'geodir-converter' ) );
-			return $this->next_task( $task );
+			$this->log( __( 'No listings found for parsing. Skipping process.', 'geodir-converter' ) );
+			return $this->next_task( $task, true );
 		}
 
 		wp_suspend_cache_addition( false );
@@ -766,36 +775,17 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 			return $this->next_task( $task );
 		}
 
-		foreach ( $listings as $listing ) {
-			$post = get_post( $listing->ID );
-			if ( ! $post ) {
-				$this->log( sprintf( __( 'Failed to import listing: %s', 'geodir-converter' ), $listing->post_title ), 'error' );
-				++$failed;
-				continue;
-			}
-
-			$result = $this->import_single_listing( $post );
-
-			if ( GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED === $result ) {
-				++$skipped;
-				$this->log( sprintf( __( 'Skipped listing: %s', 'geodir-converter' ), $post->post_title ), 'warning' );
-			} elseif ( GeoDir_Converter_Importer::IMPORT_STATUS_FAILED === $result ) {
-				++$failed;
-				$this->log( sprintf( __( 'Failed import: %s', 'geodir-converter' ), $post->post_title ), 'error' );
-			} elseif ( GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS === $result ) {
-				++$imported;
-				$this->log( sprintf( __( 'Imported listing: %s', 'geodir-converter' ), $post->post_title ) );
-			}
+		// Batch the tasks.
+		$batched_tasks = array_chunk( $listings, 10, true );
+		$import_tasks  = array();
+		foreach ( $batched_tasks as $batch ) {
+			$import_tasks[] = array(
+				'action'   => GeoDir_Converter_Importer::ACTION_IMPORT_LISTINGS,
+				'listings' => $batch,
+			);
 		}
 
-		// Update task progress.
-		$task['imported'] = (int) $imported;
-		$task['failed']   = (int) $failed;
-		$task['skipped']  = (int) $skipped;
-
-		$this->increase_succeed_imports( (int) $imported );
-		$this->increase_skipped_imports( (int) $skipped );
-		$this->increase_failed_imports( (int) $failed );
+		$this->background_process->add_import_tasks( $import_tasks );
 
 		$complete = ( $offset + $batch_size >= $total_listings );
 
@@ -805,45 +795,96 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 			return $task;
 		}
 
-		$message = sprintf(
-			__( 'Import completed: %1$d/%2$d listings processed. Imported: %3$d, Failed: %4$d.', 'geodir-converter' ),
-			( $imported + $failed + $skipped ),
-			$total_listings,
-			$imported,
-			$failed
-		);
+		return $this->next_task( $task, true );
+	}
 
-		$this->log( $message, 'success' );
+	/**
+	 * Import listings from Listify to GeoDirectory.
+	 *
+	 * @since 2.0.2
+	 * @param array $task The task to import.
+	 * @return bool Result of the import operation.
+	 */
+	public function task_import_listings( $task ) {
+		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
 
-		return $this->next_task( $task );
+		foreach ( $listings as $listing ) {
+			$title  = $listing->post_title;
+			$result = $this->import_single_listing( $listing );
+
+			switch ( $result ) {
+				case self::IMPORT_STATUS_SUCCESS:
+				case self::IMPORT_STATUS_UPDATED:
+					if ( self::IMPORT_STATUS_SUCCESS === $result ) {
+						$this->log( sprintf( self::LOG_TEMPLATE_SUCCESS, 'listing', $title ), 'success' );
+						$this->increase_succeed_imports( 1 );
+					} else {
+						$this->log( sprintf( self::LOG_TEMPLATE_UPDATED, 'listing', $title ), 'warning' );
+						$this->increase_succeed_imports( 1 );
+					}
+					break;
+
+				case self::IMPORT_STATUS_SKIPPED:
+					$this->log( sprintf( self::LOG_TEMPLATE_SKIPPED, 'listing', $title ), 'warning' );
+					$this->increase_skipped_imports( 1 );
+					break;
+
+				case self::IMPORT_STATUS_FAILED:
+					$this->log( sprintf( self::LOG_TEMPLATE_FAILED, 'listing', $title ), 'warning' );
+					$this->increase_failed_imports( 1 );
+					break;
+			}
+		}
+
+		return false;
 	}
 
 	/**
 	 * Convert a single Listify listing to GeoDirectory format.
 	 *
 	 * @since 2.0.2
-	 * @param  \WP_Post $post The post object to convert.
+	 * @param  \WP_Post $listing The post object to convert.
 	 * @return array|int Converted listing data or import status.
 	 */
-	private function import_single_listing( $post ) {
+	private function import_single_listing( $listing ) {
+		$post = get_post( $listing->ID );
 		// Check if the post has already been imported.
 		$post_type  = $this->get_import_post_type();
 		$gd_post_id = ! $this->is_test_mode() ? $this->get_gd_listing_id( $post->ID, 'wpjm_id', $post_type ) : false;
 		$is_update  = ! empty( $gd_post_id );
 
 		// Retrieve all post meta data at once.
-		$post_meta = get_post_meta( $post->ID );
-		$post_meta = array_map(
-			function ( $meta ) {
-				return isset( $meta[0] ) ? $meta[0] : '';
-			},
-			$post_meta
-		);
+		$post_meta = $this->get_post_meta( $post->ID );
 
 		// Retrieve default location and process fields.
 		$default_location = $this->get_default_location();
 		$fields           = $this->process_form_fields( $post, $post_meta );
 		$categories       = $this->get_categories( $post->ID, self::TAX_LISTING_CATEGORY );
+
+		// Location & Address.
+		$location = $this->get_default_location();
+		$address  = isset( $post_meta['geolocation_street'], $post_meta['geolocation_street_number'] ) ? $post_meta['geolocation_street_number'] . ' ' . $post_meta['geolocation_street'] : '';
+
+		$has_coordinates = isset( $post_meta['geolocation_lat'], $post_meta['geolocation_long'] )
+			&& ! empty( $post_meta['geolocation_lat'] )
+			&& ! empty( $post_meta['geolocation_long'] );
+
+		if ( $has_coordinates ) {
+			$this->log( 'Pulling listing address from coordinates: ' . $post_meta['geolocation_lat'] . ', ' . $post_meta['geolocation_long'], 'info' );
+			$location_lookup = GeoDir_Converter_Utils::get_location_from_coords( $post_meta['geolocation_lat'], $post_meta['geolocation_long'] );
+
+			if ( ! is_wp_error( $location_lookup ) ) {
+				$address  = isset( $location_lookup['address'] ) && ! empty( $location_lookup['address'] ) ? $location_lookup['address'] : $address;
+				$location = array_merge( $location, $location_lookup );
+			}
+		} else {
+			$location['city']      = isset( $post_meta['geolocation_city'] ) ? $post_meta['geolocation_city'] : $default_location['city'];
+			$location['region']    = isset( $post_meta['geolocation_state_long'] ) ? $post_meta['geolocation_state_long'] : $default_location['region'];
+			$location['country']   = isset( $post_meta['geolocation_country_long'] ) ? $post_meta['geolocation_country_long'] : $default_location['country'];
+			$location['zip']       = isset( $post_meta['geolocation_postcode'] ) ? $post_meta['geolocation_postcode'] : '';
+			$location['latitude']  = isset( $post_meta['geolocation_lat'] ) ? $post_meta['geolocation_lat'] : $default_location['latitude'];
+			$location['longitude'] = isset( $post_meta['geolocation_long'] ) ? $post_meta['geolocation_long'] : $default_location['longitude'];
+		}
 
 		// Prepare the listing data.
 		$listing = array(
@@ -874,14 +915,14 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 			'overall_rating'        => 0,
 			'rating_count'          => 0,
 
-			'street'                => isset( $post_meta['geolocation_street'], $post_meta['geolocation_street_number'] ) ? $post_meta['geolocation_street_number'] . ' ' . $post_meta['geolocation_street'] : '',
+			'street'                => $address,
 			'street2'               => '',
-			'city'                  => isset( $post_meta['geolocation_city'] ) ? $post_meta['geolocation_city'] : $default_location['city'],
-			'region'                => isset( $post_meta['geolocation_state_long'] ) ? $post_meta['geolocation_state_long'] : $default_location['region'],
-			'country'               => isset( $post_meta['geolocation_country_long'] ) ? $post_meta['geolocation_country_long'] : $default_location['country'],
-			'zip'                   => isset( $post_meta['geolocation_postcode'] ) ? $post_meta['geolocation_postcode'] : '',
-			'latitude'              => isset( $post_meta['geolocation_lat'] ) ? $post_meta['geolocation_lat'] : $default_location['latitude'],
-			'longitude'             => isset( $post_meta['geolocation_long'] ) ? $post_meta['geolocation_long'] : $default_location['longitude'],
+			'city'                  => $location['city'],
+			'region'                => $location['region'],
+			'country'               => $location['country'],
+			'zip'                   => $location['zip'],
+			'latitude'              => $location['latitude'],
+			'longitude'             => $location['longitude'],
 			'mapview'               => '',
 			'mapzoom'               => '',
 
@@ -941,7 +982,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 			}
 		}
 
-		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
+		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
 	}
 
 	/**
