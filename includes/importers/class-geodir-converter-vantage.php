@@ -199,6 +199,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 			}
 
 			$this->display_post_type_select();
+			$this->display_author_select( true );
 			$this->display_test_mode_checkbox();
 			$this->display_progress();
 			$this->display_logs( $this->get_logs() );
@@ -1195,10 +1196,11 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 	 */
 	private function import_single_listing( $post ) {
 		// Check if the post has already been imported.
-		$post_type  = $this->get_import_post_type();
-		$is_test    = $this->is_test_mode();
-		$gd_post_id = ! $is_test ? (int) $this->get_gd_listing_id( $post->ID, 'vantage_id', $post_type ) : false;
-		$is_update  = ! empty( $gd_post_id );
+		$post_type         = $this->get_import_post_type();
+		$is_test           = $this->is_test_mode();
+		$default_wp_author = (int) $this->get_import_setting( 'wp_author_id', 1 );
+		$gd_post_id        = ! $is_test ? (int) $this->get_gd_listing_id( $post->ID, 'vantage_id', $post_type ) : false;
+		$is_update         = ! empty( $gd_post_id );
 
 		// Get post meta.
 		$post_meta = $this->get_post_meta( $post->ID );
@@ -1244,10 +1246,12 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 				$gd_post_status = $post->post_status;
 		}
 
+		$wp_author_id = $post->post_author ? (int) $post->post_author : $default_wp_author;
+
 		// Prepare the listing data.
 		$listing = array(
 			// Standard WP Fields.
-			'post_author'           => $post->post_author ? $post->post_author : get_current_user_id(),
+			'post_author'           => $wp_author_id,
 			'post_title'            => $post->post_title,
 			'post_content'          => $post->post_content,
 			'post_content_filtered' => $post->post_content_filtered,

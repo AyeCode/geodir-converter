@@ -11,7 +11,6 @@ namespace GeoDir_Converter;
 
 use WP_Error;
 use Exception;
-use WpOrg\Requests\Requests;
 
 defined( 'ABSPATH' ) || exit;
 
