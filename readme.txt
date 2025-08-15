@@ -29,6 +29,9 @@ Currently supported directories:
 
 == Changelog ==
 
+= 2.1.4 - TBD =
+* Auto-filled Listify addresses from coordinates via OpenStreetMap - FIXED
+
 = 2.1.3 - 2025-07-10 =
 * Added support for importing listings from Directorist plugin - ADDED
 
