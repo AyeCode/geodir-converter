@@ -287,6 +287,8 @@
      */
     GeoDir_Converter.LogsHandler = $.extend({}, {
         shown: 0,
+        userInteracting: false,
+        interactionTimeout: null,
 
         /**
          * Initializes the logs handler.
@@ -295,8 +297,44 @@
          * @return {Object} The logs handler instance.
          */
         init: function (el) {
+            var self = this;
             this.element = el;
             this.element.scrollTop(this.element[0].scrollHeight);
+
+            // Track user interaction with the logs
+            this.element.on('mouseenter', function() {
+                self.userInteracting = true;
+            });
+
+            this.element.on('mouseleave', function() {
+                // Delay before resuming auto-scroll to allow user to move mouse away
+                clearTimeout(self.interactionTimeout);
+                self.interactionTimeout = setTimeout(function() {
+                    self.userInteracting = false;
+                }, 1000);
+            });
+
+            this.element.on('wheel scroll touchstart', function() {
+                self.userInteracting = true;
+                clearTimeout(self.interactionTimeout);
+                
+                // Check if user has scrolled to bottom
+                var element = self.element[0];
+                var isAtBottom = Math.abs(element.scrollHeight - element.clientHeight - element.scrollTop) < 5;
+                
+                if (isAtBottom) {
+                    // User scrolled back to bottom, resume auto-scroll
+                    self.interactionTimeout = setTimeout(function() {
+                        self.userInteracting = false;
+                    }, 500);
+                } else {
+                    // User is viewing older logs, keep interaction flag set
+                    self.interactionTimeout = setTimeout(function() {
+                        self.userInteracting = false;
+                    }, 3000);
+                }
+            });
+
             return this;
         },
 
@@ -307,7 +345,11 @@
          */
         insertLogs: function (logs) {
             this.element.append(logs);
-            this.element.scrollTop(this.element[0].scrollHeight);
+            
+            // Only auto-scroll if user is not interacting
+            if (!this.userInteracting) {
+                this.element.scrollTop(this.element[0].scrollHeight);
+            }
         },
 
         /**
@@ -324,6 +366,8 @@
          */
         clear: function () {
             this.shown = 0;
+            this.userInteracting = false;
+            clearTimeout(this.interactionTimeout);
             this.element.html('');
         },
 

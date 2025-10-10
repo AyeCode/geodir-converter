@@ -17,6 +17,7 @@ use GeoDir_Converter\Importers\GeoDir_Converter_Business_Directory;
 use GeoDir_Converter\Importers\GeoDir_Converter_Vantage;
 use GeoDir_Converter\Importers\GeoDir_Converter_EDirectory;
 use GeoDir_Converter\Importers\GeoDir_Converter_Directorist;
+use GeoDir_Converter\Importers\GeoDir_Converter_ListingPro;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -87,13 +88,14 @@ final class GeoDir_Converter {
 		GeoDir_Converter_Vantage::instance();
 		GeoDir_Converter_EDirectory::instance();
 		GeoDir_Converter_Directorist::instance();
+		GeoDir_Converter_ListingPro::instance();
 	}
 
 	/**
 	 * Define constant if not already set.
 	 *
-	 * @param  string      $name
-	 * @param  string|bool $value
+	 * @param  string      $name  Name of the constant to define.
+	 * @param  string|bool $value Value of the constant to define.
 	 */
 	private function define( $name, $value ) {
 		if ( ! defined( $name ) ) {
