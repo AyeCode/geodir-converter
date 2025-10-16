@@ -26,10 +26,13 @@ Currently supported directories:
 - Vantage 4.2 or greater - https://www.appthemes.com/themes/vantage/
 - eDirectory - https://www.edirectory.com/
 - Directorist 7.9.0 or greater - https://directorist.com/
+- ListingPro - https://themeforest.net/item/listingpro-directory-wordpress-theme/19386460
 
 == Changelog ==
 
 = 2.1.4 - TBD =
+* Added support for importing listings from ListingPro - ADDED
+* Improved logs UI to pause auto-scrolling when user is viewing older entries - CHANGED
 * Auto-filled Listify addresses from coordinates via OpenStreetMap - FIXED
 
 = 2.1.3 - 2025-07-10 =

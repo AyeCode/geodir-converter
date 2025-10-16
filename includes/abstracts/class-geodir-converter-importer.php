@@ -1177,4 +1177,26 @@ abstract class GeoDir_Converter_Importer {
 
 		return sprintf( '%02d:%02d:%02d', $hours, $minutes, $seconds );
 	}
+
+	/**
+	 * Check if a custom field already exists.
+	 *
+	 * @since 2.1.4
+	 * @param string $htmlvar_name Field HTML variable name.
+	 * @param string $post_type Post type.
+	 * @return int|null Field ID if exists, null otherwise.
+	 */
+	protected function field_exists( $htmlvar_name, $post_type ) {
+		global $wpdb;
+
+		$field_id = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT id FROM " . GEODIR_CUSTOM_FIELDS_TABLE . " WHERE htmlvar_name = %s AND post_type = %s LIMIT 1",
+				$htmlvar_name,
+				$post_type
+			)
+		);
+
+		return $field_id ? (int) $field_id : null;
+	}
 }
