@@ -1683,9 +1683,11 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 	public function task_import_listings( $task ) {
 		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
 
+		$packages_mapping = $this->is_test_mode() ? array() : $this->get_packages_mapping();
+
 		foreach ( $listings as $listing ) {
 			$title  = $listing->post_title;
-			$status = $this->import_single_listing( $listing );
+			$status = $this->import_single_listing( $listing, $packages_mapping );
 
 			switch ( $status ) {
 				case self::IMPORT_STATUS_SUCCESS:
@@ -1958,7 +1960,7 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 	 * @param  WP_Post $listing The post object to convert.
 	 * @return array|int Converted listing data or import status.
 	 */
-	private function import_single_listing( $listing ) {
+	private function import_single_listing( $listing, $packages_mapping = array() ) {
 		$post             = get_post( $listing->ID );
 		$post_type        = $this->get_import_post_type();
 		$gd_post_id       = ! $this->is_test_mode() ? $this->get_gd_listing_id( $post->ID, 'listingpro_id', $post_type ) : false;
@@ -2069,6 +2071,29 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 			foreach ( $fields as $key => $value ) {
 				if ( empty( $listing[ $key ] ) ) {
 					$listing[ $key ] = $value;
+				}
+			}
+		}
+
+		// Listing package.
+		if ( class_exists( 'GeoDir_Pricing_Package' ) ) {
+			if ( empty( $listing['package_id'] ) ) {
+				$lp_plan_id = $this->listing_get_metabox_by_ID( 'Plan_id', (int) $post->ID );
+
+				if ( $lp_plan_id && ! empty( $packages_mapping[ $lp_plan_id ] ) ) {
+					$listing['package_id'] = (int) $packages_mapping[ $lp_plan_id ];
+				}
+			}
+
+			if ( empty( $listing['package_id'] ) ) {
+				$listing['package_id'] = geodir_get_post_package_id( $gd_post_id, $post_type );
+			}
+
+			if ( empty( $listing['expire_date'] ) ) {
+				$lp_plan_duration = $this->listing_get_metabox_by_ID( 'lp_purchase_days', (int) $post->ID );
+
+				if ( $lp_plan_duration ) {
+					$listing['expire_date'] = strtotime( get_the_time( 'd-m-Y' ) . ' + ' . (int) $lp_plan_duration . ' days' );
 				}
 			}
 		}
@@ -3093,5 +3118,15 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 		}
 
 		return $categories;
+	}
+
+	public function listing_get_metabox_by_ID( $name, $postid ) {
+		if ( $postid ) {
+			$metabox = get_post_meta( $postid, 'lp_listingpro_options', true );
+
+			return ! empty( $metabox ) && isset( $metabox[ $name ] ) ? $metabox[ $name ] : "";
+		} else {
+			return false;
+		}
 	}
 }
