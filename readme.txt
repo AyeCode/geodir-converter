@@ -1,15 +1,15 @@
 === GeoDirectory Directory Converter ===
 Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://wpgeodirectory.com
-Tags: convert, converter, directorist, directory, directory converter, geodirectory, listify, phpmydirectory, vantage, edirectory
+Tags: convert, converter, directorist, directory, directory converter, geodirectory, listify, listingpro, phpmydirectory, vantage, edirectory
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 5.6
-Stable tag: 2.1.3
+Stable tag: 2.1.4
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
  
-Convert directories like phpMyDirectory, Listify, Business Directory Plugin, Vantage directory theme, eDirectory and Directorist to GeoDirectory.
+Convert directories like phpMyDirectory, Listify, Business Directory Plugin, Vantage directory theme, eDirectory, Directorist and ListingPro to GeoDirectory.
 
 == Description ==
 
@@ -26,11 +26,11 @@ Currently supported directories:
 - Vantage 4.2 or greater - https://www.appthemes.com/themes/vantage/
 - eDirectory - https://www.edirectory.com/
 - Directorist 7.9.0 or greater - https://directorist.com/
-- ListingPro - https://themeforest.net/item/listingpro-directory-wordpress-theme/19386460
+- ListingPro 2.9.0 or greater - https://themeforest.net/item/listingpro-multipurpose-directory-theme/19386460/
 
 == Changelog ==
 
-= 2.1.4 - TBD =
+= 2.1.4 - 2025-10-16 =
 * Added support for importing listings from ListingPro - ADDED
 * Improved logs UI to pause auto-scrolling when user is viewing older entries - CHANGED
 * Auto-filled Listify addresses from coordinates via OpenStreetMap - FIXED
