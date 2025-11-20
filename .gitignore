@@ -1,0 +1,20 @@
+# WordPress
+.DS_Store
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Plugins folder (for testing purposes only)
+plugins/
+
+# Node modules
+node_modules/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
