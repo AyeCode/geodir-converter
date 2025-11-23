@@ -72,7 +72,7 @@ final class GeoDir_Converter {
 		add_action( 'plugins_loaded', array( $this, 'load_plugin_textdomain' ) );
 		add_action( 'admin_init', array( $this, 'maybe_redirect_to_importer' ) );
 
-        // Skip invoice emails for imported invoices.
+		// Skip invoice emails for imported invoices.
 		add_filter( 'getpaid_skip_invoice_email', array( $this, 'skip_invoice_email' ), 10, 3 );
 
 		if ( is_admin() ) {
@@ -148,7 +148,8 @@ final class GeoDir_Converter {
 	/**
 	 * Adds a link to the plugin's admin page on the plugins overview screen
 	 *
-	 * @param array $links Array of plugin action links.
+	 * @param array  $links Array of plugin action links.
+	 * @param string $file The plugin basename.
 	 * @return array Modified array of plugin action links.
 	 */
 	public function plugin_action_links( $links, $file ) {
@@ -225,14 +226,21 @@ final class GeoDir_Converter {
 		return $skip;
 	}
 
+	/**
+	 * Filter to save custom fields data for Directorist.
+	 *
+	 * @param array  $cf_data The custom fields data.
+	 * @param object $field The custom field object.
+	 * @return array The filtered custom fields data.
+	 */
 	public function cpt_cf_save_data( $cf_data, $field ) {
 		if ( ! isset( $cf_data['tab_parent'] ) && ! isset( $cf_data['tab_level'] ) && isset( $field->tab_parent ) && isset( $field->tab_level ) ) {
 			if ( defined( 'GEODIR_CONVERT_CF_DIRECTORIST' ) ) {
 				$cf_data['db_data']['tab_parent'] = $field->tab_parent;
-				$cf_data['db_format'][] = '%d';
+				$cf_data['db_format'][]           = '%d';
 
 				$cf_data['db_data']['tab_level'] = $field->tab_level;
-				$cf_data['db_format'][] = '%d';
+				$cf_data['db_format'][]          = '%d';
 			}
 		}
 

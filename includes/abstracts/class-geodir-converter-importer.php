@@ -760,10 +760,13 @@ abstract class GeoDir_Converter_Importer {
 			return compact( 'imported', 'failed' );
 		}
 
-		$params = wp_parse_args( $params, array(
-			'importer_id' => '',
-			'eq_suffix' => ''
-		) );
+		$params = wp_parse_args(
+			$params,
+			array(
+				'importer_id' => '',
+				'eq_suffix'   => '',
+			)
+		);
 
 		$admin_taxonomies = new GeoDir_Admin_Taxonomies();
 
@@ -832,7 +835,14 @@ abstract class GeoDir_Converter_Importer {
 					if ( $image_id && ( $attachment_url = wp_get_attachment_url( $image_id ) ) ) {
 						$image_url = geodir_file_relative_url( $attachment_url );
 
-						update_term_meta( $term_id, 'ct_cat_default_img', array( 'id'  => $image_id, 'src' => $image_url ) );
+						update_term_meta(
+							$term_id,
+							'ct_cat_default_img',
+							array(
+								'id'  => $image_id,
+								'src' => $image_url,
+							)
+						);
 					}
 				}
 
@@ -1044,10 +1054,10 @@ abstract class GeoDir_Converter_Importer {
 				"SELECT pd.post_id
                 FROM {$details_table} pd
                 INNER JOIN {$wpdb->posts} p ON p.ID = pd.post_id
-                WHERE pd.{$meta_key} = %s
+                WHERE pd.{$meta_key} = %d
                 AND p.post_type = %s
                 LIMIT 1",
-				$listing_id,
+				absint( $listing_id ),
 				$post_type
 			)
 		);
@@ -1193,7 +1203,7 @@ abstract class GeoDir_Converter_Importer {
 
 		$field_id = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT id FROM " . GEODIR_CUSTOM_FIELDS_TABLE . " WHERE htmlvar_name = %s AND post_type = %s LIMIT 1",
+				'SELECT id FROM ' . GEODIR_CUSTOM_FIELDS_TABLE . ' WHERE htmlvar_name = %s AND post_type = %s LIMIT 1',
 				$htmlvar_name,
 				$post_type
 			)
