@@ -1125,7 +1125,7 @@ class GeoDir_Converter_Directories_Pro extends GeoDir_Converter_Importer {
 			// 'checkboxes' in Directories Pro = 'checkbox' in GeoDirectory.
 			// 'select' in Directories Pro = 'select' in GeoDirectory.
 			$widget             = ! empty( $field['widget'] ) ? $field['widget'] : '';
-			$multi_display_type  = 'select'; // Default.
+			$multi_display_type = 'select'; // Default.
 			if ( 'checkboxes' === $widget ) {
 				$multi_display_type = 'checkbox';
 			} elseif ( 'select' === $widget ) {
@@ -1315,14 +1315,19 @@ class GeoDir_Converter_Directories_Pro extends GeoDir_Converter_Importer {
 
 		// Location data.
 		$location = $default_location;
-		if ( ! empty( $field_values['location_latitude'] ) && ! empty( $field_values['location_longitude'] ) ) {
-			$location_lookup = GeoDir_Converter_Utils::get_location_from_coords( $field_values['location_latitude'], $field_values['location_longitude'] );
+
+		$latitude  = isset( $field_values['location_latitude'] ) && ! empty( $field_values['location_latitude'] ) ? $field_values['location_latitude'] : '';
+		$longitude = isset( $field_values['location_longitude'] ) && ! empty( $field_values['location_longitude'] ) ? $field_values['location_longitude'] : '';
+
+		if ( $latitude && $longitude ) {
+			$this->log( 'Pulling listing address from coordinates: ' . $latitude . ', ' . $longitude, 'info' );
+			$location_lookup = GeoDir_Converter_Utils::get_location_from_coords( $latitude, $longitude );
 
 			if ( ! is_wp_error( $location_lookup ) ) {
 				$location = array_merge( $location, $location_lookup );
 			} else {
-				$location['latitude']  = $field_values['location_latitude'];
-				$location['longitude'] = $field_values['location_longitude'];
+				$location['latitude']  = $latitude;
+				$location['longitude'] = $longitude;
 			}
 		}
 

@@ -910,12 +910,14 @@ class GeoDir_Converter_HivePress extends GeoDir_Converter_Importer {
 		$location = $default_location;
 
 		// HivePress may store location data differently depending on extensions.
-		// Check common meta keys for address/location data.
-		$latitude  = ! empty( $post_meta['hp_latitude'] ) ? $post_meta['hp_latitude'] : '';
-		$longitude = ! empty( $post_meta['hp_longitude'] ) ? $post_meta['hp_longitude'] : '';
-		$address   = ! empty( $post_meta['hp_address'] ) ? $post_meta['hp_address'] : '';
+		$has_coordinates = isset( $post_meta['hp_latitude'], $post_meta['hp_longitude'] ) && ! empty( $post_meta['hp_latitude'] ) && ! empty( $post_meta['hp_longitude'] );
+		$latitude        = isset( $post_meta['hp_latitude'] ) && ! empty( $post_meta['hp_latitude'] ) ? $post_meta['hp_latitude'] : $location['latitude'];
+		$longitude       = isset( $post_meta['hp_longitude'] ) && ! empty( $post_meta['hp_longitude'] ) ? $post_meta['hp_longitude'] : $location['longitude'];
+		$address         = isset( $post_meta['hp_address'] ) && ! empty( $post_meta['hp_address'] ) ? $post_meta['hp_address'] : '';
 
-		if ( $latitude && $longitude ) {
+		if ( $has_coordinates ) {
+			$this->log( 'Pulling listing address from coordinates: ' . $latitude . ', ' . $longitude, 'info' );
+
 			$location_lookup = GeoDir_Converter_Utils::get_location_from_coords( $latitude, $longitude );
 
 			if ( ! is_wp_error( $location_lookup ) ) {
