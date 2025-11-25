@@ -331,6 +331,39 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 			<h6 class="fs-base"><?php esc_html_e( 'Listing Pro Importer Settings', 'geodir-converter' ); ?></h6>
 			
 			<?php
+			// Show plugin notices for optional features.
+			if ( ! class_exists( 'GeoDir_Pricing_Package' ) ) {
+				$this->render_plugin_notice(
+					esc_html__( 'GeoDirectory Pricing Manager', 'geodir-converter' ),
+					'packages',
+					esc_url( 'https://wpgeodirectory.com/downloads/pricing-manager/' )
+				);
+			}
+
+			if ( ! class_exists( 'GeoDir_Event_Manager' ) ) {
+				$this->render_plugin_notice(
+					esc_html__( 'GeoDirectory Events', 'geodir-converter' ),
+					'events',
+					esc_url( 'https://wpgeodirectory.com/downloads/events/' )
+				);
+			}
+
+			if ( ! class_exists( 'WPInv_Plugin' ) ) {
+				$this->render_plugin_notice(
+					esc_html__( 'GetPaid (Invoicing)', 'geodir-converter' ),
+					'invoices',
+					esc_url( 'https://wordpress.org/plugins/invoicing/' )
+				);
+			}
+
+			if ( ! class_exists( 'Adv_Ad' ) ) {
+				$this->render_plugin_notice(
+					esc_html__( 'GetPaid Advertising', 'geodir-converter' ),
+					'ads',
+					esc_url( 'https://wpgetpaid.com/downloads/advertising/' )
+				);
+			}
+
 			$this->display_post_type_select();
 			$this->display_author_select( true );
 			$this->display_test_mode_checkbox();
@@ -1650,9 +1683,11 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 	public function task_import_listings( $task ) {
 		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
 
+		$packages_mapping = $this->is_test_mode() ? array() : $this->get_packages_mapping();
+
 		foreach ( $listings as $listing ) {
 			$title  = $listing->post_title;
-			$status = $this->import_single_listing( $listing );
+			$status = $this->import_single_listing( $listing, $packages_mapping );
 
 			switch ( $status ) {
 				case self::IMPORT_STATUS_SUCCESS:
@@ -1925,7 +1960,7 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 	 * @param  WP_Post $listing The post object to convert.
 	 * @return array|int Converted listing data or import status.
 	 */
-	private function import_single_listing( $listing ) {
+	private function import_single_listing( $listing, $packages_mapping = array() ) {
 		$post             = get_post( $listing->ID );
 		$post_type        = $this->get_import_post_type();
 		$gd_post_id       = ! $this->is_test_mode() ? $this->get_gd_listing_id( $post->ID, 'listingpro_id', $post_type ) : false;
@@ -2030,12 +2065,35 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 			GeoDir_Media::delete_files( (int) $gd_post_id, 'post_images' );
 		}
 
-		// $listing['post_images'] = $this->get_post_images( $post_meta );
+		$listing['post_images'] = $this->get_post_images( $post_meta );
 
 		if ( ! empty( $fields ) ) {
 			foreach ( $fields as $key => $value ) {
 				if ( empty( $listing[ $key ] ) ) {
 					$listing[ $key ] = $value;
+				}
+			}
+		}
+
+		// Listing package.
+		if ( class_exists( 'GeoDir_Pricing_Package' ) ) {
+			if ( empty( $listing['package_id'] ) ) {
+				$lp_plan_id = $this->listing_get_metabox_by_ID( 'Plan_id', (int) $post->ID );
+
+				if ( $lp_plan_id && ! empty( $packages_mapping[ $lp_plan_id ] ) ) {
+					$listing['package_id'] = (int) $packages_mapping[ $lp_plan_id ];
+				}
+			}
+
+			if ( empty( $listing['package_id'] ) ) {
+				$listing['package_id'] = geodir_get_post_package_id( $gd_post_id, $post_type );
+			}
+
+			if ( empty( $listing['expire_date'] ) ) {
+				$lp_plan_duration = $this->listing_get_metabox_by_ID( 'lp_purchase_days', (int) $post->ID );
+
+				if ( $lp_plan_duration ) {
+					$listing['expire_date'] = strtotime( get_the_time( 'd-m-Y' ) . ' + ' . (int) $lp_plan_duration . ' days' );
 				}
 			}
 		}
@@ -2333,6 +2391,12 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 
 		$status = isset( $this->invoice_status_map[ strtolower( $order->status ) ] ) ? $this->invoice_status_map[ strtolower( $order->status ) ] : 'wpi-pending';
 
+		// Prepare taxes array.
+		$taxes = array();
+		if ( ! empty( $order->tax ) && (float) $order->tax > 0 ) {
+			$taxes[ __( 'Tax', 'geodir-converter' ) ] = array( 'initial_tax' => (float) $order->tax );
+		}
+
 		$wpi_invoice = new WPInv_Invoice();
 		$wpi_invoice->set_props(
 			array(
@@ -2345,6 +2409,7 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 				'date_created'   => ! empty( $order->date ) ? date( 'Y-m-d H:i:s', strtotime( $order->date ) ) : current_time( 'mysql' ),
 				'gateway'        => ! empty( $order->payment_method ) ? strtolower( $order->payment_method ) : 'manual',
 				'transaction_id' => ! empty( $order->transaction_id ) ? $order->transaction_id : '',
+				'taxes'          => $taxes,
 				'user_id'        => (int) $order->user_id,
 				'email'          => ! empty( $order->email ) ? $order->email : '',
 				'first_name'     => ! empty( $order->firstname ) ? $order->firstname : '',
@@ -2646,6 +2711,11 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 			$wpi_invoice = new WPInv_Invoice();
 		}
 
+		$taxes = array();
+		if ( ! empty( $campaign->tax ) && (float) $campaign->tax > 0 ) {
+			$taxes[ __( 'Tax', 'geodir-converter' ) ] = array( 'initial_tax' => (float) $campaign->tax );
+		}
+
 		$wpi_invoice->set_props(
 			array(
 				'post_type'      => self::GD_POST_TYPE_INVOICE,
@@ -2657,6 +2727,7 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 				'date_created'   => ! empty( $campaign->ad_date ) ? date( 'Y-m-d H:i:s', strtotime( $campaign->ad_date ) ) : current_time( 'mysql' ),
 				'gateway'        => ! empty( $campaign->payment_method ) ? strtolower( $campaign->payment_method ) : 'manual',
 				'transaction_id' => ! empty( $campaign->transaction_id ) ? $campaign->transaction_id : '',
+				'taxes'          => $taxes,
 				'user_id'        => ! empty( $campaign->user_id ) ? absint( $campaign->user_id ) : 0,
 				'currency'       => ! empty( $campaign->currency ) ? $campaign->currency : 'USD',
 			)
@@ -3047,5 +3118,15 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 		}
 
 		return $categories;
+	}
+
+	public function listing_get_metabox_by_ID( $name, $postid ) {
+		if ( $postid ) {
+			$metabox = get_post_meta( $postid, 'lp_listingpro_options', true );
+
+			return ! empty( $metabox ) && isset( $metabox[ $name ] ) ? $metabox[ $name ] : '';
+		} else {
+			return false;
+		}
 	}
 }
