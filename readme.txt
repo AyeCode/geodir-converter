@@ -5,11 +5,11 @@ Tags: convert, converter, directorist, directories pro, directory, directory con
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 5.6
-Stable tag: 2.1.3
+Stable tag: 2.1.4
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
  
-Convert directories like phpMyDirectory, Listify, Business Directory Plugin, Vantage directory theme, eDirectory, Directorist, Directories Pro, uListing, HivePress and ListingPro to GeoDirectory.
+Convert directories like phpMyDirectory, Listify, Business Directory Plugin, Vantage directory theme, eDirectory, Directorist, ListingPro, Directories Pro, uListing and HivePress to GeoDirectory.
 
 == Description ==
 
@@ -26,18 +26,22 @@ Currently supported directories:
 - Vantage 4.2 or greater - https://www.appthemes.com/themes/vantage/
 - eDirectory - https://www.edirectory.com/
 - Directorist 7.9.0 or greater - https://directorist.com/
+- ListingPro 2.9.0 or greater - https://listingprowp.com/
 - Directories Pro - https://directoriespro.com/
 - uListing - https://wordpress.org/plugins/ulisting/
 - HivePress - https://wordpress.org/plugins/hivepress/
-- ListingPro - https://listingprowp.com/
 
 == Changelog ==
 
-= 2.1.4 - TBD =
+= 2.1.5 - TBD =
 * Added support for importing listings from Directories Pro plugin - ADDED
 * Added support for importing listings from uListing plugin - ADDED
 * Added support for importing listings from HivePress plugin - ADDED
-* Added support for importing listings from ListingPro theme - ADDED
+* Custom fields now filter by selected listing type/bundle for Directories Pro and uListing - ENHANCEMENT
+
+= 2.1.4 - 2025-10-16 =
+* Added support for importing listings from ListingPro - ADDED
+* Improved logs UI to pause auto-scrolling when user is viewing older entries - CHANGED
 * Auto-filled Listify addresses from coordinates via OpenStreetMap - FIXED
 
 = 2.1.3 - 2025-07-10 =
