@@ -23,6 +23,7 @@ This plugin allows to convert directories like [phpMyDirectory](https://wordpres
 * [Vantage](https://www.appthemes.com/themes/vantage/) 4.2 or greater
 * [eDirectory](https://www.edirectory.com/)
 * [Directorist](https://directorist.com/) 7.9.0 or greater
+* [Connections](https://wordpress.org/plugins/connections/) 10.8 or greater
 
 (more directory support coming soon)
 

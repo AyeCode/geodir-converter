@@ -98,6 +98,7 @@ final class GeoDir_Converter {
 		GeoDir_Converter_HivePress::instance();
 		GeoDir_Converter_Directories_Pro::instance();
 		GeoDir_Converter_uListing::instance();
+		GeoDir_Converter_Connections::instance();
 	}
 
 	/**
