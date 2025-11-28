@@ -39,7 +39,6 @@ Currently supported directories:
 * Added support for importing listings from Directories Pro plugin - ADDED
 * Added support for importing listings from uListing plugin - ADDED
 * Added support for importing listings from HivePress plugin - ADDED
-* Custom fields now filter by selected listing type/bundle for Directories Pro and uListing - ENHANCEMENT
 
 = 2.1.4 - 2025-10-16 =
 * Added support for importing listings from ListingPro - ADDED
