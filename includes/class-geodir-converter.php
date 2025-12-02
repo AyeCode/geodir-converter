@@ -21,9 +21,8 @@ use GeoDir_Converter\Importers\GeoDir_Converter_ListingPro;
 use GeoDir_Converter\Importers\GeoDir_Converter_HivePress;
 use GeoDir_Converter\Importers\GeoDir_Converter_Directories_Pro;
 use GeoDir_Converter\Importers\GeoDir_Converter_uListing;
-use GeoDir_Converter\Importers\GeoDir_Converter_Sabai_Directory;
 use GeoDir_Converter\Importers\GeoDir_Converter_Connections;
-use GeoDir_Converter\Importers\GeoDir_Converter_Brilliant_Directories;
+use GeoDir_Converter\Importers\GeoDir_Converter_CSV;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -88,6 +87,7 @@ final class GeoDir_Converter {
 	 * @access private
 	 */
 	private function load_importers() {
+		GeoDir_Converter_CSV::instance();
 		GeoDir_Converter_Listify::instance();
 		GeoDir_Converter_PMD::instance();
 		GeoDir_Converter_Business_Directory::instance();

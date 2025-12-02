@@ -35,6 +35,7 @@ Currently supported directories:
 == Changelog ==
 
 = 2.1.5 - TBD =
+* Added CSV file importer with field mapping support - ADDED
 * Added support for importing listings from Connections directory plugin - ADDED
 * Added support for importing listings from Directories Pro plugin - ADDED
 * Added support for importing listings from uListing plugin - ADDED

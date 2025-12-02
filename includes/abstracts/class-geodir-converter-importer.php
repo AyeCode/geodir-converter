@@ -369,7 +369,7 @@ abstract class GeoDir_Converter_Importer {
 
 		aui()->select(
 			array(
-				'id'          => 'wp_author_id',
+				'id'          => $this->importer_id . '_wp_author_id',
 				'name'        => 'wp_author_id',
 				'select2'     => true,
 				'label'       => $label,
@@ -442,6 +442,15 @@ abstract class GeoDir_Converter_Importer {
 	 */
 	protected function is_test_mode() {
 		return $this->get_import_setting( 'test_mode', 'no' ) === 'yes';
+	}
+
+	/**
+	 * Get the import settings.
+	 *
+	 * @return array The import settings.
+	 */
+	protected function get_import_settings() {
+		return (array) $this->options_handler->get_option_no_cache( 'import_settings', array() );
 	}
 
 	/**
@@ -1027,7 +1036,7 @@ abstract class GeoDir_Converter_Importer {
 	 *
 	 * @return void
 	 */
-	protected function clear_import_options() {
+	public function clear_import_options() {
 		$this->options_handler->delete_option( 'stats' );
 		$this->options_handler->delete_option( 'import_log' );
 		$this->options_handler->delete_option( 'import_settings' );
