@@ -1,6 +1,6 @@
 # [GeoDirectory Directory Converter](https://wpgeodirectory.com/downloads/directory-converter/) #
 
-This plugin allows to convert directories like [phpMyDirectory](https://wordpress.org/plugins/phpmydirectory/), [Listify](https://astoundify.com/products/listify/), [Business Directory Plugin](https://wordpress.org/plugins/business-directory-plugin/), [Vantage](https://www.appthemes.com/themes/vantage/), [eDirectory](https://www.edirectory.com/), [Directorist](https://www.directorist.com/) and [ListingPro](https://themeforest.net/item/listingpro-multipurpose-directory-theme/19386460/) to GeoDirectory.
+This plugin allows to convert directories like [phpMyDirectory](https://wordpress.org/plugins/phpmydirectory/), [Listify](https://astoundify.com/products/listify/), [Business Directory Plugin](https://wordpress.org/plugins/business-directory-plugin/), [Vantage](https://www.appthemes.com/themes/vantage/), [eDirectory](https://www.edirectory.com/), [Directorist](https://www.directorist.com/), [ListingPro](https://themeforest.net/item/listingpro-multipurpose-directory-theme/19386460/), MyListing, aDirectory and WP Residence to GeoDirectory.
 
 ### Usage Details ###
 
@@ -25,8 +25,9 @@ This plugin allows to convert directories like [phpMyDirectory](https://wordpres
 * [Directorist](https://directorist.com/) 7.9.0 or greater
 * [ListingPro](https://themeforest.net/item/listingpro-multipurpose-directory-theme/19386460/) 2.9.0 or greater
 * [Connections](https://wordpress.org/plugins/connections/) 10.8 or greater
-
-(more directory support coming soon)
+* MyListing
+* aDirectory
+* WP Residence
 
 ## Notes ###
 
