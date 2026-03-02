@@ -29,6 +29,8 @@ This plugin allows to convert directories like [phpMyDirectory](https://wordpres
 * [aDirectory](https://adirectory.io/)
 * [WP Residence](https://wpresidence.net/)
 
+(more directory support coming soon)
+
 ## Notes ###
 
 WordPress and PMD use different password hashing algorithms. The addon will try to automatically take care of this, but in rare cases where it can't, the user will have to reset their password.
