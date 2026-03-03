@@ -1499,7 +1499,7 @@ abstract class GeoDir_Converter_Importer {
 			<button type="button" class="btn btn-primary btn-sm geodir-converter-import">
 				<i class="fas fa-play me-1"></i><?php esc_html_e( 'Start Import', 'geodir-converter' ); ?>
 			</button>
-			<button type="button" class="btn btn-outline-danger btn-sm geodir-converter-abort">
+			<button type="button" class="btn btn-outline-danger btn-sm geodir-converter-abort" disabled>
 				<i class="fas fa-stop me-1"></i><?php esc_html_e( 'Abort', 'geodir-converter' ); ?>
 			</button>
 			<button type="button" class="btn btn-outline-warning btn-sm geodir-converter-retry-failed d-none">
