@@ -578,18 +578,19 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	public function task_import_listings( array $task ) {
 		global $wpdb;
 
-		$this->log( __( 'Starting listings import...', 'geodir-converter' ) );
-
-		$offset         = isset( $task['offset'] ) ? absint( $task['offset'] ) : 0;
+		$offset         = $this->resume_offset( self::ACTION_IMPORT_LISTINGS, $task );
 		$batch_size     = $this->get_batch_size();
 		$total_listings = $this->count_listings();
 
-		if ( 0 === $total_listings ) {
-			$this->log( __( 'No listings to import. Skipping...', 'geodir-converter' ) );
-			return $this->next_task( $task );
+		if ( 0 === $offset ) {
+			$this->log( __( 'Starting listings import...', 'geodir-converter' ) );
+			$this->flush_progress();
 		}
 
-		wp_suspend_cache_addition( true );
+		if ( 0 === $total_listings ) {
+			$this->log( __( 'No listings to import. Skipping...', 'geodir-converter' ) );
+			return $this->complete_listings( $task );
+		}
 
 		$listings = $wpdb->get_results(
 			$wpdb->prepare(
@@ -597,6 +598,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
                 FROM {$wpdb->posts}
                 WHERE post_type = %s
                 AND post_status IN (" . implode( ',', array_fill( 0, count( $this->post_statuses ), '%s' ) ) . ')
+                ORDER BY ID ASC
                 LIMIT %d OFFSET %d',
 				array_merge(
 					array( self::POST_TYPE_LISTING ),
@@ -608,29 +610,60 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 
 		if ( empty( $listings ) ) {
 			$this->log( __( 'Finished importing listings.', 'geodir-converter' ) );
-			return $this->next_task( $task );
+			return $this->complete_listings( $task );
 		}
 
-		foreach ( $listings as $listing ) {
-			$post = get_post( $listing->ID );
-			if ( ! $post ) {
-				$this->process_import_result( self::IMPORT_STATUS_FAILED, 'listing', $listing->post_title, $listing->ID );
-				continue;
+		$processed = 0;
+		$remaining = count( $listings );
+
+		try {
+			foreach ( $listings as $listing ) {
+				++$processed;
+				--$remaining;
+
+				if ( $this->claim_item( self::ACTION_IMPORT_LISTINGS, $listing->ID, 'listing', $listing->post_title ) ) {
+					$post = get_post( $listing->ID );
+
+					if ( ! $post ) {
+						$this->process_import_result( self::IMPORT_STATUS_FAILED, 'listing', $listing->post_title, $listing->ID );
+					} else {
+						$this->process_import_result( $this->import_single_listing( $post ), 'listing', $post->post_title, $post->ID );
+					}
+				}
+
+				$this->set_checkpoint( self::ACTION_IMPORT_LISTINGS, $offset + $processed );
+
+				if ( $remaining > 0 && $this->should_yield() ) {
+					break;
+				}
 			}
-
-			$result = $this->import_single_listing( $post );
-
-			$this->process_import_result( $result, 'listing', $post->post_title, $post->ID );
+		} finally {
+			$this->clear_in_flight();
+			$this->flush_progress();
 		}
 
-		$this->flush_failed_items();
+		$next_offset = $offset + $processed;
 
-		$complete = ( $offset + $batch_size >= $total_listings );
-
-		if ( ! $complete ) {
-			$task['offset'] = $offset + $batch_size;
+		if ( $next_offset < $total_listings ) {
+			$task['offset'] = $next_offset;
 			return $task;
 		}
+
+		return $this->complete_listings( $task );
+	}
+
+	/**
+	 * Finish the listings phase and move on.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @param array $task The current task data.
+	 * @return array|false The next task, or false when the import is complete.
+	 */
+	private function complete_listings( array $task ) {
+		$this->clear_in_flight();
+		$this->clear_checkpoint();
+		$this->flush_progress();
 
 		return $this->next_task( $task );
 	}
@@ -779,7 +812,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 			}
 		}
 
-		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
+		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
 	}
 
 	/**

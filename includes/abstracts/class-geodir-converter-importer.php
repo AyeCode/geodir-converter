@@ -32,7 +32,47 @@ abstract class GeoDir_Converter_Importer {
 	 *
 	 * @var int
 	 */
-	const BATCH_SIZE = 1000;
+	const BATCH_SIZE = 100;
+
+	/**
+	 * Lower bound applied to a filtered batch size.
+	 *
+	 * @since 2.2.1
+	 * @var int
+	 */
+	const MIN_BATCH_SIZE = 1;
+
+	/**
+	 * Upper bound applied to a filtered batch size.
+	 *
+	 * @since 2.2.1
+	 * @var int
+	 */
+	const MAX_BATCH_SIZE = 1000;
+
+	/**
+	 * Number of items processed between flushes of buffered progress.
+	 *
+	 * @since 2.2.1
+	 * @var int
+	 */
+	const FLUSH_INTERVAL = 10;
+
+	/**
+	 * Number of attempts before an item is treated as fatal and skipped.
+	 *
+	 * @since 2.2.1
+	 * @var int
+	 */
+	const MAX_ITEM_ATTEMPTS = 2;
+
+	/**
+	 * Maximum number of log entries retained for an import.
+	 *
+	 * @since 2.2.1
+	 * @var int
+	 */
+	const MAX_LOG_ENTRIES = 1000;
 
 	/**
 	 * Action identifier for importing categories.
@@ -181,6 +221,58 @@ abstract class GeoDir_Converter_Importer {
 	 * @var array
 	 */
 	private $logs_buffer = array();
+
+	/**
+	 * Number of items processed since buffered progress was last flushed.
+	 *
+	 * @since 2.2.1
+	 * @var int
+	 */
+	private $items_since_flush = 0;
+
+	/**
+	 * Pending resume point for the current paginated task.
+	 *
+	 * @since 2.2.1
+	 * @var array|null
+	 */
+	private $pending_checkpoint = null;
+
+	/**
+	 * The item currently being processed, mirrored to the database so a hard
+	 * crash can be attributed to it on the next attempt.
+	 *
+	 * @since 2.2.1
+	 * @var array|null
+	 */
+	private $in_flight_item = null;
+
+	/**
+	 * Marker left behind by a previous, interrupted attempt.
+	 *
+	 * Read once per request and held unchanged, so every item in the batch is
+	 * compared against the record that actually crashed.
+	 *
+	 * @since 2.2.1
+	 * @var array|null
+	 */
+	private $crashed_item = null;
+
+	/**
+	 * Whether the crashed-item marker has been read this request.
+	 *
+	 * @since 2.2.1
+	 * @var bool
+	 */
+	private $crashed_item_loaded = false;
+
+	/**
+	 * Cache addition state captured before a task suspended it.
+	 *
+	 * @since 2.2.1
+	 * @var bool
+	 */
+	private $cache_addition_suspended = false;
 
 	/**
 	 * Background process instance.
@@ -530,7 +622,9 @@ abstract class GeoDir_Converter_Importer {
 	 * @return int The batch size.
 	 */
 	public function get_batch_size() {
-		return (int) apply_filters( "geodir_converter_{$this->importer_id}_batch_size", self::BATCH_SIZE );
+		$batch_size = (int) apply_filters( "geodir_converter_{$this->importer_id}_batch_size", self::BATCH_SIZE );
+
+		return (int) min( self::MAX_BATCH_SIZE, max( self::MIN_BATCH_SIZE, $batch_size ) );
 	}
 
 	/**
@@ -767,6 +861,12 @@ abstract class GeoDir_Converter_Importer {
 		wp_defer_term_counting( true );
 		wp_defer_comment_counting( true );
 
+		$this->cache_addition_suspended = wp_suspend_cache_addition();
+
+		wp_suspend_cache_addition( true );
+
+		add_filter( 'wp_image_editors', array( $this, 'filter_image_editors' ), 9999 );
+
 		// Prevent email notifications on post status transitions.
 		remove_action( 'transition_post_status', array( 'GeoDir_Post_Data', 'transition_post_status' ), 6 );
 
@@ -786,6 +886,41 @@ abstract class GeoDir_Converter_Importer {
 	}
 
 	/**
+	 * Prefer the GD image editor while an import is running.
+	 *
+	 * Imagick can segfault on malformed images, killing the worker with no
+	 * catchable error. GD is sufficient for the thumbnailing imports perform.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @param string[] $editors Class names of the available image editors.
+	 * @return string[] Reordered class names.
+	 */
+	public function filter_image_editors( $editors ) {
+		$editors = (array) $editors;
+
+		/**
+		 * Filters whether imports should prefer GD over Imagick.
+		 *
+		 * @since 2.2.1
+		 *
+		 * @param bool                      $prefer_gd Whether to prefer GD. Default true.
+		 * @param GeoDir_Converter_Importer $importer  The importer instance.
+		 */
+		$prefer_gd = apply_filters( "geodir_converter_{$this->importer_id}_prefer_gd_editor", true, $this );
+
+		if ( ! $prefer_gd || ! extension_loaded( 'gd' ) ) {
+			return $editors;
+		}
+
+		$editors = array_values( array_diff( $editors, array( 'WP_Image_Editor_GD' ) ) );
+
+		array_unshift( $editors, 'WP_Image_Editor_GD' );
+
+		return $editors;
+	}
+
+	/**
 	 * Restore hooks and flush deferred counts after bulk import.
 	 *
 	 * @since 2.2.0
@@ -793,6 +928,14 @@ abstract class GeoDir_Converter_Importer {
 	public function restore_hooks() {
 		wp_defer_term_counting( false );
 		wp_defer_comment_counting( false );
+
+		wp_suspend_cache_addition( $this->cache_addition_suspended );
+
+		// Only reached when the task returned; a hard crash leaves the marker
+		// in place so the next attempt can attribute the failure.
+		$this->clear_in_flight();
+
+		remove_filter( 'wp_image_editors', array( $this, 'filter_image_editors' ), 9999 );
 
 		// Restore hooks.
 		add_action( 'transition_post_status', array( 'GeoDir_Post_Data', 'transition_post_status' ), 6, 3 );
@@ -898,6 +1041,8 @@ abstract class GeoDir_Converter_Importer {
 				$this->record_failed_item( $source_id, $action, $item_type, $label, sprintf( self::LOG_TEMPLATE_FAILED, $item_type, $label ) );
 				break;
 		}
+
+		$this->maybe_flush_progress();
 	}
 
 	/**
@@ -1301,7 +1446,7 @@ abstract class GeoDir_Converter_Importer {
 			return;
 		}
 
-		$stats       = (array) $this->options_handler->get_option_no_cache( 'stats' );
+		$stats       = (array) $this->options_handler->get_option_no_cache( 'stats', array() );
 		$empty_stats = self::empty_stats();
 		$stats       = wp_parse_args( $stats, $empty_stats );
 
@@ -1328,7 +1473,7 @@ abstract class GeoDir_Converter_Importer {
 	 * }
 	 */
 	public function get_stats() {
-		$stats       = (array) $this->options_handler->get_option_no_cache( 'stats' );
+		$stats       = (array) $this->options_handler->get_option_no_cache( 'stats', array() );
 		$empty_stats = self::empty_stats();
 		$stats       = wp_parse_args( $stats, $empty_stats );
 
@@ -1359,6 +1504,9 @@ abstract class GeoDir_Converter_Importer {
 	/**
 	 * Get the import progress as a percentage.
 	 *
+	 * Always reflects the recorded stats. An import that stopped early reports
+	 * how far it actually got rather than claiming completion.
+	 *
 	 * @since 2.0.2
 	 *
 	 * @return float The import progress percentage (0-100).
@@ -1367,13 +1515,13 @@ abstract class GeoDir_Converter_Importer {
 		$stats = $this->get_stats();
 
 		$total     = (int) $stats['total'];
-		$processed = $stats['succeed'] + $stats['skipped'] + $stats['failed'];
+		$processed = (int) $stats['succeed'] + (int) $stats['skipped'] + (int) $stats['failed'];
 
-		if ( $total == 0 ) {
+		if ( $total <= 0 ) {
 			return $this->background_process->is_in_progress() ? 0 : 100;
-		} else {
-			return $this->background_process->is_in_progress() ? min( round( $processed / $total * 100 ), 100 ) : 100;
 		}
+
+		return (float) min( round( $processed / $total * 100 ), 100 );
 	}
 
 	/**
@@ -1390,6 +1538,13 @@ abstract class GeoDir_Converter_Importer {
 		$this->options_handler->delete_option( 'import_start_time' );
 		$this->options_handler->delete_option( 'failed_items' );
 		$this->options_handler->delete_option( 'paused' );
+		$this->options_handler->delete_option( 'checkpoint' );
+		$this->options_handler->delete_option( 'in_flight' );
+		$this->options_handler->delete_option( 'log_offset' );
+
+		$this->pending_checkpoint = null;
+		$this->in_flight_item     = null;
+		$this->items_since_flush  = 0;
 	}
 
 	/**
@@ -1441,6 +1596,390 @@ abstract class GeoDir_Converter_Importer {
 
 		$this->options_handler->update_option( 'failed_items', $failed_items );
 		$this->pending_failed_items = array();
+	}
+
+	/**
+	 * Write every buffered progress channel to the database.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @return void
+	 */
+	public function flush_progress() {
+		$this->flush_stats();
+		$this->flush_logs();
+		$this->flush_failed_items();
+		$this->flush_checkpoint();
+	}
+
+	/**
+	 * Persist buffered progress once enough items have been processed.
+	 *
+	 * Buffered progress is lost if the worker dies mid-batch, so flushing
+	 * periodically bounds that loss and keeps the progress bar moving.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @param bool $force Flush regardless of how many items are pending.
+	 * @return void
+	 */
+	public function maybe_flush_progress( $force = false ) {
+		++$this->items_since_flush;
+
+		/**
+		 * Filters how many items are processed between progress flushes.
+		 *
+		 * @since 2.2.1
+		 *
+		 * @param int $interval Number of items. Default FLUSH_INTERVAL.
+		 */
+		$interval = (int) apply_filters( "geodir_converter_{$this->importer_id}_flush_interval", self::FLUSH_INTERVAL );
+		$interval = max( 1, $interval );
+
+		if ( ! $force && $this->items_since_flush < $interval ) {
+			return;
+		}
+
+		$this->flush_progress();
+
+		$this->items_since_flush = 0;
+	}
+
+	/**
+	 * Record how far the current paginated task has progressed.
+	 *
+	 * A task's offset only reaches the database once the task returns, so
+	 * without this an interrupted batch restarts from where it began.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @param string $action The task action the offset belongs to.
+	 * @param int    $offset The offset to resume from.
+	 * @return void
+	 */
+	public function set_checkpoint( $action, $offset ) {
+		$this->pending_checkpoint = array(
+			'action' => (string) $action,
+			'offset' => max( 0, (int) $offset ),
+		);
+	}
+
+	/**
+	 * Write the pending checkpoint.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @return void
+	 */
+	public function flush_checkpoint() {
+		if ( null === $this->pending_checkpoint ) {
+			return;
+		}
+
+		$this->options_handler->update_option( 'checkpoint', $this->pending_checkpoint );
+		$this->pending_checkpoint = null;
+	}
+
+	/**
+	 * Resolve the offset a paginated task should start from.
+	 *
+	 * Prefers a checkpoint left behind by an interrupted attempt over the offset
+	 * carried by the queued task.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @param string $action The task action.
+	 * @param array  $task   The queued task.
+	 * @return int The offset to resume from.
+	 */
+	public function resume_offset( $action, array $task ) {
+		$offset     = isset( $task['offset'] ) ? absint( $task['offset'] ) : 0;
+		$checkpoint = $this->options_handler->get_option_no_cache( 'checkpoint' );
+
+		if ( is_array( $checkpoint )
+			&& isset( $checkpoint['action'], $checkpoint['offset'] )
+			&& $action === $checkpoint['action']
+			&& (int) $checkpoint['offset'] > $offset
+		) {
+			return (int) $checkpoint['offset'];
+		}
+
+		return $offset;
+	}
+
+	/**
+	 * Discard the resume checkpoint.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @return void
+	 */
+	public function clear_checkpoint() {
+		$this->pending_checkpoint = null;
+		$this->options_handler->delete_option( 'checkpoint' );
+	}
+
+	/**
+	 * Claim an item for processing, guarding against a repeating hard crash.
+	 *
+	 * Written immediately rather than buffered, since the failures this guards
+	 * against take the whole process down. An item claimed more than
+	 * MAX_ITEM_ATTEMPTS times is recorded as failed and skipped.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @param string $action    The task action.
+	 * @param int    $source_id The source item ID.
+	 * @param string $item_type Human-readable item type (e.g. 'listing').
+	 * @param string $label     Display label for the item.
+	 * @return bool True to process the item, false if it must be skipped.
+	 */
+	public function claim_item( $action, $source_id, $item_type = 'item', $label = '' ) {
+		$source_id = (int) $source_id;
+
+		// Read the previous attempt's marker once, then keep it: comparing
+		// against the marker this request has written would only ever catch a
+		// record that crashed as the very first item of a batch.
+		if ( ! $this->crashed_item_loaded ) {
+			$this->crashed_item        = $this->options_handler->get_option_no_cache( 'in_flight' );
+			$this->crashed_item_loaded = true;
+		}
+
+		$previous = $this->crashed_item;
+		$attempts = 1;
+
+		if ( is_array( $previous )
+			&& isset( $previous['action'], $previous['source_id'], $previous['attempts'] )
+			&& $action === $previous['action']
+			&& $source_id === (int) $previous['source_id']
+		) {
+			$attempts = (int) $previous['attempts'] + 1;
+		}
+
+		/**
+		 * Filters how many times an item may be attempted before being skipped.
+		 *
+		 * @since 2.2.1
+		 *
+		 * @param int $max_attempts Maximum attempts. Default MAX_ITEM_ATTEMPTS.
+		 */
+		$max_attempts = (int) apply_filters( "geodir_converter_{$this->importer_id}_max_item_attempts", self::MAX_ITEM_ATTEMPTS );
+		$max_attempts = max( 1, $max_attempts );
+
+		if ( $attempts > $max_attempts ) {
+			$error = sprintf(
+				/* translators: %d: number of attempts already made. */
+				__( 'Skipped after crashing the import worker %d times. The source record or one of its images cannot be processed on this server.', 'geodir-converter' ),
+				$max_attempts
+			);
+
+			$this->log( sprintf( '%1$s: %2$s — %3$s', $item_type, $label, $error ), 'error' );
+			$this->increase_failed_imports( 1 );
+			$this->record_failed_item( $source_id, $action, $item_type, $label, $error );
+
+			$this->crashed_item = null;
+
+			$this->clear_in_flight();
+			$this->flush_progress();
+
+			return false;
+		}
+
+		$this->in_flight_item = array(
+			'action'    => (string) $action,
+			'source_id' => $source_id,
+			'item_type' => (string) $item_type,
+			'label'     => (string) $label,
+			'attempts'  => $attempts,
+			'timestamp' => time(),
+		);
+
+		$this->options_handler->update_option( 'in_flight', $this->in_flight_item );
+
+		return true;
+	}
+
+	/**
+	 * Clear the in-flight marker once a batch completes cleanly.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @return void
+	 */
+	public function clear_in_flight() {
+		$this->in_flight_item = null;
+		$this->crashed_item   = null;
+
+		$this->options_handler->delete_option( 'in_flight' );
+	}
+
+	/**
+	 * Report cumulative task counters to the stats as deltas.
+	 *
+	 * Paginated tasks carry running totals across batches, so adding the
+	 * running total on every batch would count earlier batches again. Only the
+	 * increase since the previous batch is applied.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @param array $task     The task, updated in place with the new totals.
+	 * @param int   $imported Cumulative imported count.
+	 * @param int   $failed   Cumulative failed count.
+	 * @param int   $skipped  Cumulative skipped count.
+	 * @param int   $updated  Optional. Cumulative updated count.
+	 * @return void
+	 */
+	protected function sync_task_counters( array &$task, $imported, $failed, $skipped, $updated = 0 ) {
+		$action   = isset( $task['action'] ) ? (string) $task['action'] : '';
+		$reported = isset( $task['counters_reported'] ) && is_array( $task['counters_reported'] )
+			? $task['counters_reported']
+			: array();
+
+		// A new action starts from a clean baseline.
+		if ( ! isset( $reported['action'] ) || $reported['action'] !== $action ) {
+			$reported = array();
+		}
+
+		$reported = wp_parse_args(
+			$reported,
+			array(
+				'imported' => 0,
+				'failed'   => 0,
+				'skipped'  => 0,
+				'updated'  => 0,
+			)
+		);
+
+		$totals = array(
+			'imported' => max( 0, (int) $imported ),
+			'failed'   => max( 0, (int) $failed ),
+			'skipped'  => max( 0, (int) $skipped ),
+			'updated'  => max( 0, (int) $updated ),
+		);
+
+		$succeed = max( 0, $totals['imported'] - (int) $reported['imported'] )
+			+ max( 0, $totals['updated'] - (int) $reported['updated'] );
+
+		if ( $succeed > 0 ) {
+			$this->increase_succeed_imports( $succeed );
+		}
+
+		$failed_delta = max( 0, $totals['failed'] - (int) $reported['failed'] );
+
+		if ( $failed_delta > 0 ) {
+			$this->increase_failed_imports( $failed_delta );
+		}
+
+		$skipped_delta = max( 0, $totals['skipped'] - (int) $reported['skipped'] );
+
+		if ( $skipped_delta > 0 ) {
+			$this->increase_skipped_imports( $skipped_delta );
+		}
+
+		$task['imported'] = $totals['imported'];
+		$task['failed']   = $totals['failed'];
+		$task['skipped']  = $totals['skipped'];
+		$task['updated']  = $totals['updated'];
+
+		$totals['action']           = $action;
+		$task['counters_reported']  = $totals;
+	}
+
+	/**
+	 * Read a field from an item that may be an object or an array.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @param mixed  $item The item.
+	 * @param string $key  The field name.
+	 * @return mixed The field value, or an empty string when absent.
+	 */
+	protected function get_item_field( $item, $key ) {
+		if ( is_object( $item ) && isset( $item->{$key} ) ) {
+			return $item->{$key};
+		}
+
+		if ( is_array( $item ) && isset( $item[ $key ] ) ) {
+			return $item[ $key ];
+		}
+
+		return '';
+	}
+
+	/**
+	 * Process a queued batch of items, guarding each against a hard crash.
+	 *
+	 * Pass a closure declared inside the importer so it keeps access to that
+	 * class's private members.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @param array    $items   The items to process.
+	 * @param callable $handler Receives an item and returns an IMPORT_STATUS_* code.
+	 * @param array    $args    {
+	 *     Optional. Arguments describing the items.
+	 *
+	 *     @type string   $item_type      Human-readable item type. Default 'listing'.
+	 *     @type string   $action         Task action. Default ACTION_IMPORT_LISTINGS.
+	 *     @type string   $id_key         Field holding the source ID. Default 'ID'.
+	 *     @type string   $title_key      Field holding the title. Default 'post_title'.
+	 *     @type callable $label_callback Builds the display label from the item.
+	 * }
+	 * @return false Always false, so the queue drops the completed task.
+	 */
+	protected function import_queued_items( array $items, callable $handler, array $args = array() ) {
+		$args = wp_parse_args(
+			$args,
+			array(
+				'item_type'      => 'listing',
+				'action'         => self::ACTION_IMPORT_LISTINGS,
+				'id_key'         => 'ID',
+				'title_key'      => 'post_title',
+				'label_callback' => null,
+			)
+		);
+
+		try {
+			foreach ( $items as $item ) {
+				$source_id = (int) $this->get_item_field( $item, $args['id_key'] );
+
+				$label = is_callable( $args['label_callback'] )
+					? (string) call_user_func( $args['label_callback'], $item )
+					: (string) $this->get_item_field( $item, $args['title_key'] );
+
+				if ( ! $this->claim_item( $args['action'], $source_id, $args['item_type'], $label ) ) {
+					continue;
+				}
+
+				$this->process_import_result(
+					call_user_func( $handler, $item ),
+					$args['item_type'],
+					$label,
+					$source_id,
+					$args['action']
+				);
+			}
+		} finally {
+			$this->clear_in_flight();
+			$this->flush_progress();
+		}
+
+		return false;
+	}
+
+	/**
+	 * Whether the current batch should stop early and requeue the remainder.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @return bool True if the batch should yield.
+	 */
+	public function should_yield() {
+		if ( ! $this->background_process instanceof GeoDir_Converter_Background_Process ) {
+			return false;
+		}
+
+		return $this->background_process->should_yield();
 	}
 
 	/**
@@ -1585,7 +2124,10 @@ abstract class GeoDir_Converter_Importer {
 
 		$skip_logs = max( 0, (int) $skip_logs );
 
-		return array_slice( $logs, $skip_logs );
+		// Older entries may have been discarded, so rebase the caller's index.
+		$discarded = (int) $this->options_handler->get_option_no_cache( 'log_offset', 0 );
+
+		return array_slice( $logs, max( 0, $skip_logs - $discarded ) );
 	}
 
 	/**
@@ -1624,8 +2166,28 @@ abstract class GeoDir_Converter_Importer {
 			return;
 		}
 
-		$logs = $this->options_handler->get_option_no_cache( 'import_log', array() );
+		$logs = (array) $this->options_handler->get_option_no_cache( 'import_log', array() );
 		$logs = array_merge( $logs, $this->logs_buffer );
+
+		/**
+		 * Filters how many log entries an import retains.
+		 *
+		 * @since 2.2.1
+		 *
+		 * @param int $max_entries Maximum entries. Default MAX_LOG_ENTRIES.
+		 */
+		$max_entries = (int) apply_filters( "geodir_converter_{$this->importer_id}_max_log_entries", self::MAX_LOG_ENTRIES );
+
+		if ( $max_entries > 0 && count( $logs ) > $max_entries ) {
+			$discarded = count( $logs ) - $max_entries;
+			$logs      = array_slice( $logs, $discarded );
+
+			$this->options_handler->update_option(
+				'log_offset',
+				(int) $this->options_handler->get_option_no_cache( 'log_offset', 0 ) + $discarded
+			);
+		}
+
 		$this->options_handler->update_option( 'import_log', $logs );
 		$this->logs_buffer = array();
 	}

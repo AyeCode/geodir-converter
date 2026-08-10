@@ -2137,16 +2137,18 @@ class GeoDir_Converter_WP_Residence extends GeoDir_Converter_Importer {
 
 		$packages_mapping = $this->is_test_mode() ? array() : $this->get_packages_mapping();
 
-		foreach ( $listings as $listing ) {
-			$label  = $listing->post_title . ' (#' . $listing->ID . ')';
-			$status = $this->import_single_listing( $listing, $packages_mapping );
-
-			$this->process_import_result( $status, 'property', $label, $listing->ID );
-		}
-
-		$this->flush_failed_items();
-
-		return false;
+		return $this->import_queued_items(
+			$listings,
+			function ( $listing ) use ( $packages_mapping ) {
+				return $this->import_single_listing( $listing, $packages_mapping );
+			},
+			array(
+				'item_type'      => 'property',
+				'label_callback' => function ( $listing ) {
+					return $listing->post_title . ' (#' . $listing->ID . ')';
+				},
+			)
+		);
 	}
 
 	/**

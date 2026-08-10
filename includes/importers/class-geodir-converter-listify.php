@@ -812,16 +812,12 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	public function task_import_listings( $task ) {
 		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
 
-		foreach ( $listings as $listing ) {
-			$title  = $listing->post_title;
-			$result = $this->import_single_listing( $listing );
-
-			$this->process_import_result( $result, 'listing', $title, $listing->ID );
-		}
-
-		$this->flush_failed_items();
-
-		return false;
+		return $this->import_queued_items(
+			$listings,
+			function ( $listing ) {
+				return $this->import_single_listing( $listing );
+			}
+		);
 	}
 
 	/**
