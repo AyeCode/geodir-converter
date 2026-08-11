@@ -736,9 +736,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		// Save packages mapping.
 		$this->options_handler->update_option( 'packages_mapping', $packages_mapping );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$this->log( sprintf( self::LOG_TEMPLATE_FINISHED, 'Packages', count( $products ), $imported, $updated, $skipped, $failed ), 'success' );
 
@@ -978,9 +976,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 			);
 		}
 
-		$this->increase_succeed_imports( $imported + $updated );
-		$this->increase_skipped_imports( $skipped );
-		$this->increase_failed_imports( $failed );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped, $updated );
 
 		$this->log(
 			sprintf( self::LOG_TEMPLATE_FINISHED, 'Fields', count( $fields ), $imported, $updated, $skipped, $failed ),
@@ -1542,12 +1538,17 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 				$data['product'] = trim( $listing['product'] );
 			}
 
+			if ( ! $this->claim_item( self::ACTION_IMPORT_LISTINGS, $listing['id'], $module, $title ) ) {
+				continue;
+			}
+
 			$status = $this->$method( $data, $category_mapping, $packages_mapping );
 
 			$this->process_import_result( $status, $module, $title, $listing['id'] );
 		}
 
-		$this->flush_failed_items();
+		$this->clear_in_flight();
+		$this->flush_progress();
 
 		return false;
 	}
@@ -1683,7 +1684,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		// Handle test mode.
 		if ( $this->is_test_mode() ) {
-			return $is_update ? self::IMPORT_STATUS_SKIPPED : self::IMPORT_STATUS_SUCCESS;
+			return $is_update ? self::IMPORT_STATUS_UPDATED : self::IMPORT_STATUS_SUCCESS;
 		}
 
 		// Delete existing media if updating.
@@ -1918,7 +1919,7 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 
 		// Handle test mode.
 		if ( $this->is_test_mode() ) {
-			return $is_update ? self::IMPORT_STATUS_SKIPPED : self::IMPORT_STATUS_SUCCESS;
+			return $is_update ? self::IMPORT_STATUS_UPDATED : self::IMPORT_STATUS_SUCCESS;
 		}
 
 		// Delete existing media if updating.

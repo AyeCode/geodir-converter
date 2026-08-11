@@ -34,6 +34,17 @@ Currently supported directories:
 
 == Changelog ==
 
+= 2.2.1 - TBD =
+* Import no longer stalls silently when a record crashes the PHP worker - FIXED
+* Imports now prefer GD over Imagick, which can crash on malformed images - CHANGED
+* Interrupted batches resume from a checkpoint instead of replaying from the start - FIXED
+* Progress, logs and failed items are saved during a batch, not only at the end - CHANGED
+* Listings query was missing an ORDER BY, which could skip or duplicate records - FIXED
+* Stats were counted repeatedly across batches in paginated imports - FIXED
+* Progress reported 100% for an import that stopped early - FIXED
+* Updated listings were logged and counted as skipped - FIXED
+* Import log is capped at 1000 entries to keep large imports fast - CHANGED
+
 = 2.2.0 - 2026-04-09 =
 * Added support for importing listings from WP Residence theme - ADDED
 * Added support for importing listings from MyListing theme - ADDED

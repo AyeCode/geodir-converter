@@ -684,9 +684,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$task['failed']   = absint( $failed );
 		$task['skipped']  = absint( $skipped );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$complete = ( $offset + $batch_size >= $total_users );
 
@@ -943,9 +941,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		// Save packages mapping.
 		$this->options_handler->update_option( 'packages_mapping', $packages_mapping );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$complete = ( $offset + $batch_size >= $total_products );
 
@@ -1681,9 +1677,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$task['failed']   = absint( $failed );
 		$task['skipped']  = absint( $skipped );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$complete = ( $offset + $batch_size >= $total_categories );
 
@@ -1840,9 +1834,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$task['failed']   = absint( $failed );
 		$task['skipped']  = absint( $skipped );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$complete = ( $offset + $batch_size >= $total_categories );
 
@@ -2000,9 +1992,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$task['failed']   = absint( $failed );
 		$task['skipped']  = absint( $skipped );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$complete = ( $offset + $batch_size >= $total_categories );
 
@@ -2080,7 +2070,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 
 		wp_suspend_cache_addition( true );
 
-		$offset         = isset( $task['offset'] ) ? absint( $task['offset'] ) : 0;
+		$offset         = $this->resume_offset( self::ACTION_IMPORT_LISTINGS, $task );
 		$total_listings = isset( $task['total_listings'] ) ? absint( $task['total_listings'] ) : 0;
 		$batch_size     = absint( $this->get_batch_size() );
 		$fields         = isset( $task['mapped_fields'] ) ? (array) $task['mapped_fields'] : array();
@@ -2118,21 +2108,43 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 			return $this->next_task( $task );
 		}
 
-		foreach ( $listings as $pmd_listing ) {
-			$listing = $this->import_single_listing( $pmd_listing, $fields );
+		$processed = 0;
+		$remaining = count( $listings );
 
-			$this->process_import_result( $listing, 'listing', $pmd_listing->title, $pmd_listing->id );
+		try {
+			foreach ( $listings as $pmd_listing ) {
+				++$processed;
+				--$remaining;
+
+				if ( $this->claim_item( self::ACTION_IMPORT_LISTINGS, $pmd_listing->id, 'listing', $pmd_listing->title ) ) {
+					$this->process_import_result(
+						$this->import_single_listing( $pmd_listing, $fields ),
+						'listing',
+						$pmd_listing->title,
+						$pmd_listing->id
+					);
+				}
+
+				$this->set_checkpoint( self::ACTION_IMPORT_LISTINGS, $offset + $processed );
+
+				if ( $remaining > 0 && $this->should_yield() ) {
+					break;
+				}
+			}
+		} finally {
+			$this->clear_in_flight();
+			$this->flush_progress();
 		}
 
-		$this->flush_failed_items();
+		$next_offset = $offset + $processed;
 
-		$complete = ( $offset + $batch_size >= $total_listings );
-
-		if ( ! $complete ) {
+		if ( $next_offset < $total_listings ) {
 			// Continue import with the next batch.
-			$task['offset'] = $offset + $batch_size;
+			$task['offset'] = $next_offset;
 			return $task;
 		}
+
+		$this->clear_checkpoint();
 
 		return $this->next_task( $task );
 	}
@@ -2285,7 +2297,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$listings_mapping[ (int) $listing->id ] = (int) $gd_post_id;
 		$this->options_handler->update_option( 'listings_mapping', $listings_mapping );
 
-		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_SKIPPED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
+		return $is_update ? GeoDir_Converter_Importer::IMPORT_STATUS_UPDATED : GeoDir_Converter_Importer::IMPORT_STATUS_SUCCESS;
 	}
 
 	/**
@@ -2421,7 +2433,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$db    = $this->get_db_connection();
 		$table = $this->db_prefix . 'listings_categories';
 
-		$category_mapping   = (array) $this->options_handler->get_option_no_cache( 'category_mapping' );
+		$category_mapping   = (array) $this->options_handler->get_option_no_cache( 'category_mapping', array() );
 		$listing_categories = $db->get_results(
 			$db->prepare(
 				"SELECT cat_id FROM {$table} c WHERE c.list_id = %d ORDER BY c.cat_id",
@@ -2568,6 +2580,10 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		}
 
 		foreach ( $events as $event ) {
+			if ( ! $this->claim_item( self::ACTION_IMPORT_EVENTS, $event->id, 'event', $event->title ) ) {
+				continue;
+			}
+
 			$gd_event_id = ! $this->is_test_mode() ? $this->get_gd_listing_id( $event->id, 'pmd_id', $post_type ) : false;
 			$is_update   = ! empty( $gd_event_id );
 
@@ -2701,9 +2717,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$task['failed']   = absint( $failed );
 		$task['skipped']  = absint( $skipped );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$this->flush_failed_items();
 
@@ -2892,9 +2906,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$task['failed']   = absint( $failed );
 		$task['skipped']  = absint( $skipped );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$complete = ( $offset + $batch_size >= $total_reviews );
 
@@ -2986,6 +2998,9 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		}
 
 		foreach ( $posts as $post ) {
+			if ( ! $this->claim_item( self::ACTION_IMPORT_POSTS, $post->id, 'post', $post->title ) ) {
+				continue;
+			}
 
 			$post_id   = ! $this->is_test_mode() ? $this->get_gd_post_id( $post->id, 'pmd_blog_id' ) : false;
 			$is_update = ! empty( $post_id );
@@ -3058,9 +3073,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$task['failed']   = absint( $failed );
 		$task['skipped']  = absint( $skipped );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$complete = ( $offset + $batch_size >= $total_posts );
 
@@ -3106,7 +3119,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$db         = $this->get_db_connection();
 		$cats_table = $this->db_prefix . $table . '_categories_lookup';
 
-		$category_mapping = (array) $this->options_handler->get_option_no_cache( $table . '_category_mapping' );
+		$category_mapping = (array) $this->options_handler->get_option_no_cache( $table . '_category_mapping', array() );
 
 		$categories_lookup = $db->get_results(
 			$db->prepare(
@@ -3236,9 +3249,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$task['failed']   = absint( $failed );
 		$task['skipped']  = absint( $skipped );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$complete = ( $offset + $batch_size >= $total_pages );
 
@@ -3408,9 +3419,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$task['failed']   = absint( $failed );
 		$task['skipped']  = absint( $skipped );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$complete = ( $offset + $batch_size >= $total_comments );
 
@@ -3569,9 +3578,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$task['failed']   = absint( $failed );
 		$task['skipped']  = absint( $skipped );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$complete = ( $offset + $batch_size >= $total_discounts );
 
@@ -3793,9 +3800,7 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 		$task['failed']   = absint( $failed );
 		$task['skipped']  = absint( $skipped );
 
-		$this->increase_succeed_imports( $imported );
-		$this->increase_failed_imports( $failed );
-		$this->increase_skipped_imports( $skipped );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped );
 
 		$complete = ( $offset + $batch_size >= $total_invoices );
 
