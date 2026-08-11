@@ -1705,16 +1705,12 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 
 		$packages_mapping = $this->is_test_mode() ? array() : $this->get_packages_mapping();
 
-		foreach ( $listings as $listing ) {
-			$title  = $listing->post_title;
-			$status = $this->import_single_listing( $listing, $packages_mapping );
-
-			$this->process_import_result( $status, 'listing', $title, $listing->ID );
-		}
-
-		$this->flush_failed_items();
-
-		return false;
+		return $this->import_queued_items(
+			$listings,
+			function ( $listing ) use ( $packages_mapping ) {
+				return $this->import_single_listing( $listing, $packages_mapping );
+			}
+		);
 	}
 
 	/**
@@ -1918,7 +1914,7 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 		}
 
 		if ( $this->is_test_mode() ) {
-			return $is_update ? self::IMPORT_STATUS_SKIPPED : self::IMPORT_STATUS_SUCCESS;
+			return $is_update ? self::IMPORT_STATUS_UPDATED : self::IMPORT_STATUS_SUCCESS;
 		}
 
 		if ( $is_update ) {

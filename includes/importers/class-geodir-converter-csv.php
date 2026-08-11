@@ -678,13 +678,23 @@ class GeoDir_Converter_CSV extends GeoDir_Converter_Importer {
 			return false;
 		}
 
-		foreach ( $rows as $row_index => $row ) {
-			$result = $this->import_single_listing( $row, $column_mapping, $post_type, $settings );
+		try {
+			foreach ( $rows as $row_index => $row ) {
+				/* translators: %d: CSV row number. */
+				$label = sprintf( __( 'Row %d', 'geodir-converter' ), (int) $row_index + 1 );
 
-			$this->process_import_result( $result['status'], 'listing', $result['post_title'], $row_index );
+				if ( ! $this->claim_item( self::ACTION_IMPORT_LISTINGS, $row_index, 'listing', $label ) ) {
+					continue;
+				}
+
+				$result = $this->import_single_listing( $row, $column_mapping, $post_type, $settings );
+
+				$this->process_import_result( $result['status'], 'listing', $result['post_title'], $row_index );
+			}
+		} finally {
+			$this->clear_in_flight();
+			$this->flush_progress();
 		}
-
-		$this->flush_failed_items();
 
 		return false;
 	}

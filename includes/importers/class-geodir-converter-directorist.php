@@ -672,27 +672,27 @@ class GeoDir_Converter_Directorist extends GeoDir_Converter_Importer {
 			return false;
 		}
 
-		foreach ( $listings as $listing ) {
-			$title  = $listing->post_title;
-			$result = $this->import_single_listing( $listing );
+		$this->import_queued_items(
+			$listings,
+			function ( $listing ) use ( &$mapping ) {
+				$result = $this->import_single_listing( $listing );
 
-			$this->process_import_result( $result['status'], 'listing', $title, $listing->ID );
-
-			// Update listings mapping.
-			if ( in_array( $result['status'], array( self::IMPORT_STATUS_SUCCESS, self::IMPORT_STATUS_UPDATED ), true ) ) {
-				if ( ! empty( $result['gd_post_id'] ) && ! empty( $result['gd_package_id'] ) ) {
-					$mapping[ (int) $listing->ID ] = array(
-						'gd_post_id'    => $result['gd_post_id'],
-						'gd_package_id' => $result['gd_package_id'],
-					);
+				// Update listings mapping.
+				if ( in_array( $result['status'], array( self::IMPORT_STATUS_SUCCESS, self::IMPORT_STATUS_UPDATED ), true ) ) {
+					if ( ! empty( $result['gd_post_id'] ) && ! empty( $result['gd_package_id'] ) ) {
+						$mapping[ (int) $listing->ID ] = array(
+							'gd_post_id'    => $result['gd_post_id'],
+							'gd_package_id' => $result['gd_package_id'],
+						);
+					}
 				}
+
+				return $result['status'];
 			}
-		}
+		);
 
 		// Update listings mapping.
 		$this->options_handler->update_option( 'listings_mapping', $mapping );
-
-		$this->flush_failed_items();
 
 		return false;
 	}
@@ -2238,9 +2238,7 @@ class GeoDir_Converter_Directorist extends GeoDir_Converter_Importer {
 			do_action( 'geodir_cp_after_import_custom_field_data', $field, $exists );
 		}
 
-		$this->increase_succeed_imports( $imported + $updated );
-		$this->increase_skipped_imports( $skipped );
-		$this->increase_failed_imports( $failed );
+		$this->sync_task_counters( $task, $imported, $failed, $skipped, $updated );
 
 		$this->log(
 			wp_sprintf(

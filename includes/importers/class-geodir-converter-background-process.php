@@ -37,6 +37,22 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 	public const MAX_REQUEST_TIMEOUT = 30;
 
 	/**
+	 * Soft wall-clock budget for a single batch, in seconds.
+	 *
+	 * @since 2.2.1
+	 * @var int
+	 */
+	public const BATCH_TIME_LIMIT = 20;
+
+	/**
+	 * Seconds of headroom left before the PHP execution limit.
+	 *
+	 * @since 2.2.1
+	 * @var int
+	 */
+	public const YIELD_HEADROOM = 10;
+
+	/**
 	 * The importer instance.
 	 *
 	 * @var GeoDir_Converter_Importer
@@ -74,10 +90,57 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 	 */
 	protected function time_left() {
 		if ( $this->max_execution_time > 0 ) {
-			return $this->start_time + $this->max_execution_time - time();
+			return $this->batch_start_time() + $this->max_execution_time - time();
 		} else {
 			return self::MAX_REQUEST_TIMEOUT;
 		}
+	}
+
+	/**
+	 * Get the batch start time, initialising it when the batch was not started
+	 * through handle().
+	 *
+	 * @since 2.2.1
+	 *
+	 * @return int Unix timestamp.
+	 */
+	protected function batch_start_time() {
+		if ( $this->start_time <= 0 ) {
+			$this->start_time = time();
+		}
+
+		return $this->start_time;
+	}
+
+	/**
+	 * Whether the current batch should stop early and requeue the remainder.
+	 *
+	 * Lets an importer break out of a long item loop before the request is
+	 * killed, instead of losing the whole batch.
+	 *
+	 * @since 2.2.1
+	 *
+	 * @return bool True if the batch should yield.
+	 */
+	public function should_yield() {
+		/**
+		 * Filters the soft wall-clock budget for a single batch.
+		 *
+		 * @since 2.2.1
+		 *
+		 * @param int $budget Budget in seconds. Default BATCH_TIME_LIMIT.
+		 */
+		$budget = (int) apply_filters( $this->identifier . '_batch_time_limit', self::BATCH_TIME_LIMIT );
+
+		if ( $budget > 0 && ( time() - $this->batch_start_time() ) >= $budget ) {
+			return true;
+		}
+
+		if ( $this->time_left() <= self::YIELD_HEADROOM ) {
+			return true;
+		}
+
+		return $this->memory_exceeded();
 	}
 
 	/**
@@ -270,7 +333,7 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 				throw new GeoDir_Converter_Execution_Time_Exception(
 					sprintf(
 						/* translators: %d: Maximum execution time in seconds */
-						__( 'Maximum execution time is set to %d seconds.', 'geodir-booking' ),
+						__( 'Maximum execution time is set to %d seconds.', 'geodir-converter' ),
 						$timeout
 					)
 				);
@@ -281,11 +344,14 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 
 			if ( method_exists( $this->importer, $import_method ) ) {
 				$this->importer->suspend_hooks();
-				$result = $this->importer->$import_method( $task );
-				$this->importer->restore_hooks();
-				$this->importer->flush_stats();
-				$this->importer->flush_logs();
-				$this->importer->flush_failed_items();
+
+				try {
+					$result = $this->importer->$import_method( $task );
+				} finally {
+					$this->importer->restore_hooks();
+					$this->importer->flush_progress();
+				}
+
 				return $result;
 			}
 
@@ -301,9 +367,7 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 			add_filter( $this->identifier . '_time_exceeded', '__return_true' );
 
 			$this->importer->log( $e->getMessage(), 'warning' );
-			$this->importer->flush_stats();
-			$this->importer->flush_logs();
-			$this->importer->flush_failed_items();
+			$this->importer->flush_progress();
 
 			/**
 			 * Edge case: Hosts with low `max_execution_time` settings.
@@ -314,9 +378,7 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 			return $task;
 		} catch ( Exception $e ) {
 			$this->importer->log( 'Import error: ' . $e->getMessage(), 'error' );
-			$this->importer->flush_stats();
-			$this->importer->flush_logs();
-			$this->importer->flush_failed_items();
+			$this->importer->flush_progress();
 		}
 
 		return false;
@@ -408,7 +470,7 @@ class GeoDir_Converter_Background_Process extends GeoDir_Background_Process {
 
 		// Adjust stats: subtract failed count so progress recalculates correctly.
 		$failed_count = count( $tasks );
-		$stats        = (array) $this->importer->options_handler->get_option_no_cache( 'stats' );
+		$stats        = (array) $this->importer->options_handler->get_option_no_cache( 'stats', array() );
 		$empty_stats  = $this->importer->empty_stats();
 		$stats        = wp_parse_args( $stats, $empty_stats );
 
