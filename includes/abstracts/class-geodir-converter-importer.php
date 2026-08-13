@@ -2036,10 +2036,10 @@ abstract class GeoDir_Converter_Importer {
 		?>
 		<div class="geodir-converter-actions mt-3 d-flex flex-wrap gap-2 align-items-center">
 			<button type="button" class="btn btn-primary btn-sm geodir-converter-import">
-				<i class="fas fa-play me-1"></i><?php esc_html_e( 'Start Import', 'geodir-converter' ); ?>
+				<i class="fas fa-circle-play me-1"></i><?php esc_html_e( 'Start Import', 'geodir-converter' ); ?>
 			</button>
 			<button type="button" class="btn btn-outline-danger btn-sm geodir-converter-abort" disabled>
-				<i class="fas fa-stop me-1"></i><?php esc_html_e( 'Abort', 'geodir-converter' ); ?>
+				<i class="fas fa-circle-stop me-1"></i><?php esc_html_e( 'Abort', 'geodir-converter' ); ?>
 			</button>
 			<button type="button" class="btn btn-outline-warning btn-sm geodir-converter-retry-failed d-none">
 				<i class="fas fa-redo me-1"></i><?php esc_html_e( 'Retry Failed', 'geodir-converter' ); ?>

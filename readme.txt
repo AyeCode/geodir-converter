@@ -5,7 +5,7 @@ Tags: convert, converter, connections, directorist, directories pro, directory, 
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 7.2
-Stable tag: 2.2.0
+Stable tag: 2.2.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
  
@@ -34,7 +34,7 @@ Currently supported directories:
 
 == Changelog ==
 
-= 2.2.1 - TBD =
+= 2.2.1 - 2026-08-13 =
 * Import no longer stalls silently when a record crashes the PHP worker - FIXED
 * Imports now prefer GD over Imagick, which can crash on malformed images - CHANGED
 * Interrupted batches resume from a checkpoint instead of replaying from the start - FIXED
@@ -44,6 +44,7 @@ Currently supported directories:
 * Progress reported 100% for an import that stopped early - FIXED
 * Updated listings were logged and counted as skipped - FIXED
 * Import log is capped at 1000 entries to keep large imports fast - CHANGED
+* Business Directory converter shows error when Pricing Manager is not active - FIXED
 
 = 2.2.0 - 2026-04-09 =
 * Added support for importing listings from WP Residence theme - ADDED
