@@ -405,6 +405,12 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @return array Updated task with the next action.
 	 */
 	public function task_import_packages( array $task ) {
+		// Abort early if the Pricing Manager plugin is not installed.
+		if ( ! class_exists( 'GeoDir_Pricing_Package' ) ) {
+			$this->log( __( 'Pricing Manager plugin is not active. Skipping plans...', 'geodir-converter' ), 'notice' );
+			return $this->next_task( $task, true );
+		}
+
 		$post_type = $this->get_import_post_type();
 		$plans     = $this->get_plans();
 
@@ -691,10 +697,45 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 		$tags       = $this->get_categories( $post->ID, self::TAX_LISTING_TAG, 'names' );
 		$images     = $this->get_listing_images( $post );
 
+		$bpd_street  = ! empty( $post->street_address ) ? $post->street_address : '';
+		if ( ! $bpd_street && ! empty( $fields['street'] ) ) {
+			$bpd_street = $fields['street'];
+		}
+
+		$bpd_city    = ! empty( $post->geolocation_city ) ? $post->geolocation_city : '';
+		if ( ! $bpd_city && ! empty( $fields['city'] ) ) {
+			$bpd_city = $fields['city'];
+		}
+
+		$bpd_state   = ! empty( $post->geolocation_state ) ? $post->geolocation_state : '';
+		if ( ! $bpd_state && ! empty( $fields['state'] ) ) {
+			$bpd_state = $fields['state'];
+		}
+
+		$bpd_country = ! empty( $post->geolocation_country ) ? $post->geolocation_country : '';
+		if ( ! $bpd_country && ! empty( $fields['country'] ) ) {
+			$bpd_country = $fields['country'];
+		}
+
+		$bpd_zip    = ! empty( $post->geolocation_zip ) ? $post->geolocation_zip : '';
+		if ( ! $bpd_zip && ! empty( $fields['zip'] ) ) {
+			$bpd_zip = $fields['zip'];
+		}
+
+		$bpd_lat     = ! empty( $post->geolocation_lat ) ? $post->geolocation_lat : '';
+		if ( ! $bpd_lat && ! empty( $fields['latitude'] ) ) {
+			$bpd_lat = $fields['latitude'];
+		}
+
+		$bpd_long    = ! empty( $post->geolocation_long ) ? $post->geolocation_long : '';
+		if ( ! $bpd_long && ! empty( $fields['longitude'] ) ) {
+			$bpd_long = $fields['longitude'];
+		}
+
 		$listing = array(
 			// Standard WP Fields.
 			'post_author'           => $post->post_author ? $post->post_author : get_current_user_id(),
-			'post_content'          => $post->post_content ? $post->post_content : '',
+			'post_content'          => $post->post_content ? $post->post_content : $post->post_excerpt,
 			'post_content_filtered' => $post->post_content_filtered,
 			'post_title'            => $post->post_title,
 			'post_excerpt'          => $post->post_excerpt ? $post->post_excerpt : '',
@@ -720,34 +761,49 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 			'rating_count'          => 0,
 
 			// Address.
-			'city'                  => isset( $post->geolocation_city ) ? $post->geolocation_city : $default_location['city'],
-			'region'                => isset( $post->geolocation_state ) ? $post->geolocation_state : $default_location['region'],
-			'country'               => isset( $post->geolocation_country ) ? $post->geolocation_country : $default_location['country'],
-			'latitude'              => isset( $post->geolocation_lat ) ? $post->geolocation_lat : $default_location['latitude'],
-			'longitude'             => isset( $post->geolocation_long ) ? $post->geolocation_long : $default_location['longitude'],
+			'street'                => $bpd_street ? $bpd_street : '',
+			'city'                  => $bpd_city ? $bpd_city : $default_location['city'],
+			'region'                => $bpd_state ? $bpd_state : $default_location['region'],
+			'country'               => $bpd_country ? $bpd_country : $default_location['country'],
+			'zip'                   => $bpd_zip ? $bpd_zip : '',
+			'latitude'              => $bpd_lat ? $bpd_lat : $default_location['latitude'],
+			'longitude'             => $bpd_long ? $bpd_long : $default_location['longitude'],
 			'mapview'               => '',
 			'mapzoom'               => '',
 
 			// BDP fields.
-			'bdp_id'                => $post->ID,
+			'bdp_id'                => $post->ID
 		);
 
-		if ( empty( $post->geolocation_city ) && ( empty( $post->geolocation_lat ) || empty( $post->geolocation_long ) ) && ! empty( $fields['street'] ) && empty( $fields['city'] ) && ( empty( $fields['latitude'] ) || empty( $fields['longitude'] ) ) ) {
-			$zip      = ! empty( $fields['zip'] ) ? $fields['zip'] : '-';
-			$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address(
-				array(
-					'street' => $fields['street'],
-					'city'   => $zip,
-					'region' => '-',
-					'zip'    => '-',
-				)
-			); // GPS requires at least 4 non empty location fields.
+		if ( ! $this->is_test_mode() && ( empty( $bpd_long ) || empty( $bpd_long ) ) && $bpd_street && $bpd_city ) {
+			$_bpd_street = explode( ",", $bpd_street );
+
+			$args = array(
+				'street' => $_bpd_street[0],
+				'city'   => $bpd_city,
+				'region' => $bpd_state && ! $bpd_zip ? $bpd_state : '-',
+				'zip'    => $bpd_zip ? $bpd_zip : '-'
+			);
+
+			$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address( $args );
+
+			// GPS requires at least 4 non empty location fields.
 			if ( ! ( is_array( $gps_data ) && ! empty( $gps_data['latitude'] ) && ! empty( $gps_data['longitude'] ) ) ) {
-				$street   = explode( ',', $fields['street'] );
 				$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address(
 					array(
-						'street' => trim( $street[0] ),
-						'city'   => $zip,
+						'street' => $_bpd_street[0],
+						'city'   => $bpd_zip ? '' : $bpd_city,
+						'region' => '-',
+						'zip'    => $bpd_zip ? $bpd_zip : '-',
+					)
+				);
+			}
+	
+			if ( ! ( is_array( $gps_data ) && ! empty( $gps_data['latitude'] ) && ! empty( $gps_data['longitude'] ) ) ) {
+				$gps_data = \GeoDir_Admin_Import_Export::get_post_gps_from_address(
+					array(
+						'street' => $_bpd_street[0],
+						'city'   => $bpd_city,
 						'region' => '-',
 						'zip'    => '-',
 					)
@@ -766,6 +822,10 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 
 			if ( $package ) {
 				$listing['package_id'] = $package->id;
+			}
+
+			if ( ! empty( $subscription->expiration_date ) ) {
+				$listing['expire_date'] = date( 'Y-m-d', strtotime( $subscription->expiration_date ) );
 			}
 		}
 
@@ -799,14 +859,18 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 		$gd_post = geodir_get_post_info( (int) $gd_post_id );
 
 		if ( ! empty( $gd_post ) && ! empty( $fields ) ) {
-
 			foreach ( $fields as $field_key => $field_value ) {
-				if ( property_exists( $gd_post, $field_key ) ) {
+				if ( property_exists( $gd_post, $field_key ) && $field_value !== "" ) {
 					$gd_post->{$field_key} = $field_value;
 				}
 			}
 
+			if ( isset( $gd_post->about ) && empty( $gd_post->about ) && ! empty( $post->post_excerpt ) ) {
+				$gd_post->about = $post->post_excerpt;
+			}
+
 			$updated = wp_update_post( (array) $gd_post, true );
+
 			if ( is_wp_error( $updated ) ) {
 				$this->log( $updated->get_error_message() );
 			}
@@ -827,7 +891,8 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 */
 	private function prepare_single_field( $key, $field, $post_type, $package_ids = array() ) {
 		$field        = $this->normalize_bdp_field( $field );
-		$gd_field_key = $this->get_gd_field_key( $key );
+		$gd_field_key = $this->get_gd_field_key( $key, $field );
+
 		$field_type   = $this->get_gd_field_type( $field['field_type'] );
 		$gd_field     = geodir_get_field_infoby( 'htmlvar_name', $gd_field_key, $post_type );
 
@@ -850,21 +915,28 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 			}
 		}
 
-		$gd_field = array_merge(
-			$gd_field,
-			array(
-				'admin_title'       => $field['label'],
-				'frontend_desc'     => $field['description'],
-				'placeholder_value' => $field['placeholder'],
-				'frontend_title'    => $field['label'],
-				'default_value'     => $field['default'],
-				'for_admin_use'     => in_array( 'private', $field['display_flags'], true ) || $gd_field_key == 'bdp_id' ? 1 : 0,
-				'is_required'       => in_array( 'required', $field['validators'], true ) ? 1 : 0,
-				'show_in'           => ( 'listing_title' === $key ) ? '[owntab],[detail],[mapbubble]' : '[owntab],[detail]',
-				'show_on_pkg'       => $package_ids,
-				'clabels'           => $field['label'],
-			)
+		$merge_field = array(
+			'admin_title'       => rtrim( $field['label'], ':' ),
+			'frontend_desc'     => $field['description'],
+			'placeholder_value' => $field['placeholder'],
+			'frontend_title'    => rtrim( $field['label'], ':' ),
+			'default_value'     => $field['default'],
+			'for_admin_use'     => in_array( 'private', $field['display_flags'], true ) || $gd_field_key == 'bdp_id' ? 1 : 0,
+			'is_required'       => in_array( 'required', $field['validators'], true ) ? 1 : 0,
+			'show_in'           => ( 'listing_title' === $key ) ? '[owntab],[detail],[mapbubble]' : '[owntab],[detail]',
+			'show_on_pkg'       => $package_ids,
+			'clabels'           => rtrim( $field['label'], ':' )
 		);
+
+		if ( in_array( $gd_field['htmlvar_name'], array( 'post_title', 'post_content', 'post_category', 'post_tags', 'post_excerpt' ) ) ) {
+			$unset_keys = array( 'default_value', 'for_admin_use', 'is_required', 'show_in', 'show_on_pkg' );
+
+			foreach ( $unset_keys as $_key ) {
+				unset( $merge_field[ $_key ] );
+			}
+		}
+
+		$gd_field = array_merge( $gd_field, $merge_field );
 
 		if ( 'image' === $field['field_type'] ) {
 			$gd_field['extra'] = array(
@@ -895,7 +967,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 		foreach ( $form_fields as $field ) {
 			if ( isset( $field['id'], $post_meta[ '_wpbdp[fields][' . (int) $field['id'] . ']' ] ) ) {
 				$meta_key = '_wpbdp[fields][' . (int) $field['id'] . ']';
-				$key      = $this->get_gd_field_key( $field['shortname'] );
+				$key      = $this->get_gd_field_key( $field['shortname'], $field );
 				$value    = $post_meta[ $meta_key ][0];
 
 				// Unserialize a value if it's serialized.
@@ -945,6 +1017,49 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 			}
 		}
 
+		if ( empty( $fields ) ) {
+			return $fields;
+		}
+
+		$_fields = $fields;
+
+		foreach ( $_fields as $key => $value ) {
+			if ( is_null( $value ) ) {
+				continue;
+			}
+
+			if ( strpos( $key, 'street_address' ) !== false && ! isset( $fields['street'] ) ) {
+				$fields['street'] = $value;
+			} elseif ( strpos( $key, 'citytown' ) !== false && ! isset( $fields['city'] ) ) {
+				$fields['city'] = $value;
+			} elseif ( strpos( $key, 'stateprovince' ) !== false && ! isset( $fields['state'] ) ) {
+				$fields['state'] = $value;
+			} elseif ( strpos( $key, 'zip_' ) !== false && ! isset( $fields['zip'] ) ) {
+				$fields['zip'] = $value;
+			} elseif ( strpos( $key, '_email' ) !== false && ! isset( $fields['email'] ) ) {
+				$fields['email'] = $value;
+			} elseif ( strpos( $value, 'facebook.com' ) !== false && ( strpos( $value, 'http' ) === 0 || strpos( $value, 'www.' ) === 0 ) && ! isset( $fields['facebook'] ) ) {
+				$fields['facebook'] = $value;
+			} elseif ( strpos( $value, 'twitter.com' ) !== false && ( strpos( $value, 'http' ) === 0 || strpos( $value, 'www.' ) === 0 ) && ! isset( $fields['twitter'] ) ) {
+				$fields['twitter'] = $value;
+			} elseif ( strpos( $value, 'x.com' ) !== false && ( strpos( $value, 'http' ) === 0 || strpos( $value, 'www.' ) === 0 ) && ! isset( $fields['xtwitter'] ) ) {
+				$fields['xtwitter'] = $value;
+			}
+		}
+
+		if ( ! empty( $post_meta[ '_wpbdp[googlemaps][geolocation]' ] ) && ( empty( $fields[ 'latitude' ] ) || empty( $fields[ 'longitude' ] ) ) ) {
+			$geolocation = $post_meta[ '_wpbdp[googlemaps][geolocation]' ][0];
+
+			if ( is_string( $geolocation ) && is_serialized( $geolocation ) ) {
+				$geolocation = maybe_unserialize( $geolocation );
+
+				if ( ! empty( $geolocation ) && is_object( $geolocation ) && ! empty( $geolocation->lat ) && ! empty( $geolocation->lng ) ) {
+					$fields['latitude']  = substr( $geolocation->lat, 0, 15 );
+					$fields['longitude'] = substr( $geolocation->lng, 0, 15 );
+				}
+			}
+		}
+
 		return $fields;
 	}
 
@@ -955,7 +1070,7 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	 * @param string $shortname The field shortname.
 	 * @return string The mapped field key or the original shortname if no match is found.
 	 */
-	private function get_gd_field_key( $shortname ) {
+	private function get_gd_field_key( $shortname, $field = array() ) {
 		$fields_map = array(
 			'listing_title'     => 'post_title',
 			'short_description' => 'post_excerpt',
@@ -965,6 +1080,20 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 			'xtwitter'          => 'twitter',
 			'zip_code'          => 'zip',
 		);
+
+		if ( ! empty( $field['association'] ) && in_array( $field['association'], array( 'title', 'content', 'category', 'tags', 'excerpt' ) ) ) {
+			if ( $field['association'] == 'title' ) {
+				$fields_map[ $shortname ] = 'post_title';
+			} elseif ( $field['association'] == 'content' ) {
+				$fields_map[ $shortname ] = 'post_content';
+			} elseif ( $field['association'] == 'category' ) {
+				$fields_map[ $shortname ] = 'post_category';
+			} elseif ( $field['association'] == 'tags' ) {
+				$fields_map[ $shortname ] = 'post_tags';
+			} elseif ( $field['association'] == 'excerpt' ) {
+				$fields_map[ $shortname ] = 'post_excerpt';
+			}
+		}
 
 		return isset( $fields_map[ $shortname ] ) ? $fields_map[ $shortname ] : $shortname;
 	}
