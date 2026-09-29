@@ -277,7 +277,7 @@ class GeoDir_Converter_Utils {
 								$line_number,
 								count( $row ),
 								count( $headers )
-							),
+							)
 						);
 					}
 
@@ -322,7 +322,7 @@ class GeoDir_Converter_Utils {
 						__( 'Error at line %1$d: %2$s', 'geodir-converter' ),
 						$line_number,
 						$e->getMessage()
-					),
+					)
 				);
 			}
 			throw $e;

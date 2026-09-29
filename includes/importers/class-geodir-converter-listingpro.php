@@ -1701,7 +1701,7 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 	 * @return bool Result of the import operation.
 	 */
 	public function task_import_listings( $task ) {
-		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
+		$listings = $this->get_task_listings( $task );
 
 		$packages_mapping = $this->is_test_mode() ? array() : $this->get_packages_mapping();
 
@@ -2219,7 +2219,7 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 				'comment_author_email' => $author_email,
 				'comment_agent'        => $review_agent,
 				'comment_approved'     => 'publish' === $review_data['post_status'] ? 1 : 0,
-				'comment_type'         => 'review',
+				'comment_type'         => 'comment',
 			);
 
 			$is_existing = ! empty( $existing_review ) && isset( $existing_review[0]->comment_ID );
@@ -2241,9 +2241,7 @@ class GeoDir_Converter_ListingPro extends GeoDir_Converter_Importer {
 			$is_existing ? ++$skipped : ++$imported;
 
 			if ( $rating ) {
-				$_REQUEST['geodir_overallrating'] = absint( $rating );
-				GeoDir_Comments::save_rating( $comment_id );
-				unset( $_REQUEST['geodir_overallrating'] );
+				$this->save_review_rating( $comment_id, absint( $rating ) );
 			}
 		}
 

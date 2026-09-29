@@ -1165,6 +1165,11 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 	 */
 	public function task_import_listings( $task ) {
 		$post_ids = isset( $task['post_ids'] ) && ! empty( $task['post_ids'] ) ? (array) $task['post_ids'] : array();
+
+		// A "Retry Failed" task carries only the failed item's source ID.
+		if ( empty( $post_ids ) && ! empty( $task['source_id'] ) ) {
+			$post_ids = array( absint( $task['source_id'] ) );
+		}
 		$mapping  = (array) $this->options_handler->get_option_no_cache( 'listings_mapping', array() );
 
 		if ( empty( $post_ids ) ) {
@@ -1400,7 +1405,7 @@ class GeoDir_Converter_Vantage extends GeoDir_Converter_Importer {
 				'gd_post_id'    => (int) $gd_post_id,
 				'gd_package_id' => (int) $gd_package_id,
 				'status'        => $is_update ? self::IMPORT_STATUS_UPDATED : self::IMPORT_STATUS_SUCCESS,
-			),
+			)
 		);
 
 		return $status;

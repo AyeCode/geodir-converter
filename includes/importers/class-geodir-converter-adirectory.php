@@ -1478,7 +1478,7 @@ class GeoDir_Converter_aDirectory extends GeoDir_Converter_Importer {
 	 * @return bool Result of the import operation.
 	 */
 	public function task_import_listings( $task ) {
-		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
+		$listings = $this->get_task_listings( $task );
 
 		return $this->import_queued_items(
 			$listings,
@@ -1620,6 +1620,7 @@ class GeoDir_Converter_aDirectory extends GeoDir_Converter_Importer {
 
 		// Handle test mode.
 		if ( $this->is_test_mode() ) {
+			$this->import_comments( $post->ID, 0 );
 			return self::IMPORT_STATUS_SUCCESS;
 		}
 
@@ -1873,6 +1874,7 @@ class GeoDir_Converter_aDirectory extends GeoDir_Converter_Importer {
 
 		// Handle test mode.
 		if ( $this->is_test_mode() ) {
+			$this->import_comments( $post->ID, 0 );
 			return self::IMPORT_STATUS_SUCCESS;
 		}
 
@@ -2388,7 +2390,19 @@ class GeoDir_Converter_aDirectory extends GeoDir_Converter_Importer {
 	private function import_comments( $ad_listing_id, $gd_post_id ) {
 		global $wpdb;
 
+		// Reviews are part of the import total, so they must be counted here, including in test mode.
 		if ( $this->is_test_mode() ) {
+			$count = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM {$wpdb->comments} WHERE comment_post_ID = %d AND comment_approved = '1'",
+					$ad_listing_id
+				)
+			);
+
+			if ( $count ) {
+				$this->increase_succeed_imports( $count );
+			}
+
 			return;
 		}
 
@@ -2423,6 +2437,7 @@ class GeoDir_Converter_aDirectory extends GeoDir_Converter_Importer {
 			);
 
 			if ( $existing ) {
+				$this->increase_skipped_imports( 1 );
 				continue;
 			}
 
@@ -2440,10 +2455,10 @@ class GeoDir_Converter_aDirectory extends GeoDir_Converter_Importer {
 
 			if ( $rating && class_exists( 'GeoDir_Comments' ) ) {
 				$gd_rating = max( 1, min( 5, (int) $rating ) );
-				$_REQUEST['geodir_overallrating'] = $gd_rating;
-				GeoDir_Comments::save_rating( $comment->comment_ID );
-				unset( $_REQUEST['geodir_overallrating'] );
+				$this->save_review_rating( $comment->comment_ID, $gd_rating );
 			}
+
+			$this->increase_succeed_imports( 1 );
 		}
 
 		// Update comment count.

@@ -2130,7 +2130,7 @@ class GeoDir_Converter_WP_Residence extends GeoDir_Converter_Importer {
 	 * @return bool Result of the import operation.
 	 */
 	public function task_import_listings( $task ) {
-		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
+		$listings = $this->get_task_listings( $task );
 
 		/* translators: %d: number of properties in batch */
 		$this->log( sprintf( __( 'Processing batch of %d properties...', 'geodir-converter' ), count( $listings ) ) );
@@ -2638,6 +2638,8 @@ class GeoDir_Converter_WP_Residence extends GeoDir_Converter_Importer {
 	 * @return bool Result of the import operation.
 	 */
 	public function task_import_reviews( $task ) {
+		global $wpdb;
+
 		$gd_post_id = isset( $task['gd_post_id'] ) ? absint( $task['gd_post_id'] ) : 0;
 		$reviews    = isset( $task['reviews'] ) && is_array( $task['reviews'] ) ? $task['reviews'] : array();
 
@@ -2657,11 +2659,12 @@ class GeoDir_Converter_WP_Residence extends GeoDir_Converter_Importer {
 			$rating              = $review_data['rating'];
 			$review_agent        = 'geodir-converter-wpr-' . $original_comment_id;
 
-			// Check if already imported.
-			$existing_review = get_comments(
-				array(
-					'comment_agent' => $review_agent,
-					'number'        => 1,
+			// Check if already imported. get_comments() has no comment_agent argument, so query it directly.
+			$existing_review = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT comment_ID FROM {$wpdb->comments} WHERE comment_agent = %s AND comment_post_ID = %d LIMIT 1",
+					$review_agent,
+					$gd_post_id
 				)
 			);
 
@@ -2675,7 +2678,7 @@ class GeoDir_Converter_WP_Residence extends GeoDir_Converter_Importer {
 				'comment_author_email' => $review_data['comment_email'],
 				'comment_agent'        => $review_agent,
 				'comment_approved'     => $review_data['comment_approved'],
-				'comment_type'         => 'review',
+				'comment_type'         => 'comment',
 			);
 
 			$is_existing = ! empty( $existing_review ) && isset( $existing_review[0]->comment_ID );
@@ -2696,9 +2699,7 @@ class GeoDir_Converter_WP_Residence extends GeoDir_Converter_Importer {
 
 			// Save rating.
 			if ( $rating && class_exists( 'GeoDir_Comments' ) ) {
-				$_REQUEST['geodir_overallrating'] = absint( $rating );
-				GeoDir_Comments::save_rating( $comment_id );
-				unset( $_REQUEST['geodir_overallrating'] );
+				$this->save_review_rating( $comment_id, absint( $rating ) );
 			}
 		}
 

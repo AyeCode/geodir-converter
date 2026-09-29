@@ -584,6 +584,22 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 	public function task_import_listings( array $task ) {
 		global $wpdb;
 
+		// A "Retry Failed" task carries only the failed listing's ID.
+		if ( ! empty( $task['retry'] ) && ! empty( $task['source_id'] ) ) {
+			$post  = get_post( absint( $task['source_id'] ) );
+			$title = $post ? $post->post_title : ( isset( $task['title'] ) ? $task['title'] : '' );
+
+			if ( $this->claim_item( self::ACTION_IMPORT_LISTINGS, absint( $task['source_id'] ), 'listing', $title ) ) {
+				$status = $post ? $this->import_single_listing( $post ) : self::IMPORT_STATUS_FAILED;
+				$this->process_import_result( $status, 'listing', $title, absint( $task['source_id'] ) );
+			}
+
+			$this->clear_in_flight();
+			$this->flush_progress();
+
+			return false;
+		}
+
 		$offset         = $this->resume_offset( self::ACTION_IMPORT_LISTINGS, $task );
 		$batch_size     = $this->get_batch_size();
 		$total_listings = $this->count_listings();

@@ -64,7 +64,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 *
 	 * @var array
 	 */
-	protected $post_statuses = array( 'publish', 'expired', 'draft' );
+	protected $post_statuses = array( 'publish', 'expired', 'pending', 'pending_payment', 'draft', 'private' );
 
 	/**
 	 * Initialize hooks.
@@ -84,7 +84,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 * @return string The importer title.
 	 */
 	public function get_title() {
-		return __( 'Listify', 'geodir-converter' );
+		return __( 'Listify / WP Job Manager', 'geodir-converter' );
 	}
 
 	/**
@@ -95,7 +95,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 * @return string The importer description.
 	 */
 	public function get_description() {
-		return __( 'Import listings from your Listify installation.', 'geodir-converter' );
+		return __( 'Import listings from Listify, WP Job Manager, or any theme built on WP Job Manager.', 'geodir-converter' );
 	}
 
 	/**
@@ -612,6 +612,23 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 		$fields = apply_filters( 'submit_job_form_fields', $fields );
 		$fields = array_merge( $fields['job'], $fields['company'] );
 
+		// Taxonomy-backed fields (other than categories) become selects whose options are the term names.
+		foreach ( $fields as $key => $field ) {
+			if ( 'job_category' === $key || empty( $field['taxonomy'] ) || ! empty( $field['options'] ) ) {
+				continue;
+			}
+
+			$terms = get_terms(
+				array(
+					'taxonomy'   => $field['taxonomy'],
+					'hide_empty' => false,
+					'fields'     => 'names',
+				)
+			);
+
+			$fields[ $key ]['options'] = is_wp_error( $terms ) ? array() : $terms;
+		}
+
 		uasort( $fields, array( $this, 'sort_by_priority' ) );
 
 		if ( ! get_option( 'job_manager_enable_categories' ) || 0 === intval( wp_count_terms( self::TAX_LISTING_CATEGORY ) ) ) {
@@ -643,6 +660,31 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 		}
 
 		return $fields;
+	}
+
+	/**
+	 * Format field options as GD option values, one per line.
+	 *
+	 * Keyed options (e.g. salary units stored as "YEAR") use GD's "value : label" form so saved values match.
+	 *
+	 * @since 2.3.0
+	 * @param array $options The field options.
+	 * @return string The GD option values.
+	 */
+	private function format_option_values( array $options ) {
+		$lines = array();
+
+		foreach ( $options as $value => $label ) {
+			if ( is_string( $value ) ) {
+				if ( '' !== $value ) {
+					$lines[] = $value . ' : ' . $label;
+				}
+			} else {
+				$lines[] = $label;
+			}
+		}
+
+		return implode( "\n", $lines );
 	}
 
 	/**
@@ -689,7 +731,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 				'show_in'           => ( 'listing_title' === $gd_field_key ) ? '[owntab],[detail],[mapbubble]' : '[owntab],[detail]',
 				'show_on_pkg'       => $package_ids,
 				'clabels'           => $field['label'],
-				'option_values'     => isset( $field['options'] ) && ! empty( $field['options'] ) ? implode( ',', $field['options'] ) : '',
+				'option_values'     => isset( $field['options'] ) && ! empty( $field['options'] ) ? $this->format_option_values( $field['options'] ) : '',
 			)
 		);
 
@@ -810,7 +852,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 * @return bool Result of the import operation.
 	 */
 	public function task_import_listings( $task ) {
-		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
+		$listings = $this->get_task_listings( $task );
 
 		return $this->import_queued_items(
 			$listings,
@@ -856,12 +898,20 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 			&& ! empty( $post_meta['geolocation_long'] );
 
 		if ( $has_coordinates ) {
+			// Start from WP Job Manager's own geocoded data, so a failed lookup doesn't fall back to the default location.
+			$location['city']      = ! empty( $post_meta['geolocation_city'] ) ? $post_meta['geolocation_city'] : $location['city'];
+			$location['region']    = ! empty( $post_meta['geolocation_state_long'] ) ? $post_meta['geolocation_state_long'] : $location['region'];
+			$location['country']   = ! empty( $post_meta['geolocation_country_long'] ) ? $post_meta['geolocation_country_long'] : $location['country'];
+			$location['zip']       = ! empty( $post_meta['geolocation_postcode'] ) ? $post_meta['geolocation_postcode'] : '';
+			$location['latitude']  = $post_meta['geolocation_lat'];
+			$location['longitude'] = $post_meta['geolocation_long'];
+
 			$this->log( 'Pulling listing address from coordinates: ' . $post_meta['geolocation_lat'] . ', ' . $post_meta['geolocation_long'], 'info' );
 			$location_lookup = GeoDir_Converter_Utils::get_location_from_coords( $post_meta['geolocation_lat'], $post_meta['geolocation_long'] );
 
 			if ( ! is_wp_error( $location_lookup ) ) {
 				$address  = isset( $location_lookup['address'] ) && ! empty( $location_lookup['address'] ) ? $location_lookup['address'] : $address;
-				$location = array_merge( $location, $location_lookup );
+				$location = array_merge( $location, array_filter( $location_lookup ) );
 			}
 		} else {
 			$location['city']      = isset( $post_meta['geolocation_city'] ) ? $post_meta['geolocation_city'] : $default_location['city'];
@@ -870,6 +920,11 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 			$location['zip']       = isset( $post_meta['geolocation_postcode'] ) ? $post_meta['geolocation_postcode'] : '';
 			$location['latitude']  = isset( $post_meta['geolocation_lat'] ) ? $post_meta['geolocation_lat'] : $default_location['latitude'];
 			$location['longitude'] = isset( $post_meta['geolocation_long'] ) ? $post_meta['geolocation_long'] : $default_location['longitude'];
+
+			// WP Job Manager only fills geolocation_* when geocoding succeeds; fall back to the free-text location.
+			if ( '' === trim( $address ) && ! empty( $post_meta['_job_location'] ) ) {
+				$address = $post_meta['_job_location'];
+			}
 		}
 
 		// Prepare the listing data.
@@ -880,7 +935,7 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 			'post_content'          => $post->post_content ? $post->post_content : '',
 			'post_content_filtered' => $this->get_job_description( $post ),
 			'post_excerpt'          => $post->post_excerpt ? $post->post_excerpt : '',
-			'post_status'           => $post->post_status,
+			'post_status'           => $this->map_post_status( $post->post_status ),
 			'post_type'             => $post_type,
 			'comment_status'        => $post->comment_status,
 			'ping_status'           => $post->ping_status,
@@ -937,6 +992,19 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 			if ( ! empty( $images ) ) {
 				$listing['post_images'] = $images;
 			}
+		}
+
+		// Plain WP Job Manager has no gallery; the company logo is the featured image.
+		if ( empty( $listing['post_images'] ) && get_post_thumbnail_id( $post->ID ) ) {
+			$listing['post_images'] = $this->format_images_data(
+				array(
+					array(
+						'id'      => (int) get_post_thumbnail_id( $post->ID ),
+						'caption' => '',
+						'weight'  => 1,
+					),
+				)
+			);
 		}
 
 		// Insert or update the post.
@@ -1006,6 +1074,18 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 		$fields      = array();
 
 		foreach ( $form_fields as $field_key => $field ) {
+			// Taxonomy-backed fields store their value as terms, not post meta.
+			if ( 'job_category' !== $field_key && ! empty( $field['taxonomy'] ) ) {
+				$gd_key = $this->get_gd_field_key( $field_key );
+				$terms  = wp_get_object_terms( $post->ID, $field['taxonomy'], array( 'fields' => 'names' ) );
+
+				if ( ! $this->should_skip_field( $gd_key ) && ! is_wp_error( $terms ) && ! empty( $terms ) ) {
+					$fields[ $gd_key ] = implode( ',', $terms );
+				}
+
+				continue;
+			}
+
 			if ( isset( $post_meta[ "_{$field_key}" ] ) ) {
 				$gd_key = $this->get_gd_field_key( $field_key );
 				$value  = $post_meta[ "_{$field_key}" ];
@@ -1075,6 +1155,24 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 		$new   .= ',["UTC":"' . $offset . '"]';
 
 		return $new;
+	}
+
+	/**
+	 * Map a WP Job Manager post status to a GeoDirectory one.
+	 *
+	 * @since 2.3.0
+	 * @param string $status The WP Job Manager post status.
+	 * @return string The GeoDirectory post status.
+	 */
+	private function map_post_status( $status ) {
+		switch ( $status ) {
+			case 'expired':
+				return class_exists( 'GeoDir_Pricing_Package' ) ? 'gd-expired' : 'draft';
+			case 'pending_payment':
+				return 'pending';
+			default:
+				return $status;
+		}
 	}
 
 	/**
@@ -1174,7 +1272,8 @@ class GeoDir_Converter_Listify extends GeoDir_Converter_Importer {
 	 * @return string The job title.
 	 */
 	private function get_job_title( $post ) {
-		$title = wp_strip_all_tags( get_the_title( $post ) );
+		// get_the_title() would prefix private jobs with "Private:".
+		$title = wp_strip_all_tags( $post->post_title );
 
 		/**
 		 * Filters the job title.
