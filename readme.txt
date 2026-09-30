@@ -9,7 +9,7 @@ Stable tag: 2.2.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
  
-Convert directories like phpMyDirectory, Listify, Business Directory Plugin, Vantage directory theme, eDirectory, Directorist, ListingPro, Directories Pro, uListing, HivePress, and Connections to GeoDirectory.
+Convert directories like phpMyDirectory, Listify, Business Directory Plugin, Vantage directory theme, eDirectory, Directorist, ListingPro, Directories Pro, uListing, HivePress, Connections, aDirectory, Houzez, Classified Listing, WP Store Locator, and CSV files to GeoDirectory.
 
 == Description ==
 
@@ -21,7 +21,7 @@ Currently this product is in beta which means it should not be used on a live si
 
 Currently supported directories:
 - phpMyDirectory - https://wordpress.org/plugins/phpmydirectory/
-- Listify 3.0 or greater - https://astoundify.com/products/listify/
+- Listify 3.0 or greater, WP Job Manager, and themes built on it - https://wordpress.org/plugins/wp-job-manager/
 - Business Directory Plugin 6.3 or greater - https://wordpress.org/plugins/business-directory-plugin/
 - Vantage 4.2 or greater - https://www.appthemes.com/themes/vantage/
 - eDirectory - https://www.edirectory.com/
@@ -31,8 +31,25 @@ Currently supported directories:
 - uListing - https://wordpress.org/plugins/ulisting/
 - HivePress - https://wordpress.org/plugins/hivepress/
 - Connections 10.8 or greater - https://wordpress.org/plugins/connections/
+- aDirectory - https://wordpress.org/plugins/adirectory/
+- Houzez 4.x - https://themeforest.net/item/houzez-real-estate-wordpress-theme-/15752549
+- Classified Listing - https://wordpress.org/plugins/classified-listing/
+- WP Store Locator - https://wordpress.org/plugins/wp-store-locator/
+- CSV files
 
 == Changelog ==
+
+= 2.2.2 - TBD =
+* Added support for importing listings from Houzez theme - ADDED
+* Added support for importing listings from Classified Listing plugin - ADDED
+* Added support for importing stores from WP Store Locator plugin - ADDED
+* Added support for importing listings from any WP Job Manager based site - ADDED
+* Added support for importing Directorist reviews and favourites - ADDED
+* WP Job Manager job types and expired, pending and private jobs were not imported - FIXED
+* Retry Failed dropped items or re-imported every listing - FIXED
+* phpMyDirectory custom field values were not imported - FIXED
+* Directorist gallery images and social links were not imported - FIXED
+* Directorist converter shows error when Directorist is not active - FIXED
 
 = 2.2.1 - 2026-08-13 =
 * Import no longer stalls silently when a record crashes the PHP worker - FIXED

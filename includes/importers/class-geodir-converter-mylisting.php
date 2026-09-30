@@ -1289,7 +1289,7 @@ class GeoDir_Converter_MyListing extends GeoDir_Converter_Importer {
 	 * @return bool Result of the import operation.
 	 */
 	public function task_import_listings( $task ) {
-		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
+		$listings = $this->get_task_listings( $task );
 
 		return $this->import_queued_items(
 			$listings,
@@ -2063,9 +2063,7 @@ class GeoDir_Converter_MyListing extends GeoDir_Converter_Importer {
 			if ( $ml_rating && class_exists( 'GeoDir_Comments' ) ) {
 				// Convert 1-10 scale to 1-5 scale.
 				$gd_rating = max( 1, min( 5, round( (float) $ml_rating / 2 ) ) );
-				$_REQUEST['geodir_overallrating'] = (int) $gd_rating;
-				GeoDir_Comments::save_rating( $comment->comment_ID );
-				unset( $_REQUEST['geodir_overallrating'] );
+				$this->save_review_rating( $comment->comment_ID, (int) $gd_rating );
 			}
 		}
 

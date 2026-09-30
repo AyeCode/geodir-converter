@@ -1468,6 +1468,16 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
 
 		if ( empty( $listings ) ) {
+			// A "Retry Failed" task carries only an ID, which is not enough to rebuild this item.
+			if ( ! empty( $task['retry'] ) && ! empty( $task['source_id'] ) ) {
+				$title = isset( $task['title'] ) ? $task['title'] : '';
+
+				/* translators: %s: item title */
+				$this->log( sprintf( __( 'Cannot retry "%s" on its own. Run the import again; items already imported will be updated.', 'geodir-converter' ), $title ), 'warning' );
+				$this->process_import_result( self::IMPORT_STATUS_FAILED, 'listing', $title, absint( $task['source_id'] ) );
+				$this->flush_failed_items();
+			}
+
 			return false;
 		}
 

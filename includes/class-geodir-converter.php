@@ -26,6 +26,9 @@ use GeoDir_Converter\Importers\GeoDir_Converter_CSV;
 // use GeoDir_Converter\Importers\GeoDir_Converter_WP_Residence;
 // use GeoDir_Converter\Importers\GeoDir_Converter_MyListing;
 use GeoDir_Converter\Importers\GeoDir_Converter_aDirectory;
+use GeoDir_Converter\Importers\GeoDir_Converter_Houzez;
+use GeoDir_Converter\Importers\GeoDir_Converter_Classified_Listing;
+use GeoDir_Converter\Importers\GeoDir_Converter_WP_Store_Locator;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -111,6 +114,9 @@ final class GeoDir_Converter {
 		// GeoDir_Converter_WP_Residence::instance();
 		// GeoDir_Converter_MyListing::instance();
 		GeoDir_Converter_aDirectory::instance();
+		GeoDir_Converter_Houzez::instance();
+		GeoDir_Converter_Classified_Listing::instance();
+		GeoDir_Converter_WP_Store_Locator::instance();
 	}
 
 	/**

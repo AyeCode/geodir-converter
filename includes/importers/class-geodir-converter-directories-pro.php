@@ -1267,7 +1267,7 @@ class GeoDir_Converter_Directories_Pro extends GeoDir_Converter_Importer {
 	 * @return bool Always returns false to indicate the task is complete.
 	 */
 	public function task_import_listings( $task ) {
-		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
+		$listings = $this->get_task_listings( $task );
 
 		return $this->import_queued_items(
 			$listings,
@@ -2018,9 +2018,7 @@ class GeoDir_Converter_Directories_Pro extends GeoDir_Converter_Importer {
 				}
 
 				if ( $rating && class_exists( 'GeoDir_Comments' ) ) {
-					$_REQUEST['geodir_overallrating'] = absint( $rating );
-					GeoDir_Comments::save_rating( $comment->comment_ID );
-					unset( $_REQUEST['geodir_overallrating'] );
+					$this->save_review_rating( $comment->comment_ID, absint( $rating ) );
 				}
 			}
 		}

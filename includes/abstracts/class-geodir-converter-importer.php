@@ -12,6 +12,7 @@ namespace GeoDir_Converter\Abstracts;
 use WP_Error;
 use Geodir_Media;
 use GeoDir_Admin_Taxonomies;
+use GeoDir_Comments;
 use GeoDir_Converter\GeoDir_Converter_Utils;
 use GeoDir_Converter\GeoDir_Converter_Options_Handler;
 use GeoDir_Converter\Importers\GeoDir_Converter_Background_Process;
@@ -503,8 +504,8 @@ abstract class GeoDir_Converter_Importer {
 			admin_url( 'admin.php' )
 		);
 
-		// Remove gd_events from the list of post types. Events are imported separately.
-		unset( $post_type_options['gd_events'] );
+		// Remove gd_event from the list of post types. Events are imported separately.
+		unset( $post_type_options['gd_event'] );
 
 		aui()->select(
 			array(
@@ -1351,6 +1352,7 @@ abstract class GeoDir_Converter_Importer {
 
 		// save import settings.
 		$this->options_handler->update_option( 'import_settings', $settings );
+		$this->cached_import_settings = null;
 		// set import start time.
 		$this->options_handler->update_option( 'import_start_time', time() );
 
@@ -1542,9 +1544,10 @@ abstract class GeoDir_Converter_Importer {
 		$this->options_handler->delete_option( 'in_flight' );
 		$this->options_handler->delete_option( 'log_offset' );
 
-		$this->pending_checkpoint = null;
-		$this->in_flight_item     = null;
-		$this->items_since_flush  = 0;
+		$this->pending_checkpoint     = null;
+		$this->in_flight_item         = null;
+		$this->items_since_flush      = 0;
+		$this->cached_import_settings = null;
 	}
 
 	/**
@@ -1904,6 +1907,65 @@ abstract class GeoDir_Converter_Importer {
 		}
 
 		return '';
+	}
+
+	/**
+	 * Save a GeoDirectory rating for an imported review.
+	 *
+	 * GeoDir_Comments::save_rating() reads the rating from the request and records the
+	 * global $user_ID as the reviewer, which during an import is the admin running it.
+	 *
+	 * @since 2.3.0
+	 *
+	 * @param int $comment_id The GD review (comment) ID.
+	 * @param int $rating     The rating, 1-5.
+	 * @return void
+	 */
+	protected function save_review_rating( $comment_id, $rating ) {
+		global $user_ID;
+
+		$comment = get_comment( $comment_id );
+
+		if ( ! $comment || ! $rating || ! class_exists( 'GeoDir_Comments' ) ) {
+			return;
+		}
+
+		$current_user_id = $user_ID;
+		$user_ID         = (int) $comment->user_id; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+
+		$_REQUEST['geodir_overallrating'] = max( 1, min( 5, absint( $rating ) ) );
+		GeoDir_Comments::save_rating( $comment->comment_ID );
+		unset( $_REQUEST['geodir_overallrating'] );
+
+		$user_ID = $current_user_id; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+	}
+
+	/**
+	 * Get the listings queued on a task.
+	 *
+	 * A "Retry Failed" task carries only the failed item's source ID, so it is
+	 * turned into a one-item batch shaped like the rows the parse task queues.
+	 *
+	 * @since 2.3.0
+	 *
+	 * @param array $task The task.
+	 * @return array The queued listings.
+	 */
+	protected function get_task_listings( array $task ) {
+		if ( ! empty( $task['listings'] ) ) {
+			return (array) $task['listings'];
+		}
+
+		if ( ! empty( $task['source_id'] ) ) {
+			return array(
+				(object) array(
+					'ID'         => absint( $task['source_id'] ),
+					'post_title' => ! empty( $task['title'] ) ? $task['title'] : get_the_title( absint( $task['source_id'] ) ),
+				),
+			);
+		}
+
+		return array();
 	}
 
 	/**

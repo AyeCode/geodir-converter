@@ -1333,7 +1333,7 @@ class GeoDir_Converter_uListing extends GeoDir_Converter_Importer {
 	 * @return false Always returns false to signal task completion.
 	 */
 	public function task_import_listings( $task ) {
-		$listings = isset( $task['listings'] ) && ! empty( $task['listings'] ) ? (array) $task['listings'] : array();
+		$listings = $this->get_task_listings( $task );
 
 		return $this->import_queued_items(
 			$listings,
