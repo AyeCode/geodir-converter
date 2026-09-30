@@ -1670,6 +1670,23 @@ class GeoDir_Converter_Connections extends GeoDir_Converter_Importer {
 			return $this->next_task( $task );
 		}
 
+		// A "Retry Failed" task carries only the failed entry's ID.
+		if ( ! empty( $task['retry'] ) && ! empty( $task['source_id'] ) ) {
+			global $wpdb;
+
+			$entry = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM ' . CN_ENTRY_TABLE . ' WHERE id = %d', absint( $task['source_id'] ) ) );
+
+			if ( $entry ) {
+				$this->process_import_result( $this->import_single_listing( $entry ), 'listing', $this->get_entry_title( $entry ), $entry->id, self::ACTION_PARSE_LISTINGS );
+			} else {
+				$this->process_import_result( self::IMPORT_STATUS_FAILED, 'listing', isset( $task['title'] ) ? $task['title'] : '', absint( $task['source_id'] ), self::ACTION_PARSE_LISTINGS );
+			}
+
+			$this->flush_failed_items();
+
+			return false;
+		}
+
 		$batch_size = $this->get_batch_size();
 		$offset     = isset( $task['offset'] ) ? (int) $task['offset'] : 0;
 

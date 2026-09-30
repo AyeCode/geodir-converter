@@ -442,7 +442,7 @@ class GeoDir_Converter_Ajax {
 
 		if ( ! $module_type ) {
 			$this->send_json_error(
-				__( 'Unable to determine if this is an Events or Listings CSV. Please ensure your CSV contains the correct headers.', 'geodir-converter' ),
+				__( 'Unable to determine if this is an Events or Listings CSV. Please ensure your CSV contains the correct headers.', 'geodir-converter' )
 			);
 		}
 

@@ -675,6 +675,16 @@ class GeoDir_Converter_CSV extends GeoDir_Converter_Importer {
 		$this->maybe_create_importer_id_field( $post_type );
 
 		if ( empty( $rows ) ) {
+			// A "Retry Failed" task carries only an ID, which is not enough to rebuild this item.
+			if ( ! empty( $task['retry'] ) && isset( $task['source_id'] ) ) {
+				$title = isset( $task['title'] ) ? $task['title'] : '';
+
+				/* translators: %s: item title */
+				$this->log( sprintf( __( 'Cannot retry "%s" on its own. Run the import again; items already imported will be updated.', 'geodir-converter' ), $title ), 'warning' );
+				$this->process_import_result( self::IMPORT_STATUS_FAILED, 'listing', $title, (int) $task['source_id'] );
+				$this->flush_failed_items();
+			}
+
 			return false;
 		}
 
