@@ -415,16 +415,20 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 	 * @return array|WP_Error Validated and sanitized settings or WP_Error on failure.
 	 */
 	public function validate_settings( array $settings, array $files = array() ) {
-		$errors = array();
-
+		$settings['gd_post_type']      = ! empty( $settings['gd_post_type'] ) ? sanitize_text_field( $settings['gd_post_type'] ) : 'gd_place';
+		$settings['test_mode']         = ( isset( $settings['test_mode'] ) && ! empty( $settings['test_mode'] ) && 'no' !== $settings['test_mode'] ) ? 'yes' : 'no';
 		$settings['site_url']          = isset( $settings['site_url'] ) ? esc_url_raw( $settings['site_url'] ) : '';
 		$settings['database_host']     = isset( $settings['database_host'] ) ? sanitize_text_field( $settings['database_host'] ) : '';
 		$settings['database_name']     = isset( $settings['database_name'] ) ? sanitize_text_field( $settings['database_name'] ) : '';
 		$settings['database_user']     = isset( $settings['database_user'] ) ? sanitize_text_field( $settings['database_user'] ) : '';
 		$settings['database_password'] = isset( $settings['database_password'] ) ? (string) $settings['database_password'] : '';
+		$settings['database_prefix']   = isset( $settings['database_prefix'] ) ? preg_replace( '/[^A-Za-z0-9_]/', '', (string) $settings['database_prefix'] ) : '';
 
-		// The prefix is interpolated into every query, so only allow characters valid in a table name.
-		$settings['database_prefix'] = isset( $settings['database_prefix'] ) ? preg_replace( '/[^A-Za-z0-9_]/', '', (string) $settings['database_prefix'] ) : '';
+		$errors = array();
+
+		if ( ! geodir_is_gd_post_type( $settings['gd_post_type'] ) ) {
+			$errors[] = esc_html__( 'The selected post type is invalid. Please choose a valid post type.', 'geodir-converter' );
+		}
 
 		// Validate and sanitize site URL.
 		if ( empty( $settings['site_url'] ) ) {
@@ -3196,7 +3200,10 @@ class GeoDir_Converter_PMD extends GeoDir_Converter_Importer {
 			}
 		}
 
-		$hours = maybe_unserialize( $hours );
+		// Data comes from an external database, so never instantiate objects.
+		if ( is_string( $hours ) && is_serialized( $hours ) ) {
+			$hours = @unserialize( trim( $hours ), array( 'allowed_classes' => false ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize, WordPress.PHP.NoSilencedErrors.Discouraged
+		}
 
 		if ( empty( $hours ) || ! is_array( $hours ) ) {
 			return '';

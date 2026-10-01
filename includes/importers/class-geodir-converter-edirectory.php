@@ -2631,8 +2631,8 @@ class GeoDir_Converter_EDirectory extends GeoDir_Converter_Importer {
 		// Apply filters to allow modification of request args.
 		$request_args = apply_filters( 'edirectory_api_request_args', $request_args, $method, $endpoint, $args, $data, $options );
 
-		// Make the request.
-		$response = wp_remote_request( $url, $request_args );
+		// Use the safe variant so redirects to internal hosts are rejected as well.
+		$response = wp_safe_remote_request( $url, $request_args );
 
 		// Handle response.
 		if ( is_wp_error( $response ) ) {
