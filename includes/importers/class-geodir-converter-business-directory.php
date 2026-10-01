@@ -526,7 +526,8 @@ class GeoDir_Converter_Business_Directory extends GeoDir_Converter_Importer {
 		foreach ( $fields as $field ) {
 			$field['display_flags'] = ! empty( $field['display_flags'] ) ? explode( ',', $field['display_flags'] ) : array();
 			$field['validators']    = ! empty( $field['validators'] ) ? explode( ',', $field['validators'] ) : array();
-			$field['field_data']    = ! empty( $field['field_data'] ) ? unserialize( $field['field_data'] ) : array();
+			$field['field_data']    = ! empty( $field['field_data'] ) && is_serialized( $field['field_data'] ) ? @unserialize( trim( $field['field_data'] ), array( 'allowed_classes' => false ) ) : array(); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize, WordPress.PHP.NoSilencedErrors.Discouraged
+			$field['field_data']    = is_array( $field['field_data'] ) ? $field['field_data'] : array();
 
 			$gd_field = $this->prepare_single_field( $field['shortname'], $field, $post_type, $package_ids );
 

@@ -3,9 +3,9 @@ Contributors: stiofansisland, paoltaia, ayecode
 Donate link: https://wpgeodirectory.com
 Tags: convert, converter, connections, directorist, directories pro, directory, directory converter, geodirectory, hivepress, listify, listingpro, phpmydirectory, ulisting, vantage, edirectory
 Requires at least: 6.0
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.2
-Stable tag: 2.2.1
+Stable tag: 2.2.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
  
@@ -39,9 +39,8 @@ Currently supported directories:
 
 == Changelog ==
 
-= 2.2.2 - TBD =
-* Added support for importing listings from Houzez theme - ADDED
-* Added support for importing listings from Classified Listing plugin - ADDED
+= 2.2.2 - 2026-10-01 =
+* Added support for importing listings from Houzez theme and Classified Listing plugin - ADDED
 * Added support for importing stores from WP Store Locator plugin - ADDED
 * Added support for importing listings from any WP Job Manager based site - ADDED
 * Added support for importing Directorist reviews and favourites - ADDED

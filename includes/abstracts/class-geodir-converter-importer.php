@@ -1115,9 +1115,21 @@ abstract class GeoDir_Converter_Importer {
 	 * @return array|false Attachment data array with 'id', 'url', and 'src' keys, or false on failure.
 	 */
 	protected function import_attachment( $url ) {
-		$uploads   = wp_upload_dir();
-		$timeout   = 5;
-		$temp_file = Geodir_Media::download_url( esc_url_raw( $url ), $timeout );
+		$uploads = wp_upload_dir();
+		$timeout = 5;
+		$url     = esc_url_raw( $url );
+
+		// Only allow http(s) URLs.
+		if ( empty( $url ) || ! in_array( wp_parse_url( $url, PHP_URL_SCHEME ), array( 'http', 'https' ), true ) ) {
+			return false;
+		}
+
+		// Older GeoDirectory versions do not block requests to internal hosts, so validate the URL here.
+		if ( ! function_exists( 'geodir_is_safe_host' ) && ! wp_http_validate_url( $url ) ) {
+			return false;
+		}
+
+		$temp_file = Geodir_Media::download_url( $url, $timeout );
 
 		if ( is_wp_error( $temp_file ) || ! file_exists( $temp_file ) ) {
 			return false;
@@ -2122,6 +2134,11 @@ abstract class GeoDir_Converter_Importer {
 	 */
 	public function get_gd_listing_id( $listing_id, $meta_key, $post_type = 'gd_place' ) {
 		global $wpdb, $plugin_prefix;
+
+		// The post type and meta key are interpolated into the query, so only accept known values.
+		if ( ! geodir_is_gd_post_type( $post_type ) || ! preg_match( '/^[A-Za-z0-9_]+$/', (string) $meta_key ) ) {
+			return false;
+		}
 
 		$details_table = $plugin_prefix . $post_type . '_detail';
 

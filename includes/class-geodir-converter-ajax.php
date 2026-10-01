@@ -201,6 +201,19 @@ class GeoDir_Converter_Ajax {
 	}
 
 	/**
+	 * Get the posted GeoDirectory post type, falling back to gd_place when invalid.
+	 *
+	 * @since 2.2.2
+	 *
+	 * @return string The post type.
+	 */
+	protected function get_posted_post_type() {
+		$post_type = isset( $_POST['gd_post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['gd_post_type'] ) ) : 'gd_place'; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		return geodir_is_gd_post_type( $post_type ) ? $post_type : 'gd_place';
+	}
+
+	/**
 	 * Get importer instance.
 	 *
 	 * @since 2.0.2
@@ -243,9 +256,10 @@ class GeoDir_Converter_Ajax {
 			$this->send_json_error( __( 'You do not have permission to perform this action.', 'geodir-converter' ) );
 		}
 
-		$importer_id = isset( $_POST['importerId'] ) ? wp_unslash( $_POST['importerId'] ) : '';
+		$importer_id = isset( $_POST['importerId'] ) ? sanitize_text_field( wp_unslash( $_POST['importerId'] ) ) : '';
 		$settings    = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : array();
 		$settings    = is_array( $settings ) ? $settings : json_decode( $settings, true );
+		$settings    = is_array( $settings ) ? $settings : array();
 		$files       = isset( $_FILES['files'] ) ? wp_unslash( $_FILES['files'] ) : array();
 
 		$importer = $this->get_importer( $importer_id );
@@ -353,7 +367,12 @@ class GeoDir_Converter_Ajax {
 	 */
 	public function upload() {
 		$this->verify_nonce( __FUNCTION__ );
-		$importer_id = isset( $_POST['importerId'] ) ? sanitize_text_field( $_POST['importerId'] ) : '';
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			$this->send_json_error( __( 'You do not have permission to perform this action.', 'geodir-converter' ) );
+		}
+
+		$importer_id = isset( $_POST['importerId'] ) ? sanitize_text_field( wp_unslash( $_POST['importerId'] ) ) : '';
 
 		// Check if file was uploaded.
 		if ( ! isset( $_FILES['file'] ) ) {
@@ -653,7 +672,7 @@ class GeoDir_Converter_Ajax {
 		$total_rows  = $csv_importer->count_csv_rows( $upload['file'], $delimiter );
 
 		$existing_settings = $csv_importer->options_handler->get_option( 'import_settings', array() );
-		$gd_post_type      = isset( $_POST['gd_post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['gd_post_type'] ) ) : 'gd_place';
+		$gd_post_type      = $this->get_posted_post_type();
 
 		$csv_importer->options_handler->update_option(
 			'import_settings',
@@ -709,7 +728,7 @@ class GeoDir_Converter_Ajax {
 			$this->send_json_error( $csv_importer->get_error_message() );
 		}
 
-		$post_type = isset( $_POST['gd_post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['gd_post_type'] ) ) : 'gd_place';
+		$post_type = $this->get_posted_post_type();
 		$fields    = $csv_importer->get_mapping_fields( $post_type );
 
 		wp_send_json_success( array( 'fields' => $fields ) );
@@ -733,7 +752,7 @@ class GeoDir_Converter_Ajax {
 			$this->send_json_error( $csv_importer->get_error_message() );
 		}
 
-		$post_type = isset( $_POST['gd_post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['gd_post_type'] ) ) : 'gd_place';
+		$post_type = $this->get_posted_post_type();
 
 		$import_settings                 = $csv_importer->options_handler->get_option( 'import_settings', array() );
 		$import_settings['gd_post_type'] = $post_type;
@@ -776,6 +795,10 @@ class GeoDir_Converter_Ajax {
 
 		if ( ! $file_id ) {
 			$this->send_json_error( __( 'File ID is required.', 'geodir-converter' ) );
+		}
+
+		if ( empty( $delimiter ) || strlen( $delimiter ) > 1 ) {
+			$delimiter = ',';
 		}
 
 		$import_settings                  = $csv_importer->options_handler->get_option( 'import_settings', array() );
