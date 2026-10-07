@@ -1,0 +1,20 @@
+# Copy of this file goes into each add-on repo as .github/workflows/release.yml with SLUG replaced.
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release again
+        required: true
+
+jobs:
+  release:
+    uses: AyeCode/release-workflow/.github/workflows/release.yml@main
+    with:
+      slug: geodir-converter
+      tag: ${{ github.event.inputs.tag || github.ref_name }}
+    secrets: inherit
